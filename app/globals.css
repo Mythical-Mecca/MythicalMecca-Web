@@ -8,9 +8,10 @@
   --mm-blue: #4aa8ff;
   --mm-violet: #2c7be5;
   --mm-bg: #160f0a;
-  --mm-surface: #211710;
-  --mm-elevated: #2c2015;
-  --mm-border: #4a3826;
+  /* chrome surfaces: translucent dark navy (used via color-mix) */
+  --mm-surface: #131b30;
+  --mm-elevated: #1d2746;
+  --mm-border: #35446a;
   --mm-text: #f1e7d3;
   --mm-text-dim: #b7a283;
   --mm-live: #7fb069;
