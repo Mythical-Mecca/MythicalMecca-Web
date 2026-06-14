@@ -8,6 +8,8 @@ import {
   uuid,
   primaryKey,
   index,
+  boolean,
+  doublePrecision,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "next-auth/adapters";
 
@@ -157,3 +159,172 @@ export const pageHits = pgTable(
   },
   (t) => [index("page_hits_path_created_idx").on(t.path, t.createdAt)]
 );
+
+// ---------------------------------------------------------------------------
+// Content domain enums
+// ---------------------------------------------------------------------------
+export const fileEntityEnum = pgEnum("file_entity", [
+  "avatar",
+  "post",
+  "event",
+  "vendor_gallery",
+  "hunt_proof",
+  "misc",
+]);
+export const postStatusEnum = pgEnum("post_status", [
+  "draft",
+  "published",
+  "archived",
+]);
+export const eventStatusEnum = pgEnum("event_status", [
+  "draft",
+  "published",
+  "live",
+  "ended",
+  "cancelled",
+]);
+
+// ---------------------------------------------------------------------------
+// Files — central registry (uploader UI lands in Phase 2)
+// ---------------------------------------------------------------------------
+export const files = pgTable("files", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ownerId: text("owner_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  blobUrl: text("blob_url").notNull(),
+  obscuredKey: text("obscured_key").notNull().unique(),
+  originalName: text("original_name"),
+  mime: text("mime"),
+  sizeBytes: integer("size_bytes"),
+  entityType: fileEntityEnum("entity_type"),
+  entityId: text("entity_id"),
+  width: integer("width"),
+  height: integer("height"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+// ---------------------------------------------------------------------------
+// Posts & news
+// ---------------------------------------------------------------------------
+export const posts = pgTable(
+  "posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    authorId: text("author_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    slug: text("slug").notNull().unique(),
+    title: text("title").notNull(),
+    excerpt: text("excerpt"),
+    bodyMd: text("body_md").notNull(),
+    coverFileId: uuid("cover_file_id").references(() => files.id, {
+      onDelete: "set null",
+    }),
+    division: divisionEnum("division"),
+    status: postStatusEnum("status").notNull().default("draft"),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("posts_status_published_idx").on(t.status, t.publishedAt)]
+);
+
+// ---------------------------------------------------------------------------
+// Events
+// ---------------------------------------------------------------------------
+export const events = pgTable(
+  "events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull().unique(),
+    title: text("title").notNull(),
+    summary: text("summary"),
+    bodyMd: text("body_md"),
+    coverFileId: uuid("cover_file_id").references(() => files.id, {
+      onDelete: "set null",
+    }),
+    division: divisionEnum("division"),
+    status: eventStatusEnum("status").notNull().default("draft"),
+    location: text("location"),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    capacity: integer("capacity"),
+    createdBy: text("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("events_starts_ends_idx").on(t.startsAt, t.endsAt)]
+);
+
+// ---------------------------------------------------------------------------
+// Collab / distress beacon submissions
+// ---------------------------------------------------------------------------
+export const collabSubmissions = pgTable("collab_submissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  org: text("org"),
+  message: text("message").notNull(),
+  payload: jsonb("payload"),
+  handled: boolean("handled").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// Vendors — The Armory (approval flow in Phase 3; seeded for the gallery now)
+// ---------------------------------------------------------------------------
+export const vendors = pgTable("vendors", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id")
+    .references(() => users.id, { onDelete: "set null" })
+    .unique(),
+  slug: text("slug").notNull().unique(),
+  businessName: text("business_name").notNull(),
+  tagline: text("tagline"),
+  bio: text("bio"),
+  logoFileId: uuid("logo_file_id").references(() => files.id, {
+    onDelete: "set null",
+  }),
+  socials: jsonb("socials"),
+  division: divisionEnum("division"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const vendorGalleryItems = pgTable("vendor_gallery_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  vendorId: uuid("vendor_id")
+    .notNull()
+    .references(() => vendors.id, { onDelete: "cascade" }),
+  fileId: uuid("file_id").references(() => files.id, { onDelete: "set null" }),
+  title: text("title"),
+  caption: text("caption"),
+  externalUrl: text("external_url"),
+  sort: integer("sort").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
