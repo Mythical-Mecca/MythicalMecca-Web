@@ -7,14 +7,14 @@
   /* accent: saber blue (matches the blade in the background art) */
   --mm-blue: #4aa8ff;
   --mm-violet: #2c7be5;
-  --mm-bg: #160f0a;
-  /* chrome surfaces: translucent dark navy (used via color-mix) */
+  /* deep navy base so navy chrome + blue accent + gold all sit together */
+  --mm-bg: #0b0f1c;
   --mm-surface: #131b30;
   --mm-elevated: #1d2746;
   --mm-border: #35446a;
   --mm-text: #f1e7d3;
-  --mm-text-dim: #b7a283;
-  --mm-live: #7fb069;
+  --mm-text-dim: #9aa3bd;
+  --mm-live: #5cc08c;
   --mm-danger: #d9533b;
   --mm-grad: linear-gradient(135deg, #6cb8ff, #2c7be5);
 }
@@ -43,11 +43,11 @@ body {
   background-color: var(--mm-bg);
   color: var(--mm-text);
   font-family: var(--font-sans), Georgia, serif;
-  /* hearth glow from below, warm lantern light from above */
+  /* cool moonlit ambience with a faint gold hearth-hint from below */
   background-image:
-    radial-gradient(circle at 50% 110%, rgba(181, 71, 31, 0.16), transparent 55%),
-    radial-gradient(circle at 50% -10%, rgba(242, 180, 65, 0.1), transparent 50%),
-    radial-gradient(circle at 100% 0%, rgba(194, 119, 46, 0.08), transparent 45%);
+    radial-gradient(circle at 50% -10%, rgba(44, 123, 229, 0.16), transparent 52%),
+    radial-gradient(circle at 100% 0%, rgba(74, 168, 255, 0.08), transparent 45%),
+    radial-gradient(circle at 50% 115%, rgba(242, 180, 65, 0.06), transparent 50%);
   background-attachment: fixed;
 }
 

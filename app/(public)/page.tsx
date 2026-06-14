@@ -21,7 +21,7 @@ export default async function HomePage() {
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(to bottom, rgba(20,13,8,0.86) 0%, rgba(20,13,8,0.58) 44%, rgba(20,13,8,0.8) 76%, rgba(20,13,8,0.95) 100%)",
+              "linear-gradient(to bottom, rgba(11,15,28,0.88) 0%, rgba(11,15,28,0.6) 44%, rgba(11,15,28,0.82) 76%, rgba(11,15,28,0.96) 100%)",
           }}
         />
       </div>

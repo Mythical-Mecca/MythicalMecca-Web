@@ -66,7 +66,7 @@ export function ParticleField({ className }: { className?: string }) {
           const b = points[j];
           const dist = Math.hypot(a.x - b.x, a.y - b.y);
           if (dist < 110) {
-            ctx.strokeStyle = `rgba(224, 137, 47, ${0.1 * (1 - dist / 110)})`;
+            ctx.strokeStyle = `rgba(74, 168, 255, ${0.12 * (1 - dist / 110)})`;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
