@@ -8,6 +8,7 @@ import {
   uuid,
   primaryKey,
   index,
+  uniqueIndex,
   boolean,
   doublePrecision,
 } from "drizzle-orm/pg-core";
@@ -318,6 +319,47 @@ export const vendors = pgTable("vendors", {
     .notNull()
     .defaultNow(),
 });
+
+export const eventComments = pgTable(
+  "event_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("event_comments_event_idx").on(t.eventId, t.createdAt)]
+);
+
+export const eventReviews = pgTable(
+  "event_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    rating: integer("rating").notNull(),
+    body: text("body"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("event_reviews_unique").on(t.eventId, t.userId)]
+);
 
 export const vendorApplications = pgTable("vendor_applications", {
   id: uuid("id").primaryKey().defaultRandom(),

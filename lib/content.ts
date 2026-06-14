@@ -81,6 +81,18 @@ export const samplePosts: PostView[] = [
 
 export const sampleEvents: EventView[] = [
   {
+    slug: "pilot-mixer-launch-night",
+    title: "Pilot Mixer — Launch Night",
+    summary: "An evening to christen the new hangar. Drinks, demos, dice.",
+    bodyMd:
+      "We're opening the hangar doors.\n\nMeet fellow pilots across all four divisions, try the arcade sims, and grab a launch-night badge. First sortie of the season.",
+    division: "maker",
+    location: "The Hangar, Woodstock",
+    startsAt: "2026-06-14T18:00:00Z",
+    endsAt: "2026-06-14T23:00:00Z",
+    status: "live",
+  },
+  {
     slug: "summer-sortie-2026",
     title: "Summer Sortie 2026",
     summary: "A full-day in-person op: tournaments, cosplay, makers, and a hunt.",
@@ -219,6 +231,27 @@ export async function getEvents(): Promise<EventView[]> {
 export async function getEvent(slug: string): Promise<EventView | null> {
   const all = await getEvents();
   return all.find((e) => e.slug === slug) ?? null;
+}
+
+/**
+ * The event a Pilot should be nudged toward right now: within its window, or
+ * the same day leading up to its start. Drives the sortie card + green dot.
+ */
+export async function getLiveEvent(): Promise<EventView | null> {
+  const all = await getEvents();
+  const now = Date.now();
+  const LEAD_MS = 12 * 60 * 60 * 1000;
+  return (
+    all.find((e) => {
+      const start = new Date(e.startsAt).getTime();
+      const end = new Date(e.endsAt).getTime();
+      return now >= start - LEAD_MS && now <= end;
+    }) ?? null
+  );
+}
+
+export function isEventStarted(e: EventView): boolean {
+  return Date.now() >= new Date(e.startsAt).getTime();
 }
 
 export async function getVendors(): Promise<VendorView[]> {

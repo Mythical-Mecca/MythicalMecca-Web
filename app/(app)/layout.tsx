@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireRole } from "@/lib/guard";
 import { signOut } from "@/lib/auth";
 import { roleAtLeast } from "@/lib/rbac";
+import { getLiveEvent } from "@/lib/content";
 
 export default async function AppLayout({
   children,
@@ -10,6 +11,7 @@ export default async function AppLayout({
 }) {
   const session = await requireRole("member");
   const role = session.user.role;
+  const liveEvent = await getLiveEvent();
 
   return (
     <div className="flex min-h-full flex-col">
@@ -22,6 +24,14 @@ export default async function AppLayout({
             >
               MYTHIC<span className="mm-gradient-text"> MECHA</span>
             </Link>
+            {liveEvent && (
+              <Link
+                href={`/events/${liveEvent.slug}`}
+                className="hidden items-center gap-2 rounded-full border border-[var(--mm-live)] px-3 py-1 text-xs text-[var(--mm-live)] sm:inline-flex"
+              >
+                <span className="mm-dot-live" /> {liveEvent.title}
+              </Link>
+            )}
             <div className="hidden items-center gap-6 text-sm text-[var(--mm-text-dim)] md:flex">
               <Link href="/dashboard" className="hover:text-[var(--mm-text)]">Hangar</Link>
               <Link href="/events" className="hover:text-[var(--mm-text)]">Ops</Link>
