@@ -57,7 +57,7 @@ export default async function AppLayout({
                 await signOut({ redirectTo: "/" });
               }}
             >
-              <button className="mm-btn mm-btn-ghost text-sm">Depart</button>
+              <button className="mm-btn mm-btn-ghost text-sm">Sign out</button>
             </form>
           </div>
         </nav>

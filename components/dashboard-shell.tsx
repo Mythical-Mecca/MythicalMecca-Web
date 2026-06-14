@@ -45,7 +45,7 @@ export function DashboardShell({
           }}
         >
           <button className="mm-btn mm-btn-ghost w-full justify-center text-sm">
-            Depart
+            Sign out
           </button>
         </form>
       </aside>

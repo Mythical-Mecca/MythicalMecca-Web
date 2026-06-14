@@ -37,7 +37,7 @@ export default async function DashboardPage() {
             href={`/events/${liveEvent.slug}`}
             className="mm-btn mm-btn-primary mt-4 text-sm"
           >
-            Set out
+            View event
           </Link>
         </div>
       )}
@@ -57,19 +57,19 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Link href="/hunts" className="mm-glass p-6 transition hover:border-[var(--mm-gold)]">
+        <Link href="/hunts" className="mm-glass p-6 transition hover:border-[var(--mm-violet)]">
           <p className="font-[family-name:var(--font-display)] text-lg">Quests</p>
           <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
             Scavenger trails & leaderboards
           </p>
         </Link>
-        <Link href="/arcade" className="mm-glass p-6 transition hover:border-[var(--mm-gold)]">
+        <Link href="/arcade" className="mm-glass p-6 transition hover:border-[var(--mm-violet)]">
           <p className="font-[family-name:var(--font-display)] text-lg">Training Yard</p>
           <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
             Trials of skill · {xp} renown earned
           </p>
         </Link>
-        <Link href="/events" className="mm-glass p-6 transition hover:border-[var(--mm-gold)]">
+        <Link href="/events" className="mm-glass p-6 transition hover:border-[var(--mm-violet)]">
           <p className="font-[family-name:var(--font-display)] text-lg">Gatherings</p>
           <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
             Feasts, gatherings & quests

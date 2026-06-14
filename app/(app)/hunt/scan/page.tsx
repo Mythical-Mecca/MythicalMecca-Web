@@ -68,7 +68,7 @@ export default async function ScanPage({
               href={`/hunts/${huntSlug}`}
               className="mm-btn mm-btn-primary mt-6"
             >
-              Continue quest
+              Continue
             </Link>
           </>
         ) : (
@@ -82,7 +82,7 @@ export default async function ScanPage({
                 : "This rune seal is false or has expired."}
             </p>
             <Link href="/hunts" className="mm-btn mm-btn-ghost mt-6">
-              Quest board
+              Back to quests
             </Link>
           </>
         )}

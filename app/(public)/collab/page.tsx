@@ -84,7 +84,7 @@ export default async function CollabPage({
           />
         </div>
         <button type="submit" className="mm-btn mm-btn-primary">
-          Send the raven
+          Send
         </button>
       </form>
     </div>

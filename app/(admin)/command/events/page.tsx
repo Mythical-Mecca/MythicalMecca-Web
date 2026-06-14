@@ -83,7 +83,7 @@ export default async function AdminEventsPage({
             className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--mm-violet)]"
           />
           <button type="submit" className="mm-btn mm-btn-primary">
-            Schedule op
+            Create event
           </button>
         </form>
       </section>

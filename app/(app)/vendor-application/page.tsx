@@ -111,7 +111,7 @@ export default async function VendorApplicationPage({
               />
             </div>
             <button type="submit" className="mm-btn mm-btn-primary">
-              Send petition
+              Submit
             </button>
           </form>
         </section>

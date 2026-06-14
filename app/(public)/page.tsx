@@ -35,20 +35,21 @@ export default async function HomePage() {
             <span className="mm-dot-live" /> The gates are open
           </span>
           <h1 className="font-[family-name:var(--font-display)] text-5xl leading-tight md:text-7xl">
-            Begin your
-            <br />
-            <span className="mm-gradient-text">quest.</span>
+            Your next <span className="mm-gradient-text">Adventure</span>
           </h1>
-          <p className="mt-6 max-w-xl text-balance text-lg text-[var(--mm-text-dim)]">
+          <p className="mt-5 font-[family-name:var(--font-display)] text-2xl tracking-wide text-[var(--mm-text)] md:text-3xl">
+            Begin your quest.
+          </p>
+          <p className="mt-5 max-w-xl text-balance text-lg text-[var(--mm-text-dim)]">
             Mythic Mecha is the hearth for the geek collective — tabletop,
             arcade, otaku and maker guilds gathered under one roof.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link href="/login" className="mm-btn mm-btn-primary">
-              Enter the hall
+              Sign in
             </Link>
             <Link href="/events" className="mm-btn mm-btn-ghost">
-              See the gatherings
+              View events
             </Link>
           </div>
         </div>
@@ -110,7 +111,7 @@ export default async function HomePage() {
               <Link
                 key={p.slug}
                 href={`/news/${p.slug}`}
-                className="mm-glass group p-5 transition hover:border-[var(--mm-gold)]"
+                className="mm-glass group p-5 transition hover:border-[var(--mm-violet)]"
               >
                 <div className="mb-3 flex items-center justify-between">
                   <DivisionBadge division={p.division} />

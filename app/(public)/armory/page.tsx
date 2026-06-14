@@ -21,7 +21,7 @@ export default async function ArmoryPage() {
           </p>
         </div>
         <Link href="/login" className="mm-btn mm-btn-ghost text-sm">
-          Become an artisan
+          Apply
         </Link>
       </div>
 

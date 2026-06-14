@@ -4,9 +4,9 @@
   /* Cozy tavern / candlelit-inn palette */
   --mm-gold: #f2b441;
   --mm-gold-hi: #ffd27a;
-  /* kept names blue/violet — repurposed as warm ember accents */
-  --mm-blue: #e0892f;
-  --mm-violet: #c2772e;
+  /* accent: saber blue (matches the blade in the background art) */
+  --mm-blue: #4aa8ff;
+  --mm-violet: #2c7be5;
   --mm-bg: #160f0a;
   --mm-surface: #211710;
   --mm-elevated: #2c2015;
@@ -15,7 +15,7 @@
   --mm-text-dim: #b7a283;
   --mm-live: #7fb069;
   --mm-danger: #d9533b;
-  --mm-grad: linear-gradient(135deg, #e0892f, #b5471f);
+  --mm-grad: linear-gradient(135deg, #6cb8ff, #2c7be5);
 }
 
 @theme inline {

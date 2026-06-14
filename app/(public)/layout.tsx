@@ -22,7 +22,7 @@ export default function PublicLayout({
             <Link href="/collab" className="hover:text-[var(--mm-text)]">Send a raven</Link>
           </div>
           <Link href="/login" className="mm-btn mm-btn-primary text-sm">
-            Enter the hall
+            Sign in
           </Link>
         </nav>
       </header>
