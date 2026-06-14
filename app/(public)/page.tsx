@@ -170,7 +170,10 @@ export default async function HomePage() {
       {/* ---------------- Latest tidings — forest party ---------------- */}
       <section className="relative isolate overflow-hidden">
         <ImageBackdrop src={BG3} overlay={bandOverlay} />
-        <div className="mx-auto flex min-h-[420px] max-w-6xl flex-col justify-center px-6 py-20 sm:min-h-[520px]">
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-70">
+          <ParticleField color="105, 219, 124" />
+        </div>
+        <div className="mx-auto flex min-h-[480px] max-w-6xl flex-col justify-center px-6 py-20 sm:min-h-[660px]">
           <SectionTitle
             icon="game-icons:scroll-unfurled"
             lead="Latest"
@@ -263,7 +266,10 @@ export default async function HomePage() {
       {/* ---------------- Our community — party on the cliff ---------------- */}
       <section className="relative isolate overflow-hidden">
         <ImageBackdrop src={BG2} overlay={bandOverlay} />
-        <div className="mx-auto flex min-h-[420px] max-w-6xl flex-col justify-center px-6 py-20 sm:min-h-[520px]">
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-70">
+          <ParticleField color="108, 184, 255" />
+        </div>
+        <div className="mx-auto flex min-h-[480px] max-w-6xl flex-col justify-center px-6 py-20 sm:min-h-[660px]">
           <SectionTitle
             icon="mdi:account-group-outline"
             lead="Our"
