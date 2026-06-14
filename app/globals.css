@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+:root {
+  --mm-gold: #f5c451;
+  --mm-gold-hi: #ffd874;
+  --mm-blue: #2f4be0;
+  --mm-violet: #7c3aed;
+  --mm-bg: #070b1e;
+  --mm-surface: #0f1330;
+  --mm-elevated: #1a1142;
+  --mm-border: #2a2f55;
+  --mm-text: #e6e9f5;
+  --mm-text-dim: #9aa3c7;
+  --mm-live: #34d399;
+  --mm-danger: #f4577b;
+  --mm-grad: linear-gradient(135deg, #2f4be0, #7c3aed);
+}
+
+@theme inline {
+  --color-bg: var(--mm-bg);
+  --color-surface: var(--mm-surface);
+  --color-elevated: var(--mm-elevated);
+  --color-gold: var(--mm-gold);
+  --color-gold-hi: var(--mm-gold-hi);
+  --color-blue: var(--mm-blue);
+  --color-violet: var(--mm-violet);
+  --color-hud-border: var(--mm-border);
+  --color-hud-text: var(--mm-text);
+  --color-hud-dim: var(--mm-text-dim);
+  --color-live: var(--mm-live);
+  --color-danger: var(--mm-danger);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --radius-pill: 9999px;
+  --radius-card: 16px;
+}
+
+body {
+  background-color: var(--mm-bg);
+  color: var(--mm-text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  background-image:
+    radial-gradient(circle at 50% -10%, rgba(124, 58, 237, 0.18), transparent 55%),
+    radial-gradient(circle at 100% 0%, rgba(47, 75, 224, 0.12), transparent 45%),
+    linear-gradient(rgba(42, 47, 85, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(42, 47, 85, 0.22) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+  background-attachment: fixed;
+}
+
+@layer components {
+  .mm-gradient-text {
+    background: var(--mm-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .mm-glass {
+    background: color-mix(in srgb, var(--mm-surface) 65%, transparent);
+    border: 1px solid var(--mm-border);
+    border-radius: var(--radius-card);
+    backdrop-filter: blur(12px);
+  }
+
+  .mm-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.4rem;
+    border-radius: var(--radius-pill);
+    font-weight: 500;
+    line-height: 1;
+    transition: transform 0.12s ease, box-shadow 0.2s ease, background 0.2s ease;
+    cursor: pointer;
+  }
+  .mm-btn:hover { transform: translateY(-1px); }
+
+  .mm-btn-primary {
+    background: var(--mm-gold);
+    color: #070b1e;
+  }
+  .mm-btn-primary:hover {
+    background: var(--mm-gold-hi);
+    box-shadow: 0 0 24px rgba(245, 196, 81, 0.35);
+  }
+
+  .mm-btn-ghost {
+    background: transparent;
+    color: var(--mm-text);
+    border: 1px solid var(--mm-border);
+  }
+  .mm-btn-ghost:hover { border-color: var(--mm-violet); }
+
+  .mm-dot-live {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--mm-live);
+    box-shadow: 0 0 10px var(--mm-live);
+    animation: mm-pulse 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes mm-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-dot-live { animation: none; }
+  .mm-btn:hover { transform: none; }
+}
