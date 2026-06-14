@@ -58,7 +58,7 @@ export async function getGameLeaderboard(slug: string): Promise<ScoreRow[]> {
       .groupBy(users.name)
       .orderBy(asc(sql`min(${gameScores.score})`))
       .limit(10);
-    return rows.map((r) => ({ name: r.name ?? "Pilot", score: Number(r.best) }));
+    return rows.map((r) => ({ name: r.name ?? "Adventurer", score: Number(r.best) }));
   } catch {
     return [];
   }

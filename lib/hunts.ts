@@ -67,16 +67,16 @@ interface RawHunt {
 // ---------------------------------------------------------------------------
 const SAMPLE_HUNTS: RawHunt[] = [
   {
-    slug: "launch-night-recon",
-    title: "Launch Night Recon",
+    slug: "opening-night-quest",
+    title: "Opening Night Quest",
     description:
-      "Six objectives to christen the new hangar. Solve, scan and prove your way to the top of the board.",
+      "Six trials to christen the new hall. Solve, seek and prove your way to the top of the board.",
     mode: "hybrid",
     steps: [
       {
         id: "s1",
         type: "riddle",
-        title: "Cipher lock",
+        title: "The riddle lock",
         prompt:
           "I have keys but open no locks. I have space but no room. You can enter but not go in. What am I?",
         points: 10,
@@ -85,43 +85,43 @@ const SAMPLE_HUNTS: RawHunt[] = [
       {
         id: "s2",
         type: "unlock_code",
-        title: "Hangar access code",
-        prompt: "Find the code stencilled near the maker bay and enter it.",
+        title: "Gatehouse password",
+        prompt: "Find the password chalked near the artisans' market and enter it.",
         points: 10,
         config: { code: "ALPHA-7" },
       },
       {
         id: "s3",
         type: "trivia_gate",
-        title: "Mecha trivia",
-        prompt: "Which term describes a pilot's neural link to their mech?",
+        title: "Guild lore",
+        prompt: "Which standing sits between Squire and Champion?",
         points: 15,
         config: {
-          choices: ["Sync rate", "Boot loop", "Overdrive", "Cooldown"],
+          choices: ["Knight", "Novice", "Legend", "Warden"],
           correct: 0,
         },
       },
       {
         id: "s4",
         type: "geo_checkpoint",
-        title: "Reach the beacon",
-        prompt: "Make your way to the hangar coordinates and check in.",
+        title: "Reach the waypoint",
+        prompt: "Make your way to the hall's coordinates and check in.",
         points: 20,
         config: { lat: -33.9249, lng: 18.4241, radius_m: 50000 },
       },
       {
         id: "s5",
         type: "qr_scan",
-        title: "Data uplink",
-        prompt: "Scan the uplink QR posted at the arcade station.",
+        title: "The rune seal",
+        prompt: "Find the rune seal posted at the training yard and read it.",
         points: 20,
         config: {},
       },
       {
         id: "s6",
         type: "photo_proof",
-        title: "Pilot selfie",
-        prompt: "Upload a photo of your launch-night badge.",
+        title: "Adventurer's portrait",
+        prompt: "Upload a likeness of you with your opening-night token.",
         points: 15,
         config: { auto_approve: true },
       },
@@ -385,7 +385,7 @@ export async function getLeaderboard(huntSlug: string): Promise<LeaderRow[]> {
       .orderBy(desc(sql`sum(${huntProgress.pointsAwarded})`))
       .limit(20);
     return rows.map((r) => ({
-      name: r.name ?? "Pilot",
+      name: r.name ?? "Adventurer",
       points: Number(r.points),
       steps: Number(r.steps),
     }));

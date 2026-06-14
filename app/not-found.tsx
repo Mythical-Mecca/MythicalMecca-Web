@@ -6,13 +6,13 @@ export default function NotFound() {
       <p className="font-[family-name:var(--font-display)] text-6xl mm-gradient-text">
         404
       </p>
-      <h1 className="mt-4 text-xl">Signal lost</h1>
+      <h1 className="mt-4 text-xl">Lost in the wilds</h1>
       <p className="mt-2 max-w-sm text-[var(--mm-text-dim)]">
-        This sector is empty space. The coordinates you requested don&apos;t map
-        to anything in the hangar.
+        These lands are uncharted. The path you sought leads nowhere in the
+        realm.
       </p>
       <Link href="/" className="mm-btn mm-btn-primary mt-8">
-        Return to base
+        Return to the hall
       </Link>
     </div>
   );

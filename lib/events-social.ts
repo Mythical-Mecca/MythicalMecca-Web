@@ -57,7 +57,7 @@ export async function getComments(slug: string): Promise<CommentView[]> {
       .orderBy(desc(eventComments.createdAt));
     return rows.map((r) => ({
       id: r.id,
-      author: r.author ?? "Pilot",
+      author: r.author ?? "Adventurer",
       body: r.body,
       createdAt: r.createdAt.toISOString(),
     }));
@@ -85,7 +85,7 @@ export async function getReviews(slug: string): Promise<ReviewView[]> {
       .orderBy(desc(eventReviews.createdAt));
     return rows.map((r) => ({
       id: r.id,
-      author: r.author ?? "Pilot",
+      author: r.author ?? "Adventurer",
       rating: r.rating,
       body: r.body,
       createdAt: r.createdAt.toISOString(),

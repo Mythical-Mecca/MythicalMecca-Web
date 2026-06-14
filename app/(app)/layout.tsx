@@ -33,17 +33,17 @@ export default async function AppLayout({
               </Link>
             )}
             <div className="hidden items-center gap-6 text-sm text-[var(--mm-text-dim)] md:flex">
-              <Link href="/dashboard" className="hover:text-[var(--mm-text)]">Hangar</Link>
-              <Link href="/events" className="hover:text-[var(--mm-text)]">Events</Link>
-              <Link href="/hunts" className="hover:text-[var(--mm-text)]">Ops</Link>
-              <Link href="/arcade" className="hover:text-[var(--mm-text)]">Arcade</Link>
+              <Link href="/dashboard" className="hover:text-[var(--mm-text)]">Guild Hall</Link>
+              <Link href="/events" className="hover:text-[var(--mm-text)]">Gatherings</Link>
+              <Link href="/hunts" className="hover:text-[var(--mm-text)]">Quests</Link>
+              <Link href="/arcade" className="hover:text-[var(--mm-text)]">Training Yard</Link>
               <Link href="/armory" className="hover:text-[var(--mm-text)]">Armory</Link>
-              <Link href="/profile" className="hover:text-[var(--mm-text)]">Loadout</Link>
+              <Link href="/profile" className="hover:text-[var(--mm-text)]">Character</Link>
               {roleAtLeast(role, "vendor") && (
                 <Link href="/forge" className="text-[var(--mm-gold)] hover:text-[var(--mm-gold-hi)]">Forge</Link>
               )}
               {roleAtLeast(role, "admin") && (
-                <Link href="/command" className="text-[var(--mm-gold)] hover:text-[var(--mm-gold-hi)]">Command</Link>
+                <Link href="/command" className="text-[var(--mm-gold)] hover:text-[var(--mm-gold-hi)]">The Keep</Link>
               )}
             </div>
           </div>
@@ -57,7 +57,7 @@ export default async function AppLayout({
                 await signOut({ redirectTo: "/" });
               }}
             >
-              <button className="mm-btn mm-btn-ghost text-sm">Eject</button>
+              <button className="mm-btn mm-btn-ghost text-sm">Depart</button>
             </form>
           </div>
         </nav>

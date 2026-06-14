@@ -3,7 +3,7 @@ import { getEvents } from "@/lib/content";
 import { DivisionBadge } from "@/components/content-ui";
 import { formatDateTime } from "@/lib/format";
 
-export const metadata = { title: "Ops — Mythic Mecha" };
+export const metadata = { title: "Gatherings — Mythic Mecha" };
 
 export default async function EventsPage() {
   const events = await getEvents();
@@ -11,10 +11,10 @@ export default async function EventsPage() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-16">
       <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wide">
-        Upcoming <span className="mm-gradient-text">ops</span>
+        Upcoming <span className="mm-gradient-text">gatherings</span>
       </h1>
       <p className="mt-3 text-[var(--mm-text-dim)]">
-        Gatherings, tournaments, screenings and hunts across the divisions.
+        Feasts, tournaments, screenings and quests across the guilds.
       </p>
 
       <div className="mt-10 space-y-4">

@@ -56,33 +56,33 @@ export default async function ScanPage({
         {status === "ok" ? (
           <>
             <p className="font-[family-name:var(--font-display)] text-4xl mm-gradient-text">
-              UPLINK
+              RUNE SEAL
             </p>
             <h1 className="mt-2 text-xl text-[var(--mm-live)]">
-              Data received · +{points} XP
+              Seal struck · +{points} renown
             </h1>
             <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
-              Objective cleared. Back to the hunt to keep climbing.
+              Trial cleared. Back to the quest to keep climbing.
             </p>
             <Link
               href={`/hunts/${huntSlug}`}
               className="mm-btn mm-btn-primary mt-6"
             >
-              Continue hunt
+              Continue quest
             </Link>
           </>
         ) : (
           <>
             <p className="font-[family-name:var(--font-display)] text-3xl text-[var(--mm-danger)]">
-              SIGNAL LOST
+              BROKEN SEAL
             </p>
             <p className="mt-3 text-sm text-[var(--mm-text-dim)]">
               {status === "error"
-                ? "Could not record this scan. It may already be logged."
-                : "This uplink token is invalid or expired."}
+                ? "This seal could not be struck. It may already be claimed."
+                : "This rune seal is false or has expired."}
             </p>
             <Link href="/hunts" className="mm-btn mm-btn-ghost mt-6">
-              Ops board
+              Quest board
             </Link>
           </>
         )}

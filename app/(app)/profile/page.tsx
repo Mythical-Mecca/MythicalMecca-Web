@@ -28,10 +28,10 @@ export default async function ProfilePage({
     <div className="max-w-2xl space-y-10">
       <div>
         <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-wide">
-          Mech <span className="mm-gradient-text">loadout</span>
+          Character <span className="mm-gradient-text">sheet</span>
         </h1>
         <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
-          {user.email} · clearance{" "}
+          {user.email} · standing{" "}
           <span className="uppercase tracking-widest text-[var(--mm-gold)]">
             {user.role}
           </span>
@@ -41,7 +41,7 @@ export default async function ProfilePage({
       <section className="mm-glass flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between">
         <SyncGauge pct={rank.pct} rank={rank.rank} />
         <div className="text-sm">
-          <p className="text-[var(--mm-text-dim)]">XP core</p>
+          <p className="text-[var(--mm-text-dim)]">Renown</p>
           <p className="font-[family-name:var(--font-display)] text-2xl text-[var(--mm-gold)]">
             {xp}
           </p>
@@ -52,7 +52,7 @@ export default async function ProfilePage({
           </p>
           {badges.length === 0 ? (
             <p className="text-sm text-[var(--mm-text-dim)]">
-              No badges yet — clear an op to earn your first.
+              No badges yet — clear a quest to earn your first.
             </p>
           ) : (
             <div className="flex flex-wrap gap-2">
@@ -71,7 +71,7 @@ export default async function ProfilePage({
 
       {saved && (
         <div className="mm-glass border-[var(--mm-live)] p-3 text-sm text-[var(--mm-live)]">
-          Loadout saved.
+          Saved.
         </div>
       )}
       {error && (
@@ -82,12 +82,12 @@ export default async function ProfilePage({
 
       <section>
         <h2 className="mb-4 font-[family-name:var(--font-display)] text-lg tracking-wide">
-          Identity
+          Name &amp; guild
         </h2>
         <form action={updateProfile} className="space-y-5">
           <div>
             <label className="mb-1.5 block text-sm text-[var(--mm-text-dim)]">
-              Callsign
+              Adventurer name
             </label>
             <input
               name="name"
@@ -113,14 +113,14 @@ export default async function ProfilePage({
             </select>
           </div>
           <button type="submit" className="mm-btn mm-btn-primary">
-            Save loadout
+            Save
           </button>
         </form>
       </section>
 
       <section>
         <h2 className="mb-4 font-[family-name:var(--font-display)] text-lg tracking-wide">
-          Avatar
+          Portrait
         </h2>
         <FileUploader entityType="avatar" multiple={false} />
       </section>
@@ -130,8 +130,8 @@ export default async function ProfilePage({
           Join the Armory
         </h2>
         <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
-          Run a shop, studio or craft? Apply to become a vendor and get your own
-          manufacturer page.
+          Run a shop, studio or craft? Petition to join the Armory and claim
+          your own stall.
         </p>
         <Link
           href="/vendor-application"

@@ -8,10 +8,10 @@ export default async function HuntsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-wide">
-          <span className="mm-gradient-text">Ops</span> board
+          <span className="mm-gradient-text">Quest</span> board
         </h1>
         <p className="mt-2 text-[var(--mm-text-dim)]">
-          Scavenger hunts — solve, scan and prove your way up the leaderboard.
+          Scavenger quests — solve, seek and prove your way up the leaderboard.
         </p>
       </div>
 

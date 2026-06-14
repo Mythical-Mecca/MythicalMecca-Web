@@ -7,7 +7,7 @@ import { SyncGauge } from "@/components/sync-gauge";
 
 export default async function DashboardPage() {
   const session = await auth();
-  const name = session?.user?.name ?? "Pilot";
+  const name = session?.user?.name ?? "Adventurer";
   const [liveEvent, xp] = await Promise.all([
     getLiveEvent(),
     getUserXp(session!.user.id),
@@ -25,7 +25,7 @@ export default async function DashboardPage() {
           }}
         >
           <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--mm-live)]">
-            <span className="mm-dot-live" /> Sortie available
+            <span className="mm-dot-live" /> A gathering awaits
           </div>
           <h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl">
             {liveEvent.title}
@@ -37,7 +37,7 @@ export default async function DashboardPage() {
             href={`/events/${liveEvent.slug}`}
             className="mm-btn mm-btn-primary mt-4 text-sm"
           >
-            Launch
+            Set out
           </Link>
         </div>
       )}
@@ -49,30 +49,30 @@ export default async function DashboardPage() {
           </h1>
           <p className="mt-2 text-[var(--mm-text-dim)]">
             {rank.next
-              ? `${rank.toNext} XP to ${rank.next}.`
-              : "Maximum rank achieved."}
+              ? `${rank.toNext} renown to ${rank.next}.`
+              : "Highest standing achieved."}
           </p>
         </div>
         <SyncGauge pct={rank.pct} rank={rank.rank} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Link href="/hunts" className="mm-glass p-6 transition hover:border-[var(--mm-violet)]">
-          <p className="font-[family-name:var(--font-display)] text-lg">Ops</p>
+        <Link href="/hunts" className="mm-glass p-6 transition hover:border-[var(--mm-gold)]">
+          <p className="font-[family-name:var(--font-display)] text-lg">Quests</p>
           <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
-            Scavenger hunts & leaderboards
+            Scavenger trails & leaderboards
           </p>
         </Link>
-        <Link href="/arcade" className="mm-glass p-6 transition hover:border-[var(--mm-violet)]">
-          <p className="font-[family-name:var(--font-display)] text-lg">Arcade</p>
+        <Link href="/arcade" className="mm-glass p-6 transition hover:border-[var(--mm-gold)]">
+          <p className="font-[family-name:var(--font-display)] text-lg">Training Yard</p>
           <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
-            Training sims · {xp} XP banked
+            Trials of skill · {xp} renown earned
           </p>
         </Link>
-        <Link href="/events" className="mm-glass p-6 transition hover:border-[var(--mm-violet)]">
-          <p className="font-[family-name:var(--font-display)] text-lg">Events</p>
+        <Link href="/events" className="mm-glass p-6 transition hover:border-[var(--mm-gold)]">
+          <p className="font-[family-name:var(--font-display)] text-lg">Gatherings</p>
           <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
-            Upcoming ops & sorties
+            Feasts, gatherings & quests
           </p>
         </Link>
       </div>

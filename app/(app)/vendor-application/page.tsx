@@ -30,13 +30,13 @@ export default async function VendorApplicationPage({
       {isVendor && (
         <div className="mm-glass border-[var(--mm-live)] p-4 text-sm text-[var(--mm-live)]">
           You already have Forge access. Head to the Forge to manage your
-          manufacturer page.
+          stall.
         </div>
       )}
 
       {sent && (
         <div className="mm-glass border-[var(--mm-live)] p-4 text-sm text-[var(--mm-live)]">
-          Application transmitted to Command. Track its status below.
+          Petition sent to the Keep. Track its status below.
         </div>
       )}
       {error && (
@@ -111,7 +111,7 @@ export default async function VendorApplicationPage({
               />
             </div>
             <button type="submit" className="mm-btn mm-btn-primary">
-              Transmit application
+              Send petition
             </button>
           </form>
         </section>
@@ -119,7 +119,7 @@ export default async function VendorApplicationPage({
 
       {application?.status === "pending" && (
         <p className="text-sm text-[var(--mm-text-dim)]">
-          Your application is under review by Command. You&apos;ll be notified
+          Your petition is under review at the Keep. You&apos;ll be notified
           when the verdict lands.
         </p>
       )}

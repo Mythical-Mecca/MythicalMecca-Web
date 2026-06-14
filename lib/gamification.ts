@@ -9,11 +9,11 @@ export interface Rank {
 }
 
 export const RANKS: Rank[] = [
-  { name: "Initiate", min: 0 },
-  { name: "Operative", min: 100 },
-  { name: "Vanguard", min: 300 },
-  { name: "Ace", min: 700 },
-  { name: "Ascendant", min: 1500 },
+  { name: "Novice", min: 0 },
+  { name: "Squire", min: 100 },
+  { name: "Knight", min: 300 },
+  { name: "Champion", min: 700 },
+  { name: "Legend", min: 1500 },
 ];
 
 export interface RankInfo {

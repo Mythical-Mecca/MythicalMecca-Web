@@ -21,7 +21,7 @@ async function StepBody({
   if (step.done) {
     return (
       <p className="text-sm text-[var(--mm-live)]">
-        ✓ Objective complete · +{step.points} XP
+        ✓ Trial complete · +{step.points} renown
       </p>
     );
   }
@@ -77,13 +77,13 @@ async function StepBody({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={dataUrl}
-            alt="Uplink QR"
+            alt="Rune seal"
             width={110}
             height={110}
             className="rounded-lg"
           />
           <p className="text-xs text-[var(--mm-text-dim)]">
-            Scan this uplink on-site, or{" "}
+            Read this rune seal on-site, or{" "}
             <Link
               href={uplinkUrl(slug, step.id).replace(
                 process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
@@ -91,7 +91,7 @@ async function StepBody({
               )}
               className="text-[var(--mm-gold)]"
             >
-              tap to simulate the scan
+              tap to read it here
             </Link>
             .
           </p>
@@ -125,7 +125,7 @@ export default async function HuntDetailPage({
             href="/hunts"
             className="text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
           >
-            ← Ops board
+            ← Quest board
           </Link>
           <h1 className="mt-3 font-[family-name:var(--font-display)] text-3xl tracking-wide">
             {hunt.title}
@@ -135,7 +135,7 @@ export default async function HuntDetailPage({
             <span className="text-[var(--mm-gold)]">
               {hunt.earnedPoints}
             </span>{" "}
-            / {hunt.totalPoints} XP earned
+            / {hunt.totalPoints} renown earned
           </p>
         </div>
 
@@ -186,7 +186,7 @@ export default async function HuntDetailPage({
         </h2>
         {leaderboard.length === 0 ? (
           <p className="text-xs text-[var(--mm-text-dim)]">
-            The board populates as pilots complete objectives.
+            The board fills as adventurers complete trials.
           </p>
         ) : (
           <ol className="space-y-2">

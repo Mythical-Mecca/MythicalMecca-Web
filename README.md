@@ -17,8 +17,8 @@ pnpm dev          # http://localhost:3000
 
 ### Required setup (before login / DB features work)
 
-1. **Neon** — create a project and paste the connection strings into `.env.local`:
-   - `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct, for migrations)
+1. **Neon** — create a project and paste the connection string into `.env`:
+   - `DATABASE_URL` (pooled connection string)
 2. **Push the schema** once `DATABASE_URL` is set, then seed sample content:
    ```bash
    pnpm db:push          # or: pnpm db:migrate to apply ./drizzle/*.sql

@@ -50,28 +50,28 @@ export default async function CollabPage({
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
       <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wide">
-        Distress <span className="mm-gradient-text">beacon</span>
+        Send a <span className="mm-gradient-text">raven</span>
       </h1>
       <p className="mt-3 text-[var(--mm-text-dim)]">
-        Want to collaborate, sponsor, host, or pitch something? Transmit a signal
-        to Command and we&apos;ll respond.
+        Want to collaborate, sponsor, host, or propose something? Send a raven to
+        the Keep and we&apos;ll write back.
       </p>
 
       {sent && (
         <div className="mm-glass mt-6 border-[var(--mm-live)] p-4 text-sm text-[var(--mm-live)]">
-          Signal received. Command will be in touch.
+          Your raven was received. The Keep will be in touch.
         </div>
       )}
       {error && (
         <div className="mm-glass mt-6 border-[var(--mm-danger)] p-4 text-sm text-[var(--mm-danger)]">
-          Transmission failed — check your inputs and try again.
+          The raven didn&apos;t make it — check your inputs and try again.
         </div>
       )}
 
       <form action={submitBeacon} className="mt-8 space-y-5">
-        <Field label="Callsign / name" name="name" required />
-        <Field label="Comms / email" name="email" type="email" required />
-        <Field label="Organisation (optional)" name="org" />
+        <Field label="Name" name="name" required />
+        <Field label="Email" name="email" type="email" required />
+        <Field label="Guild / organisation (optional)" name="org" />
         <div>
           <label className="mb-1.5 block text-sm text-[var(--mm-text-dim)]">
             Message
@@ -84,7 +84,7 @@ export default async function CollabPage({
           />
         </div>
         <button type="submit" className="mm-btn mm-btn-primary">
-          Transmit signal
+          Send the raven
         </button>
       </form>
     </div>

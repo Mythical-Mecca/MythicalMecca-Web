@@ -79,8 +79,7 @@ export default async function VendorPage({
       </div>
 
       <p className="mt-10 text-sm text-[var(--mm-text-dim)]">
-        Orders arrive later — for now, reach this manufacturer via their social
-        uplinks above.
+        Trade comes later — for now, reach this artisan via the links above.
       </p>
     </div>
   );

@@ -128,8 +128,7 @@ All references elsewhere (gallery images, photo-proof hunt steps, post media) po
 ## Environment variables
 
 ```
-DATABASE_URL=                 # Neon pooled
-DATABASE_URL_UNPOOLED=        # migrations
+DATABASE_URL=                 # Neon pooled (used for app + migrations)
 AUTH_SECRET=
 AUTH_GOOGLE_ID=
 AUTH_GOOGLE_SECRET=

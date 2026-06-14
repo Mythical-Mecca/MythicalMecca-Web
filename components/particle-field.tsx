@@ -34,12 +34,13 @@ export function ParticleField({ className }: { className?: string }) {
       canvas.width = w * dpr;
       canvas.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = Math.min(70, Math.floor((w * h) / 14000));
+      const count = Math.min(60, Math.floor((w * h) / 16000));
+      // Embers drift gently upward with a little lateral sway.
       points = Array.from({ length: count }, () => ({
         x: Math.random() * w,
         y: Math.random() * h,
-        vx: (Math.random() - 0.5) * 0.25,
-        vy: (Math.random() - 0.5) * 0.25,
+        vx: (Math.random() - 0.5) * 0.15,
+        vy: -0.1 - Math.random() * 0.25,
       }));
     };
 
@@ -49,19 +50,23 @@ export function ParticleField({ className }: { className?: string }) {
         if (!reduce) {
           p.x += p.vx;
           p.y += p.vy;
-          if (p.x < 0 || p.x > w) p.vx *= -1;
-          if (p.y < 0 || p.y > h) p.vy *= -1;
+          // recycle embers from the bottom once they drift off the top
+          if (p.y < -6) {
+            p.y = h + 6;
+            p.x = Math.random() * w;
+          }
+          if (p.x < -6) p.x = w + 6;
+          if (p.x > w + 6) p.x = -6;
         }
       }
+      // faint warm threads between nearby embers
       for (let i = 0; i < points.length; i++) {
         const a = points[i];
         for (let j = i + 1; j < points.length; j++) {
           const b = points[j];
-          const dx = a.x - b.x;
-          const dy = a.y - b.y;
-          const dist = Math.hypot(dx, dy);
-          if (dist < 120) {
-            ctx.strokeStyle = `rgba(124, 58, 237, ${0.18 * (1 - dist / 120)})`;
+          const dist = Math.hypot(a.x - b.x, a.y - b.y);
+          if (dist < 110) {
+            ctx.strokeStyle = `rgba(224, 137, 47, ${0.1 * (1 - dist / 110)})`;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
@@ -71,9 +76,9 @@ export function ParticleField({ className }: { className?: string }) {
         }
       }
       for (const p of points) {
-        ctx.fillStyle = "rgba(245, 196, 81, 0.7)";
+        ctx.fillStyle = "rgba(242, 180, 65, 0.8)";
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 1.4, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
         ctx.fill();
       }
       if (!reduce) raf = requestAnimationFrame(draw);

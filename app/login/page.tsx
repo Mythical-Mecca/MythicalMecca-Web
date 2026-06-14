@@ -14,10 +14,10 @@ export default async function LoginPage({
     <div className="flex min-h-screen items-center justify-center px-6">
       <div className="mm-glass w-full max-w-sm p-8 text-center">
         <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-widest">
-          PILOT <span className="mm-gradient-text">LOGIN</span>
+          ENTER THE <span className="mm-gradient-text">HALL</span>
         </h1>
         <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
-          Authenticate to board your mech.
+          Sign your name in the guild ledger.
         </p>
 
         <form
@@ -35,7 +35,7 @@ export default async function LoginPage({
         </form>
 
         <p className="mt-6 text-xs text-[var(--mm-text-dim)]">
-          New pilots are enrolled automatically.
+          New adventurers are welcomed automatically.
         </p>
       </div>
     </div>

@@ -48,8 +48,8 @@ async function main() {
   await db
     .insert(posts)
     .values([
-      { slug: "hangar-doors-open", title: "The hangar doors are open", excerpt: "Mythic Mecha 2.0 is live.", bodyMd: "We rebuilt the homebase from the rivets up.\n\nFour divisions, one hangar.", division: "maker", status: "published", publishedAt: new Date("2026-06-10") },
-      { slug: "summer-sortie-announced", title: "Summer Sortie 2026 announced", excerpt: "Our biggest in-person op yet.", bodyMd: "Mark your calendars, Pilots.", division: "arcade", status: "published", publishedAt: new Date("2026-06-04") },
+      { slug: "the-doors-are-open", title: "The doors are open", excerpt: "Mythic Mecha is reborn.", bodyMd: "We rebuilt the hall from the foundation stones up.\n\nFour guilds, one hearth.", division: "maker", status: "published", publishedAt: new Date("2026-06-10") },
+      { slug: "midsummer-revel-announced", title: "Midsummer Revel announced", excerpt: "Our grandest gathering yet.", bodyMd: "Mark your calendars, adventurers.", division: "arcade", status: "published", publishedAt: new Date("2026-06-04") },
     ])
     .onConflictDoNothing();
 
@@ -57,8 +57,8 @@ async function main() {
   await db
     .insert(events)
     .values([
-      { slug: "pilot-mixer-launch-night", title: "Pilot Mixer — Launch Night", summary: "An evening to christen the new hangar.", bodyMd: "We're opening the hangar doors.", division: "maker", location: "The Hangar, Woodstock", startsAt: new Date("2026-06-14T18:00:00Z"), endsAt: new Date("2026-06-14T23:00:00Z"), status: "live" },
-      { slug: "summer-sortie-2026", title: "Summer Sortie 2026", summary: "A full-day in-person op.", bodyMd: "The flagship gathering of the year.", division: "arcade", location: "Cape Town — The Hangar", startsAt: new Date("2026-07-18T09:00:00Z"), endsAt: new Date("2026-07-18T20:00:00Z"), status: "published" },
+      { slug: "opening-night-revel", title: "Opening Night Revel", summary: "An evening to christen the new hall.", bodyMd: "We're throwing open the doors.", division: "maker", location: "The Hall, Woodstock", startsAt: new Date("2026-06-14T18:00:00Z"), endsAt: new Date("2026-06-14T23:00:00Z"), status: "live" },
+      { slug: "midsummer-revel-2026", title: "Midsummer Revel 2026", summary: "A full-day gathering.", bodyMd: "The grand gathering of the year.", division: "arcade", location: "Cape Town — The Hall", startsAt: new Date("2026-07-18T09:00:00Z"), endsAt: new Date("2026-07-18T20:00:00Z"), status: "published" },
     ])
     .onConflictDoNothing();
 
@@ -78,17 +78,17 @@ async function main() {
   // Hunt + steps
   const [hunt] = await db
     .insert(scavengerHunts)
-    .values([{ slug: "launch-night-recon", title: "Launch Night Recon", description: "Six objectives to christen the new hangar.", mode: "hybrid", active: true }])
+    .values([{ slug: "opening-night-quest", title: "Opening Night Quest", description: "Six trials to christen the new hall.", mode: "hybrid", active: true }])
     .onConflictDoNothing()
     .returning();
   if (hunt) {
     await db.insert(huntSteps).values([
-      { huntId: hunt.id, sort: 0, type: "riddle", title: "Cipher lock", prompt: "I have keys but open no locks. What am I?", points: 10, config: { answer: "keyboard" } },
-      { huntId: hunt.id, sort: 1, type: "unlock_code", title: "Hangar access code", prompt: "Find the code near the maker bay.", points: 10, config: { code: "ALPHA-7" } },
-      { huntId: hunt.id, sort: 2, type: "trivia_gate", title: "Mecha trivia", prompt: "A pilot's neural link to their mech?", points: 15, config: { choices: ["Sync rate", "Boot loop", "Overdrive", "Cooldown"], correct: 0 } },
-      { huntId: hunt.id, sort: 3, type: "geo_checkpoint", title: "Reach the beacon", prompt: "Check in at the hangar coordinates.", points: 20, config: { lat: -33.9249, lng: 18.4241, radius_m: 50000 } },
-      { huntId: hunt.id, sort: 4, type: "qr_scan", title: "Data uplink", prompt: "Scan the uplink QR at the arcade station.", points: 20, config: {} },
-      { huntId: hunt.id, sort: 5, type: "photo_proof", title: "Pilot selfie", prompt: "Upload a photo of your badge.", points: 15, config: { auto_approve: true } },
+      { huntId: hunt.id, sort: 0, type: "riddle", title: "The riddle lock", prompt: "I have keys but open no locks. What am I?", points: 10, config: { answer: "keyboard" } },
+      { huntId: hunt.id, sort: 1, type: "unlock_code", title: "Gatehouse password", prompt: "Find the password near the artisans' market.", points: 10, config: { code: "ALPHA-7" } },
+      { huntId: hunt.id, sort: 2, type: "trivia_gate", title: "Guild lore", prompt: "Which standing sits between Squire and Champion?", points: 15, config: { choices: ["Knight", "Novice", "Legend", "Warden"], correct: 0 } },
+      { huntId: hunt.id, sort: 3, type: "geo_checkpoint", title: "Reach the waypoint", prompt: "Check in at the hall's coordinates.", points: 20, config: { lat: -33.9249, lng: 18.4241, radius_m: 50000 } },
+      { huntId: hunt.id, sort: 4, type: "qr_scan", title: "The rune seal", prompt: "Find the rune seal at the training yard.", points: 20, config: {} },
+      { huntId: hunt.id, sort: 5, type: "photo_proof", title: "Adventurer's portrait", prompt: "Upload a likeness with your token.", points: 15, config: { auto_approve: true } },
     ]);
   }
 

@@ -1,19 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --mm-gold: #f5c451;
-  --mm-gold-hi: #ffd874;
-  --mm-blue: #2f4be0;
-  --mm-violet: #7c3aed;
-  --mm-bg: #070b1e;
-  --mm-surface: #0f1330;
-  --mm-elevated: #1a1142;
-  --mm-border: #2a2f55;
-  --mm-text: #e6e9f5;
-  --mm-text-dim: #9aa3c7;
-  --mm-live: #34d399;
-  --mm-danger: #f4577b;
-  --mm-grad: linear-gradient(135deg, #2f4be0, #7c3aed);
+  /* Cozy tavern / candlelit-inn palette */
+  --mm-gold: #f2b441;
+  --mm-gold-hi: #ffd27a;
+  /* kept names blue/violet — repurposed as warm ember accents */
+  --mm-blue: #e0892f;
+  --mm-violet: #c2772e;
+  --mm-bg: #160f0a;
+  --mm-surface: #211710;
+  --mm-elevated: #2c2015;
+  --mm-border: #4a3826;
+  --mm-text: #f1e7d3;
+  --mm-text-dim: #b7a283;
+  --mm-live: #7fb069;
+  --mm-danger: #d9533b;
+  --mm-grad: linear-gradient(135deg, #e0892f, #b5471f);
 }
 
 @theme inline {
@@ -22,8 +24,8 @@
   --color-elevated: var(--mm-elevated);
   --color-gold: var(--mm-gold);
   --color-gold-hi: var(--mm-gold-hi);
-  --color-blue: var(--mm-blue);
-  --color-violet: var(--mm-violet);
+  --color-ember: var(--mm-blue);
+  --color-rust: var(--mm-violet);
   --color-hud-border: var(--mm-border);
   --color-hud-text: var(--mm-text);
   --color-hud-dim: var(--mm-text-dim);
@@ -39,13 +41,12 @@
 body {
   background-color: var(--mm-bg);
   color: var(--mm-text);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-sans), Georgia, serif;
+  /* hearth glow from below, warm lantern light from above */
   background-image:
-    radial-gradient(circle at 50% -10%, rgba(124, 58, 237, 0.18), transparent 55%),
-    radial-gradient(circle at 100% 0%, rgba(47, 75, 224, 0.12), transparent 45%),
-    linear-gradient(rgba(42, 47, 85, 0.22) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(42, 47, 85, 0.22) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+    radial-gradient(circle at 50% 110%, rgba(181, 71, 31, 0.16), transparent 55%),
+    radial-gradient(circle at 50% -10%, rgba(242, 180, 65, 0.1), transparent 50%),
+    radial-gradient(circle at 100% 0%, rgba(194, 119, 46, 0.08), transparent 45%);
   background-attachment: fixed;
 }
 
@@ -58,10 +59,10 @@ body {
   }
 
   .mm-glass {
-    background: color-mix(in srgb, var(--mm-surface) 65%, transparent);
+    background: color-mix(in srgb, var(--mm-surface) 72%, transparent);
     border: 1px solid var(--mm-border);
     border-radius: var(--radius-card);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(8px);
   }
 
   .mm-btn {
@@ -75,15 +76,17 @@ body {
     transition: transform 0.12s ease, box-shadow 0.2s ease, background 0.2s ease;
     cursor: pointer;
   }
-  .mm-btn:hover { transform: translateY(-1px); }
+  .mm-btn:hover {
+    transform: translateY(-1px);
+  }
 
   .mm-btn-primary {
     background: var(--mm-gold);
-    color: #070b1e;
+    color: #160f0a;
   }
   .mm-btn-primary:hover {
     background: var(--mm-gold-hi);
-    box-shadow: 0 0 24px rgba(245, 196, 81, 0.35);
+    box-shadow: 0 0 26px rgba(242, 180, 65, 0.4);
   }
 
   .mm-btn-ghost {
@@ -91,7 +94,9 @@ body {
     color: var(--mm-text);
     border: 1px solid var(--mm-border);
   }
-  .mm-btn-ghost:hover { border-color: var(--mm-violet); }
+  .mm-btn-ghost:hover {
+    border-color: var(--mm-gold);
+  }
 
   .mm-dot-live {
     display: inline-block;
@@ -105,11 +110,20 @@ body {
 }
 
 @keyframes mm-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mm-dot-live { animation: none; }
-  .mm-btn:hover { transform: none; }
+  .mm-dot-live {
+    animation: none;
+  }
+  .mm-btn:hover {
+    transform: none;
+  }
 }

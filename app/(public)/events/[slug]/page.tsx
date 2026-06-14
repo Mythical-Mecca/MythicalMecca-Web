@@ -37,7 +37,7 @@ export default async function EventPage({
         href="/events"
         className="text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
       >
-        ← All ops
+        ← All gatherings
       </Link>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -92,7 +92,7 @@ export default async function EventPage({
       {/* Comments */}
       <section id="comments" className="mt-14">
         <h2 className="font-[family-name:var(--font-display)] text-xl tracking-wide">
-          Comms ({comments.length})
+          Comments ({comments.length})
         </h2>
         {cerror && (
           <p className="mt-2 text-sm text-[var(--mm-danger)]">
@@ -103,7 +103,7 @@ export default async function EventPage({
           <input type="hidden" name="slug" value={event.slug} />
           <input
             name="body"
-            placeholder="Drop a transmission…"
+            placeholder="Share a word…"
             className="flex-1 rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm outline-none focus:border-[var(--mm-violet)]"
           />
           <button className="mm-btn mm-btn-primary text-sm">Send</button>
@@ -174,7 +174,7 @@ export default async function EventPage({
           </form>
         ) : (
           <p className="mt-4 rounded-2xl border border-[var(--mm-border)] p-4 text-sm text-[var(--mm-text-dim)]">
-            Reviews open on the day of the event. Check back after launch.
+            Reviews open on the day of the gathering. Check back once it begins.
           </p>
         )}
 

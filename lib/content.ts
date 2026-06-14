@@ -50,30 +50,30 @@ const useDb = !!process.env.DATABASE_URL;
 // ---------------------------------------------------------------------------
 export const samplePosts: PostView[] = [
   {
-    slug: "hangar-doors-open",
-    title: "The hangar doors are open",
+    slug: "the-doors-are-open",
+    title: "The doors are open",
     excerpt:
-      "Mythic Mecha 2.0 is live. Here's what's loading into the cockpit first.",
+      "Mythic Mecha is reborn. Here's what greets you at the threshold.",
     bodyMd:
-      "We rebuilt the homebase from the rivets up.\n\nFour divisions, one hangar: Tabletop, Arcade, Otaku and Maker. Expect ops, scavenger hunts, an Armory of vendors, and a leaderboard worth bragging about.\n\nSuit up — this is only the boot sequence.",
+      "We rebuilt the hall from the foundation stones up.\n\nFour guilds, one hearth: Tabletop, Arcade, Otaku and Maker. Expect quests, scavenger trails, an Armory of artisans, and a leaderboard worth boasting about.\n\nPull up a chair — the tale is only beginning.",
     division: "maker",
     publishedAt: "2026-06-10",
   },
   {
-    slug: "summer-sortie-announced",
-    title: "Summer Sortie 2026 announced",
-    excerpt: "Our biggest in-person op yet, with a live scavenger hunt.",
+    slug: "midsummer-revel-announced",
+    title: "Midsummer Revel announced",
+    excerpt: "Our grandest gathering yet, with a quest woven through it.",
     bodyMd:
-      "Mark your calendars, Pilots.\n\nThe Summer Sortie returns with tournaments, a cosplay runway, a maker bay, and a city-wide scavenger hunt with QR uplinks and riddles.\n\nSquadron points are on the line. Which division takes the season?",
+      "Mark your calendars, adventurers.\n\nThe Midsummer Revel returns with tournaments, a costume parade, an artisans' market, and a town-wide scavenger quest with rune seals and riddles.\n\nGuild renown is on the line. Which order claims the season?",
     division: "arcade",
     publishedAt: "2026-06-04",
   },
   {
-    slug: "armory-call-for-vendors",
-    title: "Calling all makers: join the Armory",
-    excerpt: "Applications are open for vendors to showcase their gear.",
+    slug: "armory-call-for-artisans",
+    title: "Calling all artisans: join the Armory",
+    excerpt: "The Armory opens its stalls to makers and merchants.",
     bodyMd:
-      "The Armory is where our community's makers, artists and shops show off.\n\nApply from your pilot loadout, get reviewed by Command, and your manufacturer page goes live with a gallery and social uplinks.",
+      "The Armory is where our community's makers, artists and shops set out their wares.\n\nPetition from your character sheet, await word from the Keep, and your stall goes live with a gallery and links to your socials.",
     division: "tabletop",
     publishedAt: "2026-05-28",
   },
@@ -81,25 +81,25 @@ export const samplePosts: PostView[] = [
 
 export const sampleEvents: EventView[] = [
   {
-    slug: "pilot-mixer-launch-night",
-    title: "Pilot Mixer — Launch Night",
-    summary: "An evening to christen the new hangar. Drinks, demos, dice.",
+    slug: "opening-night-revel",
+    title: "Opening Night Revel",
+    summary: "An evening to christen the new hall. Ale, dice, and good company.",
     bodyMd:
-      "We're opening the hangar doors.\n\nMeet fellow pilots across all four divisions, try the arcade sims, and grab a launch-night badge. First sortie of the season.",
+      "We're throwing open the doors.\n\nMeet fellow adventurers across all four guilds, try the training-yard trials, and claim an opening-night badge. The first gathering of the season.",
     division: "maker",
-    location: "The Hangar, Woodstock",
+    location: "The Hall, Woodstock",
     startsAt: "2026-06-14T18:00:00Z",
     endsAt: "2026-06-14T23:00:00Z",
     status: "live",
   },
   {
-    slug: "summer-sortie-2026",
-    title: "Summer Sortie 2026",
-    summary: "A full-day in-person op: tournaments, cosplay, makers, and a hunt.",
+    slug: "midsummer-revel-2026",
+    title: "Midsummer Revel 2026",
+    summary: "A full-day gathering: tournaments, costumes, artisans, and a quest.",
     bodyMd:
-      "The flagship gathering of the year.\n\nExpect open gaming tables, an esports stage, an anime screening lounge, a maker bay, and a city-wide scavenger hunt. Food trucks on site.",
+      "The grand gathering of the year.\n\nExpect open gaming tables, a tourney stage, a screening lounge, an artisans' market, and a town-wide scavenger quest. Hearty fare on site.",
     division: "arcade",
-    location: "Cape Town — The Hangar, Woodstock",
+    location: "Cape Town — The Hall, Woodstock",
     startsAt: "2026-07-18T09:00:00Z",
     endsAt: "2026-07-18T20:00:00Z",
     status: "published",
@@ -109,21 +109,21 @@ export const sampleEvents: EventView[] = [
     title: "Tabletop Tactics Night",
     summary: "Bring a campaign, find a party. Minis painting corner open.",
     bodyMd:
-      "A relaxed evening of TTRPGs and board games.\n\nNew pilots welcome — we'll get you to a table. Paint-and-take miniatures station running all night.",
+      "A relaxed evening of TTRPGs and board games.\n\nNewcomers welcome — we'll get you to a table. Paint-and-take miniatures station running all night.",
     division: "tabletop",
-    location: "Online + The Hangar",
+    location: "Online + The Hall",
     startsAt: "2026-06-27T17:00:00Z",
     endsAt: "2026-06-27T22:00:00Z",
     status: "published",
   },
   {
-    slug: "otaku-screening-mecha-marathon",
-    title: "Otaku Screening: Mecha Marathon",
-    summary: "Back-to-back classic mecha. Cosplay encouraged.",
+    slug: "otaku-mecha-marathon",
+    title: "Otaku Night: Mecha Marathon",
+    summary: "Back-to-back classic mecha anime. Cosplay encouraged.",
     bodyMd:
-      "A night of giant robots.\n\nWe run a curated marathon of genre-defining mecha. Bring your cosplay; best loadout wins XP.",
+      "A night of giant robots.\n\nWe run a curated marathon of genre-defining mecha anime. Bring your cosplay; the finest costume earns renown.",
     division: "otaku",
-    location: "The Hangar",
+    location: "The Hall",
     startsAt: "2026-08-02T18:00:00Z",
     endsAt: "2026-08-02T23:30:00Z",
     status: "published",

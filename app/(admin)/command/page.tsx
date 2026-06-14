@@ -3,9 +3,9 @@ import { getCounts } from "@/lib/admin";
 export default async function CommandOverviewPage() {
   const c = await getCounts();
   const cards = [
-    { k: "Pilots", v: c.pilots },
-    { k: "Posts", v: c.posts },
-    { k: "Active ops", v: c.activeOps },
+    { k: "Adventurers", v: c.pilots },
+    { k: "Tidings", v: c.posts },
+    { k: "Active gatherings", v: c.activeOps },
     { k: "Errors (24h)", v: c.errors24h },
   ];
   const dbConnected = !!process.env.DATABASE_URL;
@@ -13,7 +13,7 @@ export default async function CommandOverviewPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
-        <span className="mm-gradient-text">Command</span> deck
+        The <span className="mm-gradient-text">Keep</span>
       </h1>
 
       {!dbConnected && (

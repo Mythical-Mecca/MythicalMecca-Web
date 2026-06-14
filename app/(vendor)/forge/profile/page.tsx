@@ -18,7 +18,7 @@ export default async function ForgeProfilePage({
   return (
     <div className="max-w-2xl space-y-8">
       <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
-        Manufacturer profile
+        Stall profile
       </h1>
 
       {saved && (
@@ -34,7 +34,7 @@ export default async function ForgeProfilePage({
 
       {!vendor ? (
         <div className="mm-glass border-[var(--mm-gold)] p-4 text-sm text-[var(--mm-text-dim)]">
-          No manufacturer profile to edit yet.
+          No stall to edit yet.
         </div>
       ) : (
         <form action={updateManufacturer} className="space-y-5">

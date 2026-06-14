@@ -46,11 +46,11 @@ export default async function TelemetryPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
-          Command <span className="mm-gradient-text">telemetry</span>
+          The <span className="mm-gradient-text">Chronicle</span>
         </h1>
         <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
-          The black-box recorder — every action, error and page hit on the
-          platform.
+          The scribes&apos; ledger — every deed, mishap and footstep across the
+          hall.
         </p>
       </div>
       <div className="grid gap-4 lg:grid-cols-3">

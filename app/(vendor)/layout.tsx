@@ -4,7 +4,7 @@ import { DashboardShell, type NavItem } from "@/components/dashboard-shell";
 const NAV: NavItem[] = [
   { href: "/forge", label: "Overview" },
   { href: "/forge/gallery", label: "Gallery" },
-  { href: "/forge/profile", label: "Manufacturer" },
+  { href: "/forge/profile", label: "Stall" },
 ];
 
 export default async function VendorLayout({

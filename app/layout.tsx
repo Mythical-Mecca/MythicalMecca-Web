@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { Orbitron, Inter, JetBrains_Mono } from "next/font/google";
+import { Cinzel, EB_Garamond, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const display = Orbitron({
+const display = Cinzel({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["500", "700", "900"],
+  weight: ["500", "600", "700", "900"],
 });
 
-const sans = Inter({
+const sans = EB_Garamond({
   variable: "--font-sans",
   subsets: ["latin"],
 });
@@ -19,8 +19,9 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mythic Mecha — Pilot Hangar",
-  description: "A homebase for the geek community. Suit up, Pilot.",
+  title: "Mythic Mecha — the Adventurers' Guild",
+  description:
+    "A homebase for the geek collective. Gather, quest, and earn your renown.",
 };
 
 export default function RootLayout({

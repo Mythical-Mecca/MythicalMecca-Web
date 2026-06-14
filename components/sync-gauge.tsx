@@ -18,7 +18,7 @@ export function SyncGauge({
             {pct}%
           </span>
           <span className="text-[9px] uppercase tracking-widest text-[var(--mm-text-dim)]">
-            sync
+            renown
           </span>
         </div>
       </div>

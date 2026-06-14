@@ -15,14 +15,14 @@ export default async function ForgeOverviewPage() {
 
       {!vendor ? (
         <div className="mm-glass border-[var(--mm-gold)] p-4 text-sm text-[var(--mm-text-dim)]">
-          No manufacturer profile loaded. Once a database is connected and your
-          application is approved, your Forge populates here.
+          No stall loaded yet. Once a database is connected and your petition is
+          approved, your Forge fills in here.
         </div>
       ) : (
         <>
           <div className="mm-glass p-6">
             <p className="text-xs uppercase tracking-widest text-[var(--mm-gold)]">
-              Manufacturer
+              Stall
             </p>
             <h2 className="mt-1 font-[family-name:var(--font-display)] text-xl">
               {vendor.businessName}
@@ -49,7 +49,7 @@ export default async function ForgeOverviewPage() {
             </Link>
             <Link href="/forge/profile" className="mm-glass p-5">
               <p className="text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
-                Manufacturer profile
+                Stall profile
               </p>
               <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
                 Edit tagline, bio & socials →
