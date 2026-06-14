@@ -7,7 +7,7 @@ export default function PublicLayout({
 }) {
   return (
     <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-40 border-b border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-bg)_82%,transparent)] backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-bg)_55%,transparent)] backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link
             href="/"

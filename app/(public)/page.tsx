@@ -11,8 +11,23 @@ export default async function HomePage() {
 
   return (
     <>
+      {/* Fixed tavern backdrop with a warm scrim for legibility */}
+      <div aria-hidden className="fixed inset-0 -z-10">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/MythicMechaBackground.png')" }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(20,13,8,0.86) 0%, rgba(20,13,8,0.58) 44%, rgba(20,13,8,0.8) 76%, rgba(20,13,8,0.95) 100%)",
+          }}
+        />
+      </div>
+
       <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 -z-10 opacity-70">
+        <div className="pointer-events-none absolute inset-0 -z-10 opacity-60">
           <ParticleField />
         </div>
         <div className="mx-auto flex max-w-6xl flex-col items-center px-6 py-28 text-center">

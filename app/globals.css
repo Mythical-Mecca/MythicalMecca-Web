@@ -59,10 +59,10 @@ body {
   }
 
   .mm-glass {
-    background: color-mix(in srgb, var(--mm-surface) 72%, transparent);
-    border: 1px solid var(--mm-border);
+    background: color-mix(in srgb, var(--mm-surface) 58%, transparent);
+    border: 1px solid color-mix(in srgb, var(--mm-border) 80%, transparent);
     border-radius: var(--radius-card);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
   }
 
   .mm-btn {
@@ -81,21 +81,24 @@ body {
   }
 
   .mm-btn-primary {
-    background: var(--mm-gold);
+    background: color-mix(in srgb, var(--mm-gold) 88%, transparent);
     color: #160f0a;
+    backdrop-filter: blur(6px);
   }
   .mm-btn-primary:hover {
     background: var(--mm-gold-hi);
-    box-shadow: 0 0 26px rgba(242, 180, 65, 0.4);
+    box-shadow: 0 0 26px rgba(242, 180, 65, 0.45);
   }
 
   .mm-btn-ghost {
-    background: transparent;
+    background: color-mix(in srgb, var(--mm-surface) 32%, transparent);
     color: var(--mm-text);
-    border: 1px solid var(--mm-border);
+    border: 1px solid color-mix(in srgb, var(--mm-border) 85%, transparent);
+    backdrop-filter: blur(6px);
   }
   .mm-btn-ghost:hover {
     border-color: var(--mm-gold);
+    background: color-mix(in srgb, var(--mm-surface) 48%, transparent);
   }
 
   .mm-dot-live {
