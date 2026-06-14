@@ -183,6 +183,11 @@ export const eventStatusEnum = pgEnum("event_status", [
   "ended",
   "cancelled",
 ]);
+export const appStatusEnum = pgEnum("app_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
 
 // ---------------------------------------------------------------------------
 // Files — central registry (uploader UI lands in Phase 2)
@@ -306,6 +311,28 @@ export const vendors = pgTable("vendors", {
   socials: jsonb("socials"),
   division: divisionEnum("division"),
   active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const vendorApplications = pgTable("vendor_applications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  status: appStatusEnum("status").notNull().default("pending"),
+  businessName: text("business_name").notNull(),
+  pitch: text("pitch").notNull(),
+  socials: jsonb("socials"),
+  payload: jsonb("payload"),
+  reviewedBy: text("reviewed_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  reviewNote: text("review_note"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
