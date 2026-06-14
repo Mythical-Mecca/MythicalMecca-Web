@@ -8,10 +8,19 @@ type P = { x: number; y: number; vx: number; vy: number };
  * Lightweight connected-dots field rendered on a canvas. No dependencies.
  * Honors prefers-reduced-motion (renders a static frame).
  */
-export function ParticleField({ className }: { className?: string }) {
+export function ParticleField({
+  className,
+  color,
+}: {
+  className?: string;
+  /** "r, g, b" tuple. Defaults to gold motes with blue threads. */
+  color?: string;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    const dotColor = color ? `rgba(${color}, 0.85)` : "rgba(242, 180, 65, 0.8)";
+    const lineRGB = color ?? "74, 168, 255";
     const canvas = ref.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -66,7 +75,7 @@ export function ParticleField({ className }: { className?: string }) {
           const b = points[j];
           const dist = Math.hypot(a.x - b.x, a.y - b.y);
           if (dist < 110) {
-            ctx.strokeStyle = `rgba(74, 168, 255, ${0.12 * (1 - dist / 110)})`;
+            ctx.strokeStyle = `rgba(${lineRGB}, ${0.12 * (1 - dist / 110)})`;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
@@ -76,7 +85,7 @@ export function ParticleField({ className }: { className?: string }) {
         }
       }
       for (const p of points) {
-        ctx.fillStyle = "rgba(242, 180, 65, 0.8)";
+        ctx.fillStyle = dotColor;
         ctx.beginPath();
         ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
         ctx.fill();
@@ -91,7 +100,7 @@ export function ParticleField({ className }: { className?: string }) {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
     };
-  }, []);
+  }, [color]);
 
   return (
     <canvas

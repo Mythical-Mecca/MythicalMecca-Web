@@ -4,6 +4,32 @@ import { getLiveEvent } from "@/lib/content";
 import { formatDateTime } from "@/lib/format";
 import { getUserXp, rankForXp } from "@/lib/gamification";
 import { SyncGauge } from "@/components/sync-gauge";
+import { ParticleField } from "@/components/particle-field";
+import { Icon } from "@/components/icon";
+
+const BG2 = "/MythicMechaBackground2.png";
+const BG3 = "/MythicMechaBackground3.png";
+
+const LINKS = [
+  {
+    href: "/hunts",
+    title: "Quests",
+    desc: "Scavenger trails & leaderboards",
+    icon: "game-icons:crossed-swords",
+  },
+  {
+    href: "/arcade",
+    title: "Training Yard",
+    desc: "Trials of skill",
+    icon: "mdi:target",
+  },
+  {
+    href: "/events",
+    title: "Gatherings",
+    desc: "Feasts, gatherings & quests",
+    icon: "game-icons:campfire",
+  },
+];
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -21,7 +47,7 @@ export default async function DashboardPage() {
           className="rounded-2xl border border-[var(--mm-live)] p-6"
           style={{
             background:
-              "linear-gradient(135deg, rgba(52,211,153,0.12), rgba(124,58,237,0.12))",
+              "linear-gradient(135deg, rgba(92,192,140,0.14), rgba(44,123,229,0.12))",
           }}
         >
           <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--mm-live)]">
@@ -37,45 +63,84 @@ export default async function DashboardPage() {
             href={`/events/${liveEvent.slug}`}
             className="mm-btn mm-btn-primary mt-4 text-sm"
           >
-            View event
+            <Icon icon="mdi:arrow-right" width={16} /> View event
           </Link>
         </div>
       )}
 
-      <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-        <div>
-          <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-wide">
-            Welcome back, <span className="mm-gradient-text">{name}</span>
-          </h1>
-          <p className="mt-2 text-[var(--mm-text-dim)]">
-            {rank.next
-              ? `${rank.toNext} renown to ${rank.next}.`
-              : "Highest standing achieved."}
-          </p>
+      {/* Welcome banner — bg2 + light-blue motes */}
+      <section className="relative isolate overflow-hidden rounded-2xl border border-[var(--mm-border)]">
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url('${BG2}')` }}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to right, rgba(11,15,28,0.92) 0%, rgba(11,15,28,0.6) 55%, rgba(11,15,28,0.35) 100%)",
+          }}
+        />
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-70">
+          <ParticleField color="108, 184, 255" />
         </div>
-        <SyncGauge pct={rank.pct} rank={rank.rank} />
-      </div>
+        <div className="relative flex flex-col items-start justify-between gap-6 p-8 md:flex-row md:items-center">
+          <div>
+            <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-wide">
+              Welcome back, <span className="mm-gradient-text">{name}</span>
+            </h1>
+            <p className="mt-2 text-[var(--mm-text-dim)]">
+              {rank.next
+                ? `${rank.toNext} renown to ${rank.next}.`
+                : "Highest standing achieved."}
+            </p>
+          </div>
+          <SyncGauge pct={rank.pct} rank={rank.rank} />
+        </div>
+      </section>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Link href="/hunts" className="mm-glass p-6 transition hover:border-[var(--mm-violet)]">
-          <p className="font-[family-name:var(--font-display)] text-lg">Quests</p>
-          <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
-            Scavenger trails & leaderboards
-          </p>
-        </Link>
-        <Link href="/arcade" className="mm-glass p-6 transition hover:border-[var(--mm-violet)]">
-          <p className="font-[family-name:var(--font-display)] text-lg">Training Yard</p>
-          <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
-            Trials of skill · {xp} renown earned
-          </p>
-        </Link>
-        <Link href="/events" className="mm-glass p-6 transition hover:border-[var(--mm-violet)]">
-          <p className="font-[family-name:var(--font-display)] text-lg">Gatherings</p>
-          <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
-            Feasts, gatherings & quests
-          </p>
-        </Link>
-      </div>
+      {/* Explore banner — bg3 + green motes */}
+      <section className="relative isolate overflow-hidden rounded-2xl border border-[var(--mm-border)]">
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url('${BG3}')` }}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(11,15,28,0.66), rgba(11,15,28,0.82))",
+          }}
+        />
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-70">
+          <ParticleField color="105, 219, 124" />
+        </div>
+        <div className="relative p-8">
+          <h2 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-xl tracking-wide">
+            <Icon icon="game-icons:compass" width={24} className="text-[var(--mm-gold)]" />
+            Explore
+          </h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            {LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="mm-glass group p-6 transition hover:border-[var(--mm-violet)]"
+              >
+                <Icon icon={l.icon} width={30} className="text-[var(--mm-gold)]" />
+                <p className="mt-3 font-[family-name:var(--font-display)] text-lg group-hover:text-[var(--mm-gold)]">
+                  {l.title}
+                </p>
+                <p className="mt-1 text-sm text-[var(--mm-text-dim)]">{l.desc}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
