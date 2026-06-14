@@ -6,6 +6,8 @@ import { DivisionBadge } from "@/components/content-ui";
 import { formatDate, formatDateTime } from "@/lib/format";
 
 const TAVERN = "/MythicMechaBackground.png";
+const BG2 = "/MythicMechaBackground2.png";
+const BG3 = "/MythicMechaBackground3.png";
 const QUEST = "/quest-road.svg";
 
 const heroOverlay =
@@ -165,9 +167,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ---------------- Latest tidings — quest scene ---------------- */}
+      {/* ---------------- Latest tidings — forest party ---------------- */}
       <section className="relative isolate overflow-hidden">
-        <ImageBackdrop src={QUEST} overlay={bandOverlay} />
+        <ImageBackdrop src={BG3} overlay={bandOverlay} />
         <div className="mx-auto max-w-6xl px-6 py-24">
           <SectionTitle
             icon="game-icons:scroll-unfurled"
@@ -258,9 +260,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ---------------- Our community — tavern ---------------- */}
+      {/* ---------------- Our community — party on the cliff ---------------- */}
       <section className="relative isolate overflow-hidden">
-        <ImageBackdrop src={TAVERN} overlay={bandOverlay} />
+        <ImageBackdrop src={BG2} overlay={bandOverlay} />
         <div className="mx-auto max-w-6xl px-6 py-24">
           <SectionTitle
             icon="mdi:account-group-outline"
