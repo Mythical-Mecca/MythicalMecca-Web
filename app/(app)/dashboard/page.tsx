@@ -69,7 +69,7 @@ export default async function DashboardPage() {
       )}
 
       {/* Welcome banner — bg2 + light-blue motes */}
-      <section className="relative isolate overflow-hidden rounded-2xl border border-[var(--mm-border)]">
+      <section className="relative isolate flex min-h-[320px] overflow-hidden rounded-2xl border border-[var(--mm-border)] sm:min-h-[440px]">
         <div
           aria-hidden
           className="absolute inset-0 bg-cover bg-center"
@@ -86,7 +86,7 @@ export default async function DashboardPage() {
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-70">
           <ParticleField color="108, 184, 255" />
         </div>
-        <div className="relative flex flex-col items-start justify-between gap-6 p-8 md:flex-row md:items-center">
+        <div className="relative flex w-full flex-col items-start justify-between gap-6 p-8 md:flex-row md:items-center">
           <div>
             <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-wide">
               Welcome back, <span className="mm-gradient-text">{name}</span>
@@ -102,7 +102,7 @@ export default async function DashboardPage() {
       </section>
 
       {/* Explore banner — bg3 + green motes */}
-      <section className="relative isolate overflow-hidden rounded-2xl border border-[var(--mm-border)]">
+      <section className="relative isolate flex min-h-[360px] overflow-hidden rounded-2xl border border-[var(--mm-border)] sm:min-h-[460px]">
         <div
           aria-hidden
           className="absolute inset-0 bg-cover bg-center"
@@ -119,7 +119,7 @@ export default async function DashboardPage() {
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-70">
           <ParticleField color="105, 219, 124" />
         </div>
-        <div className="relative p-8">
+        <div className="relative flex w-full flex-col justify-center p-8">
           <h2 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-xl tracking-wide">
             <Icon icon="game-icons:compass" width={24} className="text-[var(--mm-gold)]" />
             Explore
