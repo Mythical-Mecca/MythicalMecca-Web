@@ -57,5 +57,8 @@ export const config = {
     "/forge/:path*",
     "/dashboard/:path*",
     "/profile/:path*",
+    "/hunts/:path*",
+    "/hunt/:path*",
+    "/arcade/:path*",
   ],
 };

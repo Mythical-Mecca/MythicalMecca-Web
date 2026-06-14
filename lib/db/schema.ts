@@ -397,3 +397,209 @@ export const vendorGalleryItems = pgTable("vendor_gallery_items", {
     .notNull()
     .defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// Scavenger hunts ("Ops")
+// ---------------------------------------------------------------------------
+export const stepTypeEnum = pgEnum("step_type", [
+  "qr_scan",
+  "riddle",
+  "crossword",
+  "cipher",
+  "geo_checkpoint",
+  "photo_proof",
+  "trivia_gate",
+  "unlock_code",
+]);
+export const huntModeEnum = pgEnum("hunt_mode", [
+  "in_person",
+  "remote",
+  "hybrid",
+]);
+export const badgeTierEnum = pgEnum("badge_tier", [
+  "bronze",
+  "silver",
+  "gold",
+  "legendary",
+]);
+
+export const scavengerHunts = pgTable("scavenger_hunts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventId: uuid("event_id").references(() => events.id, {
+    onDelete: "set null",
+  }),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description"),
+  mode: huntModeEnum("mode").notNull().default("hybrid"),
+  startsAt: timestamp("starts_at", { withTimezone: true }),
+  endsAt: timestamp("ends_at", { withTimezone: true }),
+  active: boolean("active").notNull().default(true),
+  createdBy: text("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const huntSteps = pgTable(
+  "hunt_steps",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    huntId: uuid("hunt_id")
+      .notNull()
+      .references(() => scavengerHunts.id, { onDelete: "cascade" }),
+    sort: integer("sort").notNull().default(0),
+    type: stepTypeEnum("type").notNull(),
+    title: text("title").notNull(),
+    prompt: text("prompt"),
+    points: integer("points").notNull().default(10),
+    config: jsonb("config"),
+    requiresPrev: boolean("requires_prev").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("hunt_steps_hunt_idx").on(t.huntId, t.sort)]
+);
+
+export const huntProgress = pgTable(
+  "hunt_progress",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    huntId: uuid("hunt_id")
+      .notNull()
+      .references(() => scavengerHunts.id, { onDelete: "cascade" }),
+    stepId: uuid("step_id")
+      .notNull()
+      .references(() => huntSteps.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    completedAt: timestamp("completed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    payload: jsonb("payload"),
+    pointsAwarded: integer("points_awarded").notNull().default(0),
+  },
+  (t) => [
+    uniqueIndex("hunt_progress_unique").on(t.stepId, t.userId),
+    index("hunt_progress_hunt_user_idx").on(t.huntId, t.userId),
+  ]
+);
+
+// ---------------------------------------------------------------------------
+// Gamification — XP, ranks, badges, squadrons
+// ---------------------------------------------------------------------------
+export const xpLedger = pgTable(
+  "xp_ledger",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    delta: integer("delta").notNull(),
+    reason: text("reason").notNull(),
+    refType: text("ref_type"),
+    refId: text("ref_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("xp_ledger_user_idx").on(t.userId)]
+);
+
+export const badges = pgTable("badges", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon"),
+  tier: badgeTierEnum("tier").notNull().default("bronze"),
+  criteria: jsonb("criteria"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const userBadges = pgTable(
+  "user_badges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    badgeId: uuid("badge_id")
+      .notNull()
+      .references(() => badges.id, { onDelete: "cascade" }),
+    awardedAt: timestamp("awarded_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("user_badges_unique").on(t.userId, t.badgeId)]
+);
+
+export const seasons = pgTable("seasons", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  startsAt: timestamp("starts_at", { withTimezone: true }),
+  endsAt: timestamp("ends_at", { withTimezone: true }),
+  active: boolean("active").notNull().default(true),
+});
+
+export const squadronScores = pgTable(
+  "squadron_scores",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    seasonId: uuid("season_id")
+      .notNull()
+      .references(() => seasons.id, { onDelete: "cascade" }),
+    division: divisionEnum("division").notNull(),
+    points: integer("points").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("squadron_scores_unique").on(t.seasonId, t.division)]
+);
+
+// ---------------------------------------------------------------------------
+// Arcade — training simulators
+// ---------------------------------------------------------------------------
+export const games = pgTable("games", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description"),
+  active: boolean("active").notNull().default(true),
+  division: divisionEnum("division"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const gameScores = pgTable(
+  "game_scores",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gameId: uuid("game_id")
+      .notNull()
+      .references(() => games.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    score: integer("score").notNull(),
+    meta: jsonb("meta"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("game_scores_game_idx").on(t.gameId, t.score)]
+);

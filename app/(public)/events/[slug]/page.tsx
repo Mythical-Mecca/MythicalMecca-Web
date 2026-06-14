@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getEvent, isEventStarted } from "@/lib/content";
+import { getEvent, isEventStarted, isEventLive } from "@/lib/content";
 import {
   getComments,
   getReviews,
@@ -29,8 +29,7 @@ export default async function EventPage({
     getReviewSummary(slug),
   ]);
   const started = isEventStarted(event);
-  const live =
-    started && Date.now() <= new Date(event.endsAt).getTime();
+  const live = isEventLive(event);
 
   return (
     <article className="mx-auto max-w-3xl px-6 py-16">

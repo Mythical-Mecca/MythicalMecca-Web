@@ -19,10 +19,13 @@ pnpm dev          # http://localhost:3000
 
 1. **Neon** — create a project and paste the connection strings into `.env.local`:
    - `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct, for migrations)
-2. **Push the schema** once `DATABASE_URL` is set:
+2. **Push the schema** once `DATABASE_URL` is set, then seed sample content:
    ```bash
    pnpm db:push          # or: pnpm db:migrate to apply ./drizzle/*.sql
+   pnpm db:seed          # badges, arcade game, posts, events, a vendor, a hunt
    ```
+   > Until a database is connected the app runs on built-in dev sample data, so
+   > every page renders — DB-backed writes just no-op.
 3. **Google OAuth** — create an OAuth client (Authorized redirect URI:
    `http://localhost:3000/api/auth/callback/google`) and set `AUTH_GOOGLE_ID` /
    `AUTH_GOOGLE_SECRET`.

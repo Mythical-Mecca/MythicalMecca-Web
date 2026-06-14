@@ -2,11 +2,17 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getLiveEvent } from "@/lib/content";
 import { formatDateTime } from "@/lib/format";
+import { getUserXp, rankForXp } from "@/lib/gamification";
+import { SyncGauge } from "@/components/sync-gauge";
 
 export default async function DashboardPage() {
   const session = await auth();
   const name = session?.user?.name ?? "Pilot";
-  const liveEvent = await getLiveEvent();
+  const [liveEvent, xp] = await Promise.all([
+    getLiveEvent(),
+    getUserXp(session!.user.id),
+  ]);
+  const rank = rankForXp(xp);
 
   return (
     <div className="space-y-8">
@@ -36,36 +42,39 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-wide">
-          Welcome back, <span className="mm-gradient-text">{name}</span>
-        </h1>
-        <p className="mt-2 text-[var(--mm-text-dim)]">
-          Your hangar is online.
-        </p>
+      <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+        <div>
+          <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-wide">
+            Welcome back, <span className="mm-gradient-text">{name}</span>
+          </h1>
+          <p className="mt-2 text-[var(--mm-text-dim)]">
+            {rank.next
+              ? `${rank.toNext} XP to ${rank.next}.`
+              : "Maximum rank achieved."}
+          </p>
+        </div>
+        <SyncGauge pct={rank.pct} rank={rank.rank} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="mm-glass p-6">
-          <p className="text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
-            Rank
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Link href="/hunts" className="mm-glass p-6 transition hover:border-[var(--mm-violet)]">
+          <p className="font-[family-name:var(--font-display)] text-lg">Ops</p>
+          <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
+            Scavenger hunts & leaderboards
           </p>
-          <p className="mt-2 font-[family-name:var(--font-display)] text-xl">
-            Initiate
+        </Link>
+        <Link href="/arcade" className="mm-glass p-6 transition hover:border-[var(--mm-violet)]">
+          <p className="font-[family-name:var(--font-display)] text-lg">Arcade</p>
+          <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
+            Training sims · {xp} XP banked
           </p>
-        </div>
-        <div className="mm-glass p-6">
-          <p className="text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
-            Sync rate
+        </Link>
+        <Link href="/events" className="mm-glass p-6 transition hover:border-[var(--mm-violet)]">
+          <p className="font-[family-name:var(--font-display)] text-lg">Events</p>
+          <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
+            Upcoming ops & sorties
           </p>
-          <p className="mt-2 font-[family-name:var(--font-display)] text-xl">0%</p>
-        </div>
-        <div className="mm-glass p-6">
-          <p className="text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
-            XP core
-          </p>
-          <p className="mt-2 font-[family-name:var(--font-display)] text-xl">0</p>
-        </div>
+        </Link>
       </div>
     </div>
   );

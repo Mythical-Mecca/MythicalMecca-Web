@@ -18,6 +18,9 @@ export const ROUTE_RULES: { prefix: string; min: Role }[] = [
   { prefix: "/forge", min: "vendor" },
   { prefix: "/dashboard", min: "member" },
   { prefix: "/profile", min: "member" },
+  { prefix: "/hunts", min: "member" },
+  { prefix: "/hunt/", min: "member" },
+  { prefix: "/arcade", min: "member" },
 ];
 
 export function ruleForPath(pathname: string) {

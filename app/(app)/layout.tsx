@@ -34,7 +34,9 @@ export default async function AppLayout({
             )}
             <div className="hidden items-center gap-6 text-sm text-[var(--mm-text-dim)] md:flex">
               <Link href="/dashboard" className="hover:text-[var(--mm-text)]">Hangar</Link>
-              <Link href="/events" className="hover:text-[var(--mm-text)]">Ops</Link>
+              <Link href="/events" className="hover:text-[var(--mm-text)]">Events</Link>
+              <Link href="/hunts" className="hover:text-[var(--mm-text)]">Ops</Link>
+              <Link href="/arcade" className="hover:text-[var(--mm-text)]">Arcade</Link>
               <Link href="/armory" className="hover:text-[var(--mm-text)]">Armory</Link>
               <Link href="/profile" className="hover:text-[var(--mm-text)]">Loadout</Link>
               {roleAtLeast(role, "vendor") && (

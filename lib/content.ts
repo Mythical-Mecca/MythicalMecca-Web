@@ -254,6 +254,14 @@ export function isEventStarted(e: EventView): boolean {
   return Date.now() >= new Date(e.startsAt).getTime();
 }
 
+export function isEventLive(e: EventView): boolean {
+  const now = Date.now();
+  return (
+    now >= new Date(e.startsAt).getTime() &&
+    now <= new Date(e.endsAt).getTime()
+  );
+}
+
 export async function getVendors(): Promise<VendorView[]> {
   if (!useDb) return sampleVendors;
   try {

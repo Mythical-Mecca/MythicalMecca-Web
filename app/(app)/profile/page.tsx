@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { getMyProfile } from "@/lib/member";
 import { updateProfile } from "../actions";
 import { FileUploader } from "@/components/file-uploader";
+import { getUserBadges, getUserXp, rankForXp } from "@/lib/gamification";
+import { SyncGauge } from "@/components/sync-gauge";
 
 const DIVISIONS = ["tabletop", "arcade", "otaku", "maker"] as const;
 
@@ -13,7 +15,12 @@ export default async function ProfilePage({
 }) {
   const session = await auth();
   const user = session!.user;
-  const profile = await getMyProfile(user.id);
+  const [profile, xp, badges] = await Promise.all([
+    getMyProfile(user.id),
+    getUserXp(user.id),
+    getUserBadges(user.id),
+  ]);
+  const rank = rankForXp(xp);
   const { saved, error } = await searchParams;
   const division = profile?.division ?? "";
 
@@ -30,6 +37,37 @@ export default async function ProfilePage({
           </span>
         </p>
       </div>
+
+      <section className="mm-glass flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between">
+        <SyncGauge pct={rank.pct} rank={rank.rank} />
+        <div className="text-sm">
+          <p className="text-[var(--mm-text-dim)]">XP core</p>
+          <p className="font-[family-name:var(--font-display)] text-2xl text-[var(--mm-gold)]">
+            {xp}
+          </p>
+        </div>
+        <div className="flex-1">
+          <p className="mb-2 text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
+            Badges
+          </p>
+          {badges.length === 0 ? (
+            <p className="text-sm text-[var(--mm-text-dim)]">
+              No badges yet — clear an op to earn your first.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {badges.map((b) => (
+                <span
+                  key={b.code}
+                  className="rounded-full border border-[var(--mm-gold)] px-3 py-1 text-xs text-[var(--mm-gold)]"
+                >
+                  {b.name}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       {saved && (
         <div className="mm-glass border-[var(--mm-live)] p-3 text-sm text-[var(--mm-live)]">
