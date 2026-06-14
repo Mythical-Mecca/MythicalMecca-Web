@@ -1,20 +1,39 @@
-export default function CommandOverviewPage() {
+import { getCounts } from "@/lib/admin";
+
+export default async function CommandOverviewPage() {
+  const c = await getCounts();
+  const cards = [
+    { k: "Pilots", v: c.pilots },
+    { k: "Posts", v: c.posts },
+    { k: "Active ops", v: c.activeOps },
+    { k: "Errors (24h)", v: c.errors24h },
+  ];
+  const dbConnected = !!process.env.DATABASE_URL;
+
   return (
     <div className="space-y-6">
       <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
         <span className="mm-gradient-text">Command</span> deck
       </h1>
-      <p className="text-[var(--mm-text-dim)]">
-        Platform control. Posts, events, vendor applications and Command telemetry
-        (the black-box recorder) wire up in Phase 3.
-      </p>
+
+      {!dbConnected && (
+        <div className="mm-glass border-[var(--mm-gold)] p-4 text-sm text-[var(--mm-text-dim)]">
+          No database connected — counts read zero and management writes are
+          no-ops. Set <code className="text-[var(--mm-gold)]">DATABASE_URL</code>{" "}
+          and run <code className="text-[var(--mm-gold)]">pnpm db:push</code> to
+          go live.
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {["Pilots", "Posts", "Active ops", "Errors (24h)"].map((k) => (
-          <div key={k} className="mm-glass p-5">
+        {cards.map((x) => (
+          <div key={x.k} className="mm-glass p-5">
             <p className="text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
-              {k}
+              {x.k}
             </p>
-            <p className="mt-2 font-[family-name:var(--font-display)] text-2xl">—</p>
+            <p className="mt-2 font-[family-name:var(--font-display)] text-2xl">
+              {x.v}
+            </p>
           </div>
         ))}
       </div>
