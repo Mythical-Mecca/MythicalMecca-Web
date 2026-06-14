@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Synthwave gamer scene">
+  <defs>
+    <linearGradient id="gsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#080b16"/>
+      <stop offset="45%" stop-color="#0d1430"/>
+      <stop offset="62%" stop-color="#13204a"/>
+      <stop offset="100%" stop-color="#0a0f20"/>
+    </linearGradient>
+    <radialGradient id="gsun" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffd27a"/>
+      <stop offset="55%" stop-color="#f2b441"/>
+      <stop offset="100%" stop-color="#e0892f"/>
+    </radialGradient>
+    <radialGradient id="ghorizon" cx="50%" cy="100%" r="60%">
+      <stop offset="0%" stop-color="#2c7be5" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#2c7be5" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#gsky)"/>
+
+  <!-- stars -->
+  <g fill="#cfe0ff">
+    <circle cx="140" cy="80" r="1.6" opacity="0.8"/>
+    <circle cx="320" cy="150" r="1.1" opacity="0.5"/>
+    <circle cx="500" cy="60" r="1.7" opacity="0.7"/>
+    <circle cx="980" cy="120" r="1.2" opacity="0.6"/>
+    <circle cx="1180" cy="70" r="1.6" opacity="0.8"/>
+    <circle cx="1360" cy="150" r="1.1" opacity="0.5"/>
+    <circle cx="1500" cy="90" r="1.4" opacity="0.7"/>
+    <circle cx="240" cy="240" r="1" opacity="0.4"/>
+    <circle cx="1280" cy="230" r="1.2" opacity="0.5"/>
+  </g>
+
+  <!-- horizon glow -->
+  <rect x="0" y="360" width="1600" height="260" fill="url(#ghorizon)"/>
+
+  <!-- synthwave sun with stripes -->
+  <g>
+    <circle cx="800" cy="430" r="150" fill="url(#gsun)"/>
+    <g fill="#0d1430">
+      <rect x="640" y="452" width="320" height="7"/>
+      <rect x="640" y="472" width="320" height="9"/>
+      <rect x="640" y="497" width="320" height="12"/>
+      <rect x="640" y="527" width="320" height="16"/>
+      <rect x="640" y="563" width="320" height="22"/>
+    </g>
+  </g>
+
+  <!-- distant mountains -->
+  <path d="M0 560 L170 472 L320 545 L520 452 L760 540 L1000 466 L1240 545 L1450 478 L1600 545 L1600 580 L0 580 Z" fill="#0c1326"/>
+
+  <!-- perspective grid -->
+  <g stroke="#2c7be5" stroke-width="1.6" opacity="0.5">
+    <line x1="800" y1="566" x2="-460" y2="900"/>
+    <line x1="800" y1="566" x2="-250" y2="900"/>
+    <line x1="800" y1="566" x2="-40" y2="900"/>
+    <line x1="800" y1="566" x2="170" y2="900"/>
+    <line x1="800" y1="566" x2="380" y2="900"/>
+    <line x1="800" y1="566" x2="590" y2="900"/>
+    <line x1="800" y1="566" x2="800" y2="900"/>
+    <line x1="800" y1="566" x2="1010" y2="900"/>
+    <line x1="800" y1="566" x2="1220" y2="900"/>
+    <line x1="800" y1="566" x2="1430" y2="900"/>
+    <line x1="800" y1="566" x2="1640" y2="900"/>
+    <line x1="800" y1="566" x2="1850" y2="900"/>
+    <line x1="800" y1="566" x2="2060" y2="900"/>
+  </g>
+  <g stroke="#2c7be5" stroke-width="1.6" opacity="0.5">
+    <line x1="0" y1="566" x2="1600" y2="566"/>
+    <line x1="0" y1="582" x2="1600" y2="582"/>
+    <line x1="0" y1="602" x2="1600" y2="602"/>
+    <line x1="0" y1="628" x2="1600" y2="628"/>
+    <line x1="0" y1="664" x2="1600" y2="664"/>
+    <line x1="0" y1="712" x2="1600" y2="712"/>
+    <line x1="0" y1="778" x2="1600" y2="778"/>
+    <line x1="0" y1="864" x2="1600" y2="864"/>
+  </g>
+</svg>
