@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ParticleField } from "@/components/particle-field";
 import { Icon } from "@/components/icon";
-import { getEvents, getPosts, getVendors } from "@/lib/content";
+import { getEvents, getPosts } from "@/lib/content";
 import { DivisionBadge } from "@/components/content-ui";
 import { formatDate, formatDateTime } from "@/lib/format";
 
@@ -32,16 +32,42 @@ const GUILDS = [
   { k: "Maker", d: "Tech & crafts", icon: "game-icons:anvil" },
 ];
 
+// Placeholder gallery tiles — swap for real community photos later.
+const GALLERY: {
+  label: string;
+  icon: string;
+  img?: string;
+  grad?: string;
+}[] = [
+  { label: "Tavern nights", icon: "game-icons:beer-stein", img: TAVERN },
+  {
+    label: "Cosplay",
+    icon: "game-icons:visored-helm",
+    grad: "linear-gradient(135deg,#2c7be5,#13204a)",
+  },
+  {
+    label: "Painted minis",
+    icon: "game-icons:rune-sword",
+    grad: "linear-gradient(135deg,#e0892f,#7a3a12)",
+  },
+  { label: "On the road", icon: "game-icons:treasure-map", img: QUEST },
+  {
+    label: "Fan art",
+    icon: "game-icons:quill-ink",
+    grad: "linear-gradient(135deg,#6cb8ff,#1d2746)",
+  },
+  {
+    label: "Builds & mods",
+    icon: "game-icons:cog",
+    grad: "linear-gradient(135deg,#f2b441,#7a5410)",
+  },
+];
+
 export default async function HomePage() {
-  const [posts, events, vendors] = await Promise.all([
-    getPosts(),
-    getEvents(),
-    getVendors(),
-  ]);
+  const [posts, events] = await Promise.all([getPosts(), getEvents()]);
   const latest = posts.slice(0, 3);
   const upcoming = events.slice(0, 3);
   const nextGathering = events[0];
-  const featured = vendors.slice(0, 3);
 
   return (
     <div className="flex flex-col">
@@ -79,7 +105,7 @@ export default async function HomePage() {
       {/* ---------------- Upcoming gatherings — plain ---------------- */}
       <section className="bg-[var(--mm-bg)]">
         <div className="mx-auto max-w-6xl px-6 py-20">
-          <SectionTitle icon="game-icons:campfire" lead="Upcoming" accent="gatherings" />
+          <SectionTitle icon="game-icons:campfire" lead="Upcoming" accent="Events" />
 
           {nextGathering && (
             <div className="mm-glass mt-8 flex flex-col items-start justify-between gap-4 p-6 md:flex-row md:items-center">
@@ -146,13 +172,13 @@ export default async function HomePage() {
           <SectionTitle
             icon="game-icons:scroll-unfurled"
             lead="Latest"
-            accent="tidings"
+            accent="news & posts"
             right={
               <Link
                 href="/news"
                 className="inline-flex items-center gap-1.5 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
               >
-                All tidings <Icon icon="mdi:arrow-right" width={16} />
+                All news <Icon icon="mdi:arrow-right" width={16} />
               </Link>
             }
           />
@@ -184,10 +210,75 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ---------------- Choose your guild — plain ---------------- */}
+      {/* ---------------- Gallery — plain ---------------- */}
       <section className="bg-[var(--mm-bg)]">
         <div className="mx-auto max-w-6xl px-6 py-20">
-          <SectionTitle icon="game-icons:round-shield" lead="Choose your" accent="guild" />
+          <SectionTitle icon="mdi:image-multiple-outline" lead="The" accent="Gallery" />
+          <p className="mt-3 text-sm text-[var(--mm-text-dim)]">
+            Moments from the hall — cosplay, minis, fan art and builds.
+          </p>
+          <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-3">
+            {GALLERY.map((tile) => (
+              <div
+                key={tile.label}
+                className="group relative h-44 overflow-hidden rounded-2xl border border-[var(--mm-border)]"
+              >
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                  style={
+                    tile.img
+                      ? { backgroundImage: `url('${tile.img}')` }
+                      : { background: tile.grad }
+                  }
+                />
+                {!tile.img && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Icon
+                      icon={tile.icon}
+                      width={46}
+                      className="text-[color-mix(in_srgb,#ffffff_75%,transparent)]"
+                    />
+                  </div>
+                )}
+                <div
+                  className="absolute inset-x-0 bottom-0 p-3"
+                  style={{
+                    background:
+                      "linear-gradient(to top, rgba(11,15,28,0.9), transparent)",
+                  }}
+                >
+                  <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--mm-text)]">
+                    <Icon icon={tile.icon} width={16} className="text-[var(--mm-gold)]" />
+                    {tile.label}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------- Our community — tavern ---------------- */}
+      <section className="relative isolate overflow-hidden">
+        <ImageBackdrop src={TAVERN} overlay={bandOverlay} />
+        <div className="mx-auto max-w-6xl px-6 py-24">
+          <SectionTitle
+            icon="mdi:account-group-outline"
+            lead="Our"
+            accent="community"
+            right={
+              <Link
+                href="/armory"
+                className="inline-flex items-center gap-1.5 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
+              >
+                Visit the Armory <Icon icon="mdi:arrow-right" width={16} />
+              </Link>
+            }
+          />
+          <p className="mt-3 max-w-2xl text-[var(--mm-text-dim)]">
+            One hearth, four guilds — whatever your flavour of geek, there&apos;s
+            a table with your name on it.
+          </p>
           <div className="mt-8 grid gap-4 md:grid-cols-4">
             {GUILDS.map((g) => (
               <div
@@ -202,50 +293,6 @@ export default async function HomePage() {
                   <p className="mt-1 text-xs text-[var(--mm-text-dim)]">{g.d}</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- The Armory — tavern ---------------- */}
-      <section className="relative isolate overflow-hidden">
-        <ImageBackdrop src={TAVERN} overlay={bandOverlay} />
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <SectionTitle
-            icon="game-icons:anvil"
-            lead="The"
-            accent="Armory"
-            right={
-              <Link
-                href="/armory"
-                className="inline-flex items-center gap-1.5 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
-              >
-                Browse all <Icon icon="mdi:arrow-right" width={16} />
-              </Link>
-            }
-          />
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((v) => (
-              <Link
-                key={v.slug}
-                href={`/armory/${v.slug}`}
-                className="mm-glass group p-5 transition hover:border-[var(--mm-violet)]"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <DivisionBadge division={v.division} />
-                  <Icon
-                    icon="game-icons:shop"
-                    width={20}
-                    className="text-[var(--mm-text-dim)] group-hover:text-[var(--mm-gold)]"
-                  />
-                </div>
-                <h3 className="font-medium group-hover:text-[var(--mm-gold)]">
-                  {v.businessName}
-                </h3>
-                <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
-                  {v.tagline}
-                </p>
-              </Link>
             ))}
           </div>
         </div>
