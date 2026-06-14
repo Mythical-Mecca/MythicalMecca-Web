@@ -1,5 +1,7 @@
 import { signIn, auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { AuroraField } from "@/components/aurora-field";
+import { Icon } from "@/components/icon";
 
 export default async function LoginPage({
   searchParams,
@@ -11,8 +13,25 @@ export default async function LoginPage({
   const { from } = await searchParams;
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-6">
-      <div className="mm-glass w-full max-w-sm p-8 text-center">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6">
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-20 bg-cover bg-center"
+        style={{ backgroundImage: "url('/MythicMechaAuthBackground.png')" }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-10"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(8,10,22,0.32), rgba(8,10,22,0.62))",
+        }}
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <AuroraField />
+      </div>
+
+      <div className="relative mm-glass w-full max-w-sm p-8 text-center">
         <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-widest">
           ENTER THE <span className="mm-gradient-text">HALL</span>
         </h1>
@@ -29,8 +48,11 @@ export default async function LoginPage({
             });
           }}
         >
-          <button type="submit" className="mm-btn mm-btn-primary w-full justify-center">
-            Continue with Google
+          <button
+            type="submit"
+            className="mm-btn mm-btn-primary w-full justify-center"
+          >
+            <Icon icon="logos:google-icon" width={16} /> Continue with Google
           </button>
         </form>
 
