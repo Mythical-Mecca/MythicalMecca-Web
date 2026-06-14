@@ -10,6 +10,11 @@ import { Icon } from "@/components/icon";
 
 const SCENE = "/gamer-scene.svg";
 
+// slightly transparent so the scene shows through the cards
+const softCard = {
+  background: "color-mix(in srgb, var(--mm-surface) 40%, transparent)",
+} as const;
+
 const LINKS = [
   {
     href: "/hunts",
@@ -41,55 +46,60 @@ export default async function DashboardPage() {
   const rank = rankForXp(xp);
 
   return (
-    <div className="space-y-8">
-      {liveEvent && (
+    <>
+      {/* Full-page backdrop: gamer scene + aurora + particle/line overlay */}
+      <div aria-hidden className="fixed inset-0 -z-10">
         <div
-          className="rounded-2xl border border-[var(--mm-live)] p-6"
-          style={{
-            background:
-              "linear-gradient(135deg, rgba(92,192,140,0.14), rgba(44,123,229,0.12))",
-          }}
-        >
-          <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--mm-live)]">
-            <span className="mm-dot-live" /> A gathering awaits
-          </div>
-          <h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl">
-            {liveEvent.title}
-          </h2>
-          <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
-            {formatDateTime(liveEvent.startsAt)} · {liveEvent.location}
-          </p>
-          <Link
-            href={`/events/${liveEvent.slug}`}
-            className="mm-btn mm-btn-primary mt-4 text-sm"
-          >
-            <Icon icon="mdi:arrow-right" width={16} /> View event
-          </Link>
-        </div>
-      )}
-
-      {/* Welcome hero — gamer scene + aurora + particle/line overlay */}
-      <section className="relative isolate flex min-h-[340px] overflow-hidden rounded-2xl border border-[var(--mm-border)] sm:min-h-[420px]">
-        <div
-          aria-hidden
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url('${SCENE}')` }}
         />
         <div
-          aria-hidden
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(to right, rgba(8,11,22,0.82) 0%, rgba(8,11,22,0.5) 60%, rgba(8,11,22,0.35) 100%)",
+              "linear-gradient(to bottom, rgba(8,11,22,0.6), rgba(8,11,22,0.78))",
           }}
         />
-        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-80">
+        <div className="pointer-events-none absolute inset-0 opacity-75">
           <AuroraField />
         </div>
-        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-70">
+        <div className="pointer-events-none absolute inset-0 opacity-60">
           <ParticleField />
         </div>
-        <div className="relative z-10 flex w-full flex-col items-start justify-between gap-6 p-8 md:flex-row md:items-center">
+      </div>
+
+      <div className="space-y-8">
+        {liveEvent && (
+          <div
+            className="rounded-2xl border border-[var(--mm-live)] p-6"
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(92,192,140,0.16), rgba(44,123,229,0.14))",
+            }}
+          >
+            <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--mm-live)]">
+              <span className="mm-dot-live" /> A gathering awaits
+            </div>
+            <h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl">
+              {liveEvent.title}
+            </h2>
+            <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
+              {formatDateTime(liveEvent.startsAt)} · {liveEvent.location}
+            </p>
+            <Link
+              href={`/events/${liveEvent.slug}`}
+              className="mm-btn mm-btn-primary mt-4 text-sm"
+            >
+              <Icon icon="mdi:arrow-right" width={16} /> View event
+            </Link>
+          </div>
+        )}
+
+        {/* Welcome card */}
+        <section
+          className="mm-glass flex flex-col items-start justify-between gap-6 p-8 md:flex-row md:items-center"
+          style={softCard}
+        >
           <div>
             <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-[var(--mm-gold)]">
               <Icon icon="game-icons:gamepad" width={16} /> Player one
@@ -104,31 +114,32 @@ export default async function DashboardPage() {
             </p>
           </div>
           <SyncGauge pct={rank.pct} rank={rank.rank} />
-        </div>
-      </section>
+        </section>
 
-      {/* Explore — clean glass cards */}
-      <section>
-        <h2 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-xl tracking-wide">
-          <Icon icon="game-icons:compass" width={24} className="text-[var(--mm-gold)]" />
-          Explore
-        </h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          {LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="mm-glass group p-6 transition hover:border-[var(--mm-violet)]"
-            >
-              <Icon icon={l.icon} width={30} className="text-[var(--mm-gold)]" />
-              <p className="mt-3 font-[family-name:var(--font-display)] text-lg group-hover:text-[var(--mm-gold)]">
-                {l.title}
-              </p>
-              <p className="mt-1 text-sm text-[var(--mm-text-dim)]">{l.desc}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-    </div>
+        {/* Explore */}
+        <section>
+          <h2 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-xl tracking-wide">
+            <Icon icon="game-icons:compass" width={24} className="text-[var(--mm-gold)]" />
+            Explore
+          </h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            {LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="mm-glass group p-6 transition hover:border-[var(--mm-violet)]"
+                style={softCard}
+              >
+                <Icon icon={l.icon} width={30} className="text-[var(--mm-gold)]" />
+                <p className="mt-3 font-[family-name:var(--font-display)] text-lg group-hover:text-[var(--mm-gold)]">
+                  {l.title}
+                </p>
+                <p className="mt-1 text-sm text-[var(--mm-text-dim)]">{l.desc}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </div>
+    </>
   );
 }
