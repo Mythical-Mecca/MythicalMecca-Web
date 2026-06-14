@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Icon } from "@/components/icon";
 
 export default function PublicLayout({
   children,
@@ -16,13 +17,21 @@ export default function PublicLayout({
             MYTHIC<span className="mm-gradient-text"> MECHA</span>
           </Link>
           <div className="hidden items-center gap-7 text-sm text-[var(--mm-text-dim)] md:flex">
-            <Link href="/news" className="hover:text-[var(--mm-text)]">Tidings</Link>
-            <Link href="/events" className="hover:text-[var(--mm-text)]">Gatherings</Link>
-            <Link href="/armory" className="hover:text-[var(--mm-text)]">Armory</Link>
-            <Link href="/collab" className="hover:text-[var(--mm-text)]">Send a raven</Link>
+            <Link href="/news" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">
+              <Icon icon="game-icons:scroll-unfurled" width={16} /> Tidings
+            </Link>
+            <Link href="/events" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">
+              <Icon icon="game-icons:campfire" width={16} /> Gatherings
+            </Link>
+            <Link href="/armory" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">
+              <Icon icon="game-icons:anvil" width={16} /> Armory
+            </Link>
+            <Link href="/collab" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">
+              <Icon icon="game-icons:raven" width={16} /> Send a raven
+            </Link>
           </div>
           <Link href="/login" className="mm-btn mm-btn-primary text-sm">
-            Sign in
+            <Icon icon="mdi:login-variant" width={16} /> Sign in
           </Link>
         </nav>
       </header>
