@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import Discord from "next-auth/providers/discord";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "@/lib/db";
 import { users, accounts, sessions, verificationTokens } from "@/lib/db/schema";
@@ -17,7 +18,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens,
   }),
-  providers: [Google],
+  providers: [
+    // Same-email accounts link to one profile, so a member can sign in with
+    // either Google or Discord (and link both from their character sheet).
+    Google({ allowDangerousEmailAccountLinking: true }),
+    Discord({ allowDangerousEmailAccountLinking: true }),
+  ],
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",

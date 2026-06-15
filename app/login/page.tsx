@@ -47,25 +47,44 @@ export default async function LoginPage({
           Sign your name in the guild ledger.
         </p>
 
-        <form
-          className="mt-8"
-          action={async () => {
-            "use server";
-            await signIn("google", {
-              redirectTo: from && from.startsWith("/") ? from : "/dashboard",
-            });
-          }}
-        >
-          <button
-            type="submit"
-            className="mm-btn mm-btn-primary w-full justify-center"
+        <div className="mt-8 space-y-3">
+          <form
+            action={async () => {
+              "use server";
+              await signIn("discord", {
+                redirectTo: from && from.startsWith("/") ? from : "/dashboard",
+              });
+            }}
           >
-            <Icon icon="logos:google-icon" width={16} /> Continue with Google
-          </button>
-        </form>
+            <button
+              type="submit"
+              className="mm-btn w-full justify-center text-white"
+              style={{ background: "#5865F2" }}
+            >
+              <Icon icon="mdi:discord" width={18} /> Continue with Discord
+            </button>
+          </form>
+
+          <form
+            action={async () => {
+              "use server";
+              await signIn("google", {
+                redirectTo: from && from.startsWith("/") ? from : "/dashboard",
+              });
+            }}
+          >
+            <button
+              type="submit"
+              className="mm-btn mm-btn-ghost w-full justify-center"
+            >
+              <Icon icon="logos:google-icon" width={16} /> Continue with Google
+            </button>
+          </form>
+        </div>
 
         <p className="mt-6 text-xs text-[var(--mm-text-dim)]">
-          New adventurers are welcomed automatically.
+          New adventurers are welcomed automatically · sign in with either and
+          link the other later.
         </p>
       </div>
     </div>

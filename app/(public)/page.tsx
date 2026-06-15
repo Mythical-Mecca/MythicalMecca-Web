@@ -7,6 +7,7 @@ import { formatDate, formatDateTime } from "@/lib/format";
 const TAVERN = "/MythicMechaBackground.png";
 const BG2 = "/MythicMechaBackground2.png";
 const BG3 = "/MythicMechaBackground3.png";
+const DISCORD = "https://discord.gg/NKWMAtq2B";
 
 const heroOverlay =
   "linear-gradient(to bottom, rgba(11,15,28,0.72) 0%, rgba(11,15,28,0.42) 42%, rgba(11,15,28,0.86) 86%, #0b0f1c 100%)";
@@ -247,6 +248,15 @@ export default async function HomePage() {
             One hearth for the whole collective — whatever your flavour of geek,
             there&apos;s a table with your name on it.
           </p>
+          <a
+            href={DISCORD}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mm-btn mt-5 text-white"
+            style={{ background: "#5865F2" }}
+          >
+            <Icon icon="mdi:discord" width={18} /> Join our Discord
+          </a>
           <div className="mt-8 grid gap-4 md:grid-cols-4">
             {FEATURES.map((g) => (
               <div

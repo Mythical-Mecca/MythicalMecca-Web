@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { getMyProfile } from "@/lib/member";
-import { updateProfile } from "../actions";
+import { getMyProfile, getLinkedAccounts } from "@/lib/member";
+import { updateProfile, linkSocial } from "../actions";
 import { ImageUploader } from "@/components/image-uploader";
 import { TextField, FormSection } from "@/components/form";
 import { Icon } from "@/components/icon";
@@ -11,17 +11,18 @@ import { SyncGauge } from "@/components/sync-gauge";
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; error?: string; linked?: string }>;
 }) {
   const session = await auth();
   const user = session!.user;
-  const [profile, xp, badges] = await Promise.all([
+  const [profile, xp, badges, linked] = await Promise.all([
     getMyProfile(user.id),
     getUserXp(user.id),
     getUserBadges(user.id),
+    getLinkedAccounts(user.id),
   ]);
   const rank = rankForXp(xp);
-  const { saved, error } = await searchParams;
+  const { saved, error, linked: justLinked } = await searchParams;
 
   const avatar = profile?.avatarUrl ?? user.image ?? null;
   const banner = profile?.bannerUrl ?? null;
@@ -101,6 +102,11 @@ export default async function ProfilePage({
           <Icon icon="mdi:check" width={16} /> Saved.
         </div>
       )}
+      {justLinked && (
+        <div className="mm-glass flex items-center gap-2 border-[var(--mm-live)] p-3 text-sm text-[var(--mm-live)]">
+          <Icon icon="mdi:link-variant" width={16} /> Account linked.
+        </div>
+      )}
       {error && (
         <div className="mm-glass border-[var(--mm-danger)] p-3 text-sm text-[var(--mm-danger)]">
           Could not save — check your inputs.
@@ -143,6 +149,45 @@ export default async function ProfilePage({
           <Icon icon="mdi:content-save-outline" width={16} /> Save changes
         </button>
       </form>
+
+      <section className="mm-glass p-6">
+        <h2 className="font-[family-name:var(--font-display)] text-lg tracking-wide">
+          Connected accounts
+        </h2>
+        <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
+          Sign in with Discord or Google — link both to keep one profile.
+        </p>
+        <div className="mt-4 space-y-2">
+          {[
+            { key: "discord", label: "Discord", icon: "mdi:discord" },
+            { key: "google", label: "Google", icon: "logos:google-icon" },
+          ].map((p) => {
+            const isLinked = linked.includes(p.key);
+            return (
+              <div
+                key={p.key}
+                className="flex items-center justify-between rounded-xl border border-[var(--mm-border)] px-4 py-3"
+              >
+                <span className="flex items-center gap-2 text-sm">
+                  <Icon icon={p.icon} width={18} /> {p.label}
+                </span>
+                {isLinked ? (
+                  <span className="inline-flex items-center gap-1 text-xs text-[var(--mm-live)]">
+                    <Icon icon="mdi:check-circle" width={14} /> Connected
+                  </span>
+                ) : (
+                  <form action={linkSocial}>
+                    <input type="hidden" name="provider" value={p.key} />
+                    <button className="mm-btn mm-btn-ghost text-xs">
+                      <Icon icon="mdi:link-variant" width={14} /> Link
+                    </button>
+                  </form>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="mm-glass p-6">
         <h2 className="font-[family-name:var(--font-display)] text-lg tracking-wide">

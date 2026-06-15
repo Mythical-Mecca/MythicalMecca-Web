@@ -6,8 +6,17 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { users, vendorApplications } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { auth, signIn } from "@/lib/auth";
 import { logActivity } from "@/lib/logging";
+
+export async function linkSocial(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  const provider = String(formData.get("provider"));
+  if (provider !== "google" && provider !== "discord") redirect("/profile");
+  // Signing in while authenticated links the new provider to this profile.
+  await signIn(provider, { redirectTo: "/profile?linked=1" });
+}
 
 const profileSchema = z.object({
   name: z.string().min(1).max(120),

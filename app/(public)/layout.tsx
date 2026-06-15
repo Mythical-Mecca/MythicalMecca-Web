@@ -7,8 +7,16 @@ import { AppBackdrop } from "@/components/app-backdrop";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 
 const Footer = () => (
-  <footer className="border-t border-[var(--mm-border)] px-6 py-8 text-center text-xs text-[var(--mm-text-dim)]">
-    Mythical Mecha — a hearth for the geek collective.
+  <footer className="flex flex-col items-center gap-3 border-t border-[var(--mm-border)] px-6 py-8 text-center text-xs text-[var(--mm-text-dim)]">
+    <a
+      href="https://discord.gg/NKWMAtq2B"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]"
+    >
+      <Icon icon="mdi:discord" width={16} /> Join our Discord
+    </a>
+    <span>Mythical Mecha — a hearth for the geek collective.</span>
   </footer>
 );
 

@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { users, vendorApplications } from "@/lib/db/schema";
+import { users, vendorApplications, accounts } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 
 const useDb = !!process.env.DATABASE_URL;
@@ -48,6 +48,20 @@ export interface MyProfile {
   rank: string | null;
   avatarUrl: string | null;
   bannerUrl: string | null;
+}
+
+/** OAuth providers currently linked to this account (e.g. ["google","discord"]). */
+export async function getLinkedAccounts(userId: string): Promise<string[]> {
+  if (!useDb) return [];
+  try {
+    const rows = await db
+      .select({ provider: accounts.provider })
+      .from(accounts)
+      .where(eq(accounts.userId, userId));
+    return rows.map((r) => r.provider);
+  } catch {
+    return [];
+  }
 }
 
 export async function getMyProfile(userId: string): Promise<MyProfile | null> {
