@@ -40,35 +40,61 @@ export async function updateProfile(formData: FormData) {
   redirect("/profile?saved=1");
 }
 
+const SOCIAL_KEYS = [
+  "instagram",
+  "youtube",
+  "tiktok",
+  "x",
+  "website",
+] as const;
+
 const applicationSchema = z.object({
-  businessName: z.string().min(2).max(160),
-  pitch: z.string().min(20).max(4000),
-  socials: z.string().max(500).optional(),
+  businessName: z.string().max(160).optional(),
+  description: z.string().min(10).max(2000),
+  images: z.array(z.string().url()).min(1).max(8),
 });
 
-export async function submitVendorApplication(formData: FormData) {
+export type ApplicationFormState = { error?: string };
+
+export async function submitVendorApplication(
+  _prev: ApplicationFormState,
+  formData: FormData
+): Promise<ApplicationFormState> {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
+  const images = formData.getAll("images").map(String).filter(Boolean);
+  const socials: Record<string, string> = {};
+  for (const k of SOCIAL_KEYS) {
+    const v = String(formData.get(`social_${k}`) ?? "").trim();
+    if (v) socials[k] = v;
+  }
+
   const parsed = applicationSchema.safeParse({
-    businessName: formData.get("businessName"),
-    pitch: formData.get("pitch"),
-    socials: formData.get("socials") || undefined,
+    businessName: formData.get("businessName") || undefined,
+    description: formData.get("description"),
+    images,
   });
-  if (!parsed.success) redirect("/vendor-application?error=1");
+  if (!parsed.success) {
+    return {
+      error:
+        images.length === 0
+          ? "Add at least one demo image."
+          : "Add a description (10+ characters) and at least one image.",
+    };
+  }
 
   if (process.env.DATABASE_URL) {
     try {
       await db.insert(vendorApplications).values({
         userId: session.user.id,
         businessName: parsed.data.businessName,
-        pitch: parsed.data.pitch,
-        socials: parsed.data.socials
-          ? { raw: parsed.data.socials }
-          : undefined,
+        pitch: parsed.data.description,
+        images: parsed.data.images,
+        socials: Object.keys(socials).length ? socials : undefined,
       });
     } catch {
-      redirect("/vendor-application?error=1");
+      return { error: "Could not submit your application. Please try again." };
     }
   }
   await logActivity({

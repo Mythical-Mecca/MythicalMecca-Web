@@ -52,10 +52,54 @@ export default async function AdminApplicationsPage({
             {pending.map((a) => (
               <div key={a.id} className="mm-glass flex flex-col p-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-medium">{a.businessName}</h3>
+                  <h3 className="font-medium">
+                    {a.businessName || "Unnamed stall"}
+                  </h3>
                   <span className="text-xs text-[var(--mm-text-dim)]">{a.createdAt}</span>
                 </div>
-                <p className="mt-2 flex-1 text-sm text-[var(--mm-text-dim)]">{a.pitch}</p>
+                <p className="mt-2 text-sm text-[var(--mm-text-dim)]">{a.pitch}</p>
+                {a.images.length > 0 && (
+                  <div className="mt-3 grid grid-cols-4 gap-2">
+                    {a.images.slice(0, 8).map((src) => (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        key={src}
+                        src={src}
+                        alt=""
+                        className="aspect-square w-full rounded-md border border-[var(--mm-border)] object-cover"
+                      />
+                    ))}
+                  </div>
+                )}
+                {Object.keys(a.socials).length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {Object.entries(a.socials).map(([k, v]) => (
+                      <a
+                        key={k}
+                        href={v.startsWith("http") ? v : undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-full border border-[var(--mm-border)] px-2.5 py-1 text-xs text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
+                      >
+                        <Icon
+                          icon={
+                            k === "instagram"
+                              ? "mdi:instagram"
+                              : k === "youtube"
+                                ? "mdi:youtube"
+                                : k === "tiktok"
+                                  ? "ic:baseline-tiktok"
+                                  : k === "x"
+                                    ? "mdi:alpha-x-box"
+                                    : "mdi:web"
+                          }
+                          width={13}
+                        />
+                        {v}
+                      </a>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <form action={approveApplication} className="flex flex-1 gap-2">
                     <input type="hidden" name="id" value={a.id} />

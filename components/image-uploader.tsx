@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { Icon } from "./icon";
 import { ParticleField } from "./particle-field";
@@ -26,6 +26,7 @@ export function ImageUploader({
   label = "Upload images",
   description = "Drop images or click to browse · up to 10 MB each",
   accent = "#4aa8ff",
+  onCountChange,
 }: {
   name: string;
   entityType?: string;
@@ -33,6 +34,7 @@ export function ImageUploader({
   label?: string;
   description?: string;
   accent?: string;
+  onCountChange?: (n: number) => void;
 }) {
   const [items, setItems] = useState<Item[]>([]);
   const [drag, setDrag] = useState(false);
@@ -40,6 +42,14 @@ export function ImageUploader({
 
   const single = maxFiles === 1;
   const doneCount = items.filter((i) => i.status === "done").length;
+
+  const cbRef = useRef(onCountChange);
+  useEffect(() => {
+    cbRef.current = onCountChange;
+  });
+  useEffect(() => {
+    cbRef.current?.(doneCount);
+  }, [doneCount]);
 
   const patch = (id: string, p: Partial<Item>) =>
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...p } : it)));
