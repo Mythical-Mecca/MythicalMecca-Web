@@ -10,8 +10,21 @@ import {
   users,
 } from "@/lib/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
+import { sampleEvents } from "@/lib/content";
 
 const useDb = !!process.env.DATABASE_URL;
+
+function sampleAdminEvents(): AdminEvent[] {
+  return sampleEvents.map((e, i) => ({
+    id: `sample-${i}`,
+    title: e.title,
+    slug: e.slug,
+    status: e.status,
+    location: e.location,
+    startsAt: e.startsAt,
+    endsAt: e.endsAt,
+  }));
+}
 
 export interface AdminPost {
   id: string;
@@ -25,7 +38,9 @@ export interface AdminEvent {
   title: string;
   slug: string;
   status: string;
+  location: string | null;
   startsAt: string | null;
+  endsAt: string | null;
 }
 export interface AdminApplication {
   id: string;
@@ -59,7 +74,7 @@ export async function listPosts(): Promise<AdminPost[]> {
 }
 
 export async function listEvents(): Promise<AdminEvent[]> {
-  if (!useDb) return [];
+  if (!useDb) return sampleAdminEvents();
   try {
     const rows = await db.select().from(events).orderBy(desc(events.createdAt));
     return rows.map((r) => ({
@@ -67,10 +82,12 @@ export async function listEvents(): Promise<AdminEvent[]> {
       title: r.title,
       slug: r.slug,
       status: r.status,
+      location: r.location,
       startsAt: r.startsAt ? r.startsAt.toISOString() : null,
+      endsAt: r.endsAt ? r.endsAt.toISOString() : null,
     }));
   } catch {
-    return [];
+    return sampleAdminEvents();
   }
 }
 

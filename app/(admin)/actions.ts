@@ -65,6 +65,8 @@ const eventSchema = z.object({
   summary: z.string().max(400).optional(),
   bodyMd: z.string().optional(),
   location: z.string().max(200).optional(),
+  lat: z.coerce.number().optional(),
+  lng: z.coerce.number().optional(),
   startsAt: z.string().min(1),
   endsAt: z.string().min(1),
 });
@@ -76,6 +78,8 @@ export async function createEvent(formData: FormData) {
     summary: formData.get("summary") || undefined,
     bodyMd: formData.get("bodyMd") || undefined,
     location: formData.get("location") || undefined,
+    lat: formData.get("lat") || undefined,
+    lng: formData.get("lng") || undefined,
     startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt"),
   });
@@ -89,6 +93,8 @@ export async function createEvent(formData: FormData) {
         summary: parsed.data.summary,
         bodyMd: parsed.data.bodyMd,
         location: parsed.data.location,
+        lat: parsed.data.lat,
+        lng: parsed.data.lng,
         startsAt: new Date(parsed.data.startsAt),
         endsAt: new Date(parsed.data.endsAt),
         status: "published",

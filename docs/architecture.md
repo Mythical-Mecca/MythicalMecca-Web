@@ -135,5 +135,7 @@ AUTH_GOOGLE_SECRET=
 BLOB_READ_WRITE_TOKEN=
 ADMIN_EMAILS=                 # comma list bootstrapped to admin
 QR_SIGNING_SECRET=
+# Optional: enables Google Places autocomplete on the event location field.
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
 NEXT_PUBLIC_APP_URL=
 ```

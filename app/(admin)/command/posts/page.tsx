@@ -1,11 +1,10 @@
 import { listPosts } from "@/lib/admin";
 import { createPost } from "../../actions";
 import {
-  Field,
+  TextField,
+  TextareaField,
   FormCard,
   PageHeader,
-  inputCls,
-  textareaCls,
 } from "@/components/form";
 import { Icon } from "@/components/icon";
 
@@ -40,21 +39,34 @@ export default async function AdminPostsPage({
       )}
 
       <FormCard title="New post" icon="mdi:plus" accent={ACCENT}>
-        <form action={createPost} className="grid gap-4 sm:grid-cols-2">
-          <Field label="Title" className="sm:col-span-2">
-            <input name="title" required placeholder="Headline" className={inputCls} />
-          </Field>
-          <Field label="Excerpt" hint="optional" className="sm:col-span-2">
-            <input name="excerpt" placeholder="One-line summary" className={inputCls} />
-          </Field>
-          <Field label="Body" hint="blank lines = paragraphs" className="sm:col-span-2">
-            <textarea name="bodyMd" required rows={6} placeholder="Write the post…" className={textareaCls} />
-          </Field>
-          <div className="sm:col-span-2">
-            <button type="submit" className="mm-btn mm-btn-primary">
-              <Icon icon="mdi:send" width={16} /> Publish post
-            </button>
-          </div>
+        <form action={createPost} className="space-y-5">
+          <TextField
+            name="title"
+            label="Title"
+            icon="mdi:format-title"
+            required
+            placeholder="Headline"
+          />
+          <TextField
+            name="excerpt"
+            label="Excerpt"
+            hint="optional"
+            icon="mdi:text-short"
+            description="A one-line summary shown in listings."
+            placeholder="One-line summary"
+          />
+          <TextareaField
+            name="bodyMd"
+            label="Body"
+            icon="mdi:text-long"
+            hint="blank lines = paragraphs"
+            required
+            rows={6}
+            placeholder="Write the post…"
+          />
+          <button type="submit" className="mm-btn mm-btn-primary">
+            <Icon icon="mdi:send" width={16} /> Publish post
+          </button>
         </form>
       </FormCard>
 
