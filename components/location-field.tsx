@@ -5,16 +5,17 @@ import { Field, inputCls } from "./form";
 
 let mapsPromise: Promise<void> | null = null;
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 function loadMaps(key: string): Promise<void> {
   if (mapsPromise) return mapsPromise;
   mapsPromise = new Promise((resolve, reject) => {
-    const w = window as unknown as { google?: { maps?: { places?: unknown } } };
-    if (w.google?.maps?.places) {
+    const g = (window as any).google;
+    if (g?.maps?.importLibrary) {
       resolve();
       return;
     }
     const s = document.createElement("script");
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&loading=async`;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&loading=async&v=weekly`;
     s.async = true;
     s.onload = () => resolve();
     s.onerror = () => reject(new Error("Google Maps failed to load"));
@@ -22,6 +23,7 @@ function loadMaps(key: string): Promise<void> {
   });
   return mapsPromise;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export function LocationField({ defaultValue = "" }: { defaultValue?: string }) {
   const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -34,8 +36,11 @@ export function LocationField({ defaultValue = "" }: { defaultValue?: string }) 
     /* eslint-disable @typescript-eslint/no-explicit-any */
     let ac: any;
     loadMaps(key)
-      .then(() => {
+      .then(async () => {
         const g = (window as any).google;
+        // Ensure the Places library is fully loaded before using it
+        // (with loading=async it isn't ready on the bootstrap script's onload).
+        await g?.maps?.importLibrary?.("places");
         if (!g?.maps?.places || !inputRef.current) return;
         ac = new g.maps.places.Autocomplete(inputRef.current, {
           fields: ["formatted_address", "geometry"],

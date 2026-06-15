@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { Icon } from "./icon";
 import { Drawer } from "./drawer";
@@ -36,6 +36,67 @@ function fmtDay(iso: string) {
     day: "numeric",
     month: "short",
   });
+}
+
+function NewEventForm() {
+  const [state, formAction, pending] = useActionState(createEvent, {});
+  const [titleOk, setTitleOk] = useState(false);
+  const [sched, setSched] = useState({ startsAt: "", endsAt: "" });
+
+  const valid = titleOk && sched.startsAt !== "" && sched.endsAt !== "";
+
+  return (
+    <form action={formAction} className="space-y-5">
+      <TextField
+        name="title"
+        label="Title"
+        icon="mdi:format-title"
+        required
+        placeholder="Event name"
+        onChange={(e) => setTitleOk(e.currentTarget.value.trim().length >= 2)}
+      />
+      <TextField
+        name="summary"
+        label="Summary"
+        hint="optional"
+        icon="mdi:text-short"
+        description="A one-line teaser shown in listings."
+        placeholder="One-liner"
+      />
+      <LocationField />
+      <FormSection title="When" icon="mdi:calendar-clock">
+        <EventSchedule onChange={setSched} />
+      </FormSection>
+      <TextareaField
+        name="bodyMd"
+        label="Details"
+        hint="optional"
+        icon="mdi:text-long"
+        rows={4}
+        placeholder="What's happening…"
+      />
+
+      {state.error && (
+        <p
+          role="alert"
+          aria-live="polite"
+          className="flex items-center gap-2 rounded-xl border border-[var(--mm-danger)] bg-[color-mix(in_srgb,var(--mm-danger)_12%,transparent)] px-4 py-2.5 text-sm text-[var(--mm-danger)]"
+        >
+          <Icon icon="mdi:alert-circle-outline" width={16} />
+          {state.error}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={!valid || pending}
+        className="mm-btn mm-btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+      >
+        <Icon icon="mdi:calendar-plus" width={16} />{" "}
+        {pending ? "Scheduling…" : "Schedule event"}
+      </button>
+    </form>
+  );
 }
 
 export function EventsBoard({ events }: { events: Ev[] }) {
@@ -92,44 +153,6 @@ export function EventsBoard({ events }: { events: Ev[] }) {
   const move = (delta: number) =>
     setCursor(new Date(year, month + delta, 1));
 
-  const newEventForm = (
-    <form action={createEvent} className="space-y-5">
-      <TextField
-        name="title"
-        label="Title"
-        icon="mdi:format-title"
-        required
-        placeholder="Event name"
-      />
-      <TextField
-        name="summary"
-        label="Summary"
-        hint="optional"
-        icon="mdi:text-short"
-        description="A one-line teaser shown in listings."
-        placeholder="One-liner"
-      />
-      <LocationField />
-      <FormSection title="When" icon="mdi:calendar-clock">
-        <EventSchedule />
-      </FormSection>
-      <TextareaField
-        name="bodyMd"
-        label="Details"
-        hint="optional"
-        icon="mdi:text-long"
-        rows={4}
-        placeholder="What's happening…"
-      />
-      <button
-        type="submit"
-        className="mm-btn mm-btn-primary w-full justify-center"
-      >
-        <Icon icon="mdi:calendar-plus" width={16} /> Schedule event
-      </button>
-    </form>
-  );
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -143,7 +166,7 @@ export function EventsBoard({ events }: { events: Ev[] }) {
             triggerLabel="New event"
             triggerIcon="mdi:plus"
           >
-            {newEventForm}
+            <NewEventForm />
           </Drawer>
         }
       />

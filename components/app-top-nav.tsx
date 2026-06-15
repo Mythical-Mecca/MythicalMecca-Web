@@ -2,15 +2,68 @@ import Link from "next/link";
 import { signOut } from "@/lib/auth";
 import { roleAtLeast, type Role } from "@/lib/rbac";
 import { Icon } from "@/components/icon";
+import { NavMenu, type NavMenuItem } from "@/components/nav-menu";
 
-const NAV = [
-  { href: "/dashboard", label: "Guild Hall", icon: "game-icons:castle" },
-  { href: "/events", label: "Gatherings", icon: "game-icons:campfire" },
-  { href: "/hunts", label: "Quests", icon: "game-icons:crossed-swords" },
-  { href: "/arcade", label: "Training Yard", icon: "mdi:target" },
-  { href: "/armory", label: "Armory", icon: "game-icons:anvil" },
-  { href: "/profile", label: "Character", icon: "game-icons:visored-helm" },
+const NAV: NavMenuItem[] = [
+  {
+    href: "/dashboard",
+    title: "Guild Hall",
+    desc: "Your home base & standing",
+    icon: "game-icons:castle",
+    color: "#4aa8ff",
+  },
+  {
+    href: "/events",
+    title: "Gatherings",
+    desc: "Feasts, gatherings & quests",
+    icon: "game-icons:campfire",
+    color: "#5cc08c",
+  },
+  {
+    href: "/hunts",
+    title: "Quests",
+    desc: "Scavenger trails & leaderboards",
+    icon: "game-icons:crossed-swords",
+    color: "#9a6cff",
+  },
+  {
+    href: "/arcade",
+    title: "Training Yard",
+    desc: "Trials of skill",
+    icon: "mdi:target",
+    color: "#48c8d6",
+  },
+  {
+    href: "/armory",
+    title: "Armory",
+    desc: "Gear & loadouts",
+    icon: "game-icons:anvil",
+    color: "#f2b441",
+  },
+  {
+    href: "/profile",
+    title: "Character",
+    desc: "Your hero & achievements",
+    icon: "game-icons:visored-helm",
+    color: "#e0b0ff",
+  },
 ];
+
+const FORGE_ITEM: NavMenuItem = {
+  href: "/forge",
+  title: "Forge",
+  desc: "Vendor workshop",
+  icon: "game-icons:anvil",
+  color: "#f2b441",
+};
+
+const KEEP_ITEM: NavMenuItem = {
+  href: "/command",
+  title: "The Keep",
+  desc: "Command & control",
+  icon: "game-icons:tower-flag",
+  color: "#ffd27a",
+};
 
 export function AppTopNav({
   role,
@@ -19,56 +72,37 @@ export function AppTopNav({
   role: Role;
   liveEvent: { slug: string; title: string } | null;
 }) {
+  const items: NavMenuItem[] = [
+    ...NAV,
+    ...(roleAtLeast(role, "vendor") ? [FORGE_ITEM] : []),
+    ...(roleAtLeast(role, "admin") ? [KEEP_ITEM] : []),
+  ];
+
   return (
     <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_62%,transparent)] backdrop-blur-md">
       <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3.5">
-        <div className="flex items-center gap-6">
+        <div className="flex min-w-0 items-center gap-4">
           <Link
             href="/dashboard"
-            className="font-[family-name:var(--font-display)] tracking-widest"
+            className="shrink-0 font-[family-name:var(--font-display)] tracking-widest"
           >
             MYTHIC<span className="mm-gradient-text"> MECHA</span>
           </Link>
           {liveEvent && (
             <Link
               href={`/events/${liveEvent.slug}`}
-              className="hidden items-center gap-2 rounded-full border border-[var(--mm-live)] px-3 py-1 text-xs text-[var(--mm-live)] sm:inline-flex"
+              className="hidden min-w-0 items-center gap-2 rounded-full border border-[var(--mm-live)] px-3 py-1 text-xs text-[var(--mm-live)] sm:inline-flex"
             >
-              <span className="mm-dot-live" /> {liveEvent.title}
+              <span className="mm-dot-live shrink-0" />{" "}
+              <span className="truncate">{liveEvent.title}</span>
             </Link>
           )}
-          <div className="hidden items-center gap-5 text-sm text-[var(--mm-text-dim)] lg:flex">
-            {NAV.map((n) => (
-              <Link
-                key={n.href}
-                href={n.href}
-                className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]"
-              >
-                <Icon icon={n.icon} width={15} /> {n.label}
-              </Link>
-            ))}
-            {roleAtLeast(role, "vendor") && (
-              <Link
-                href="/forge"
-                className="inline-flex items-center gap-1.5 text-[var(--mm-gold)] hover:text-[var(--mm-gold-hi)]"
-              >
-                <Icon icon="game-icons:anvil" width={15} /> Forge
-              </Link>
-            )}
-            {roleAtLeast(role, "admin") && (
-              <Link
-                href="/command"
-                className="inline-flex items-center gap-1.5 text-[var(--mm-gold)] hover:text-[var(--mm-gold-hi)]"
-              >
-                <Icon icon="game-icons:tower-flag" width={15} /> The Keep
-              </Link>
-            )}
-          </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <span className="hidden text-xs uppercase tracking-widest text-[var(--mm-text-dim)] sm:inline">
             {role}
           </span>
+          <NavMenu items={items} />
           <form
             action={async () => {
               "use server";

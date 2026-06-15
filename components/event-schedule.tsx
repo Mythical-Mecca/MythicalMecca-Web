@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Field, inputCls } from "./form";
 import { Icon } from "./icon";
 
 const dateStyle = { colorScheme: "dark" as const };
 
-export function EventSchedule() {
+export function EventSchedule({
+  onChange,
+}: {
+  onChange?: (v: { startsAt: string; endsAt: string }) => void;
+}) {
   const [multiDay, setMultiDay] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [startTime, setStartTime] = useState("18:00");
@@ -16,6 +20,15 @@ export function EventSchedule() {
   const endDateValue = multiDay ? endDate : startDate;
   const startsAt = startDate ? `${startDate}T${startTime}` : "";
   const endsAt = endDateValue ? `${endDateValue}T${endTime}` : "";
+
+  // Report computed values up after state settles (avoids stale hidden-input reads).
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
+  useEffect(() => {
+    onChangeRef.current?.({ startsAt, endsAt });
+  }, [startsAt, endsAt]);
 
   return (
     <div className="space-y-4">

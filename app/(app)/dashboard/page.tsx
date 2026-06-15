@@ -2,7 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getLiveEvent } from "@/lib/content";
 import { formatDateTime } from "@/lib/format";
-import { getUserXp, rankForXp } from "@/lib/gamification";
+import { getUserXp, rankForXp, getUserBadges } from "@/lib/gamification";
 import { SyncGauge } from "@/components/sync-gauge";
 import { Icon } from "@/components/icon";
 
@@ -13,106 +13,170 @@ const softCard = {
 
 const LINKS = [
   {
+    href: "/events",
+    title: "Gatherings",
+    desc: "Feasts, gatherings & quests",
+    icon: "game-icons:campfire",
+    color: "#5cc08c",
+  },
+  {
     href: "/hunts",
     title: "Quests",
     desc: "Scavenger trails & leaderboards",
     icon: "game-icons:crossed-swords",
+    color: "#9a6cff",
   },
   {
     href: "/arcade",
     title: "Training Yard",
     desc: "Trials of skill",
     icon: "mdi:target",
+    color: "#48c8d6",
   },
   {
-    href: "/events",
-    title: "Gatherings",
-    desc: "Feasts, gatherings & quests",
-    icon: "game-icons:campfire",
+    href: "/armory",
+    title: "Armory",
+    desc: "Gear & loadouts",
+    icon: "game-icons:anvil",
+    color: "#f2b441",
+  },
+  {
+    href: "/profile",
+    title: "Character",
+    desc: "Your hero & achievements",
+    icon: "game-icons:visored-helm",
+    color: "#e0b0ff",
   },
 ];
 
 export default async function DashboardPage() {
   const session = await auth();
   const name = session?.user?.name ?? "Adventurer";
-  const [liveEvent, xp] = await Promise.all([
+  const [liveEvent, xp, myBadges] = await Promise.all([
     getLiveEvent(),
     getUserXp(session!.user.id),
+    getUserBadges(session!.user.id),
   ]);
   const rank = rankForXp(xp);
 
+  const stats = [
+    { label: "Rank", value: rank.rank, icon: "mdi:shield-star-outline", color: "#f2b441" },
+    { label: "Renown", value: xp.toLocaleString(), icon: "mdi:star-four-points", color: "#4aa8ff" },
+    {
+      label: rank.next ? `To ${rank.next}` : "Standing",
+      value: rank.next ? rank.toNext.toLocaleString() : "Max",
+      icon: "mdi:trending-up",
+      color: "#5cc08c",
+    },
+    { label: "Badges", value: String(myBadges.length), icon: "mdi:medal-outline", color: "#9a6cff" },
+  ];
+
   return (
-    <div className="space-y-8">
-        {liveEvent && (
+    <div className="space-y-6">
+      {/* Welcome + gauge (compact) */}
+      <section
+        className="mm-glass flex flex-col items-start justify-between gap-5 p-6 md:flex-row md:items-center"
+        style={softCard}
+      >
+        <div>
+          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-[var(--mm-gold)]">
+            <Icon icon="game-icons:gamepad" width={15} /> Player one
+          </p>
+          <h1 className="mt-1.5 font-[family-name:var(--font-display)] text-2xl tracking-wide md:text-3xl">
+            Welcome back, <span className="mm-gradient-text">{name}</span>
+          </h1>
+          <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
+            {rank.next
+              ? `${rank.toNext} renown to ${rank.next}.`
+              : "Highest standing achieved."}
+          </p>
+        </div>
+        <SyncGauge pct={rank.pct} rank={rank.rank} />
+      </section>
+
+      {/* Stats strip */}
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {stats.map((s) => (
           <div
-            className="rounded-2xl border border-[var(--mm-live)] p-6"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(92,192,140,0.16), rgba(44,123,229,0.14))",
-            }}
+            key={s.label}
+            className="mm-glass flex items-center gap-3 p-4"
+            style={softCard}
           >
-            <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--mm-live)]">
-              <span className="mm-dot-live" /> A gathering awaits
+            <span
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-lg"
+              style={{ background: `${s.color}22`, color: s.color }}
+            >
+              <Icon icon={s.icon} width={20} />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-[family-name:var(--font-display)] text-lg leading-tight">
+                {s.value}
+              </p>
+              <p className="truncate text-[11px] uppercase tracking-wider text-[var(--mm-text-dim)]">
+                {s.label}
+              </p>
             </div>
-            <h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl">
+          </div>
+        ))}
+      </section>
+
+      {/* Live event (compact) */}
+      {liveEvent && (
+        <Link
+          href={`/events/${liveEvent.slug}`}
+          className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--mm-live)] p-4 transition hover:brightness-110"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(92,192,140,0.16), rgba(44,123,229,0.14))",
+          }}
+        >
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--mm-live)]">
+              <span className="mm-dot-live" /> A gathering awaits
+            </p>
+            <h2 className="mt-1 truncate font-[family-name:var(--font-display)] text-lg">
               {liveEvent.title}
             </h2>
-            <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
+            <p className="mt-0.5 truncate text-sm text-[var(--mm-text-dim)]">
               {formatDateTime(liveEvent.startsAt)} · {liveEvent.location}
             </p>
+          </div>
+          <span className="mm-btn mm-btn-primary shrink-0 text-sm">
+            <Icon icon="mdi:arrow-right" width={16} /> View
+          </span>
+        </Link>
+      )}
+
+      {/* Explore */}
+      <section>
+        <h2 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-lg tracking-wide">
+          <Icon icon="game-icons:compass" width={20} className="text-[var(--mm-gold)]" />
+          Explore
+        </h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {LINKS.map((l) => (
             <Link
-              href={`/events/${liveEvent.slug}`}
-              className="mm-btn mm-btn-primary mt-4 text-sm"
+              key={l.href}
+              href={l.href}
+              className="mm-glass group flex items-start gap-3 p-4 transition hover:border-[var(--mm-violet)]"
+              style={softCard}
             >
-              <Icon icon="mdi:arrow-right" width={16} /> View event
-            </Link>
-          </div>
-        )}
-
-        {/* Welcome card */}
-        <section
-          className="mm-glass flex flex-col items-start justify-between gap-6 p-8 md:flex-row md:items-center"
-          style={softCard}
-        >
-          <div>
-            <p className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-[var(--mm-gold)]">
-              <Icon icon="game-icons:gamepad" width={16} /> Player one
-            </p>
-            <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl tracking-wide md:text-4xl">
-              Welcome back, <span className="mm-gradient-text">{name}</span>
-            </h1>
-            <p className="mt-2 text-[var(--mm-text-dim)]">
-              {rank.next
-                ? `${rank.toNext} renown to ${rank.next}.`
-                : "Highest standing achieved."}
-            </p>
-          </div>
-          <SyncGauge pct={rank.pct} rank={rank.rank} />
-        </section>
-
-        {/* Explore */}
-        <section>
-          <h2 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-xl tracking-wide">
-            <Icon icon="game-icons:compass" width={24} className="text-[var(--mm-gold)]" />
-            Explore
-          </h2>
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            {LINKS.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="mm-glass group p-6 transition hover:border-[var(--mm-violet)]"
-                style={softCard}
+              <span
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-lg"
+                style={{ background: `${l.color}22`, color: l.color }}
               >
-                <Icon icon={l.icon} width={30} className="text-[var(--mm-gold)]" />
-                <p className="mt-3 font-[family-name:var(--font-display)] text-lg group-hover:text-[var(--mm-gold)]">
+                <Icon icon={l.icon} width={22} />
+              </span>
+              <div className="min-w-0">
+                <p className="font-[family-name:var(--font-display)] text-base group-hover:text-[var(--mm-gold)]">
                   {l.title}
                 </p>
-                <p className="mt-1 text-sm text-[var(--mm-text-dim)]">{l.desc}</p>
-              </Link>
-            ))}
-          </div>
-        </section>
+                <p className="mt-0.5 text-sm text-[var(--mm-text-dim)]">{l.desc}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

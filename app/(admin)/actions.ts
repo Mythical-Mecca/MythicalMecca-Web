@@ -71,7 +71,12 @@ const eventSchema = z.object({
   endsAt: z.string().min(1),
 });
 
-export async function createEvent(formData: FormData) {
+export type EventFormState = { error?: string };
+
+export async function createEvent(
+  _prev: EventFormState,
+  formData: FormData
+): Promise<EventFormState> {
   const session = await requireAdmin();
   const parsed = eventSchema.safeParse({
     title: formData.get("title"),
@@ -83,7 +88,9 @@ export async function createEvent(formData: FormData) {
     startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt"),
   });
-  if (!parsed.success) redirect("/command/events?error=1");
+  if (!parsed.success) {
+    return { error: "Add a title (2+ characters) and pick a date and time." };
+  }
 
   if (process.env.DATABASE_URL) {
     try {
@@ -101,7 +108,7 @@ export async function createEvent(formData: FormData) {
         createdBy: session.user.id,
       });
     } catch {
-      redirect("/command/events?error=1");
+      return { error: "Could not save the event. Please try again." };
     }
   }
   await logActivity({ actorId: session.user.id, action: "event.create" });

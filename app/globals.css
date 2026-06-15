@@ -39,6 +39,11 @@
   --radius-card: 16px;
 }
 
+html {
+  /* Nudge the base font size up a touch; rem-based sizing scales everything proportionally. */
+  font-size: 17.5px;
+}
+
 body {
   background-color: var(--mm-bg);
   color: var(--mm-text);
@@ -123,11 +128,92 @@ body {
   }
 }
 
+/* Animated rotating border — two bright arcs (gold + saber-blue) chase
+   around the edge. Used on the nav menu dialog. */
+@property --mm-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@layer components {
+  .mm-rota {
+    position: relative;
+  }
+  .mm-rota::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    background: conic-gradient(
+      from var(--mm-angle),
+      transparent 0deg,
+      var(--mm-gold-hi) 16deg,
+      transparent 72deg,
+      transparent 180deg,
+      var(--mm-blue) 196deg,
+      transparent 252deg,
+      transparent 360deg
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: mm-rota-spin 4s linear infinite;
+    pointer-events: none;
+  }
+
+  /* Icon-only golden menu trigger in the top nav. */
+  .mm-menu-trigger {
+    display: grid;
+    place-items: center;
+    height: 2.5rem;
+    width: 2.5rem;
+    border-radius: 9999px;
+    color: #160f0a;
+    background: color-mix(in srgb, var(--mm-gold) 92%, transparent);
+    box-shadow: 0 0 0 rgba(242, 180, 65, 0);
+    transition: transform 0.2s ease, box-shadow 0.25s ease, background 0.2s ease;
+    cursor: pointer;
+  }
+  .mm-menu-trigger:hover {
+    background: var(--mm-gold-hi);
+    transform: translateY(-1px) scale(1.06);
+    box-shadow: 0 0 22px rgba(242, 180, 65, 0.55);
+  }
+  .mm-menu-trigger:active {
+    transform: scale(0.97);
+  }
+  .mm-menu-trigger-icon {
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .mm-menu-trigger:hover .mm-menu-trigger-icon {
+    transform: rotate(90deg);
+  }
+}
+
+@keyframes mm-rota-spin {
+  to {
+    --mm-angle: 360deg;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mm-dot-live {
     animation: none;
   }
   .mm-btn:hover {
+    transform: none;
+  }
+  .mm-rota::before {
+    animation: none;
+  }
+  .mm-menu-trigger:hover {
+    transform: none;
+  }
+  .mm-menu-trigger:hover .mm-menu-trigger-icon {
     transform: none;
   }
 }
