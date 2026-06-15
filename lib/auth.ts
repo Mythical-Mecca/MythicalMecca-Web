@@ -14,7 +14,10 @@ import type { Role } from "@/lib/rbac";
  * stable even if the provider URL rotates. Runs once: skipped if avatarUrl set.
  */
 async function importSocialAvatar(userId?: string, src?: string | null) {
-  if (!userId || !src || !process.env.BLOB_READ_WRITE_TOKEN) return;
+  const hasBlobAuth = !!(
+    process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID
+  );
+  if (!userId || !src || !hasBlobAuth) return;
   try {
     const [row] = await db
       .select({ avatarUrl: users.avatarUrl })

@@ -24,8 +24,16 @@ export async function POST(request: Request): Promise<NextResponse> {
       { status: 401 }
     );
   }
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.error("[upload] BLOB_READ_WRITE_TOKEN is not set in this environment");
+  // Blob auth is either the classic RW token, or the newer store model
+  // (BLOB_STORE_ID + VERCEL_OIDC_TOKEN). The SDK resolves whichever is present.
+  const hasBlobAuth = !!(
+    process.env.BLOB_READ_WRITE_TOKEN ||
+    process.env.BLOB_STORE_ID
+  );
+  if (!hasBlobAuth) {
+    console.error(
+      "[upload] no Blob credentials found (need BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID)"
+    );
     return NextResponse.json(
       { error: "Uploads are not configured on the server." },
       { status: 500 }

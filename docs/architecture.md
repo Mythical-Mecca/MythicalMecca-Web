@@ -134,7 +134,12 @@ AUTH_GOOGLE_ID=
 AUTH_GOOGLE_SECRET=
 AUTH_DISCORD_ID=
 AUTH_DISCORD_SECRET=
+# Vercel Blob auth — EITHER the classic RW token...
 BLOB_READ_WRITE_TOKEN=
+# ...OR the newer store model (BLOB_STORE_ID + VERCEL_OIDC_TOKEN, auto-injected
+# on Vercel; BLOB_WEBHOOK_PUBLIC_KEY verifies the upload-completed webhook).
+BLOB_STORE_ID=
+BLOB_WEBHOOK_PUBLIC_KEY=
 ADMIN_EMAILS=                 # comma list bootstrapped to admin
 QR_SIGNING_SECRET=
 # Optional: enables Google Places autocomplete on the event location field.
