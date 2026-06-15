@@ -7,6 +7,7 @@ import { Drawer } from "./drawer";
 import { LocationField } from "./location-field";
 import { EventSchedule } from "./event-schedule";
 import { TextField, TextareaField, FormSection, PageHeader } from "./form";
+import { ImageUploader } from "./image-uploader";
 import { createEvent } from "@/app/(admin)/actions";
 
 type Ev = {
@@ -75,6 +76,17 @@ function NewEventForm() {
         rows={4}
         placeholder="What's happening…"
       />
+
+      <FormSection title="Gallery" icon="mdi:image-multiple-outline">
+        <ImageUploader
+          name="eventImages"
+          entityType="event_gallery"
+          maxFiles={12}
+          accent="#5cc08c"
+          label="Event photos"
+          description="Optional · shown on the public event page"
+        />
+      </FormSection>
 
       {state.error && (
         <p

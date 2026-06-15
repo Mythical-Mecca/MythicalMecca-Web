@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { ParticleField } from "@/components/particle-field";
 import { Icon } from "@/components/icon";
-import { getEvents, getPosts } from "@/lib/content";
+import { getEvents, getPosts, getGalleryImages } from "@/lib/content";
 import { formatDate, formatDateTime } from "@/lib/format";
 
 const TAVERN = "/MythicMechaBackground.png";
 const BG2 = "/MythicMechaBackground2.png";
 const BG3 = "/MythicMechaBackground3.png";
-const QUEST = "/quest-road.svg";
 
 const heroOverlay =
   "linear-gradient(to bottom, rgba(11,15,28,0.72) 0%, rgba(11,15,28,0.42) 42%, rgba(11,15,28,0.86) 86%, #0b0f1c 100%)";
@@ -33,42 +32,16 @@ const FEATURES = [
   { k: "Gatherings", d: "Events, feasts & tournaments", icon: "game-icons:campfire" },
 ];
 
-// Placeholder gallery tiles — swap for real community photos later.
-const GALLERY: {
-  label: string;
-  icon: string;
-  img?: string;
-  grad?: string;
-}[] = [
-  { label: "Tavern nights", icon: "game-icons:beer-stein", img: TAVERN },
-  {
-    label: "Cosplay",
-    icon: "game-icons:visored-helm",
-    grad: "linear-gradient(135deg,#2c7be5,#13204a)",
-  },
-  {
-    label: "Painted minis",
-    icon: "game-icons:rune-sword",
-    grad: "linear-gradient(135deg,#e0892f,#7a3a12)",
-  },
-  { label: "On the road", icon: "game-icons:treasure-map", img: QUEST },
-  {
-    label: "Fan art",
-    icon: "game-icons:quill-ink",
-    grad: "linear-gradient(135deg,#6cb8ff,#1d2746)",
-  },
-  {
-    label: "Builds & mods",
-    icon: "game-icons:cog",
-    grad: "linear-gradient(135deg,#f2b441,#7a5410)",
-  },
-];
-
 export default async function HomePage() {
-  const [posts, events] = await Promise.all([getPosts(), getEvents()]);
+  const [posts, events, gallery] = await Promise.all([
+    getPosts(),
+    getEvents(),
+    getGalleryImages(),
+  ]);
   const latest = posts.slice(0, 3);
   const upcoming = events.slice(0, 3);
   const nextGathering = events[0];
+  const galleryTiles = gallery.slice(0, 8);
 
   return (
     <div className="flex flex-col">
@@ -219,41 +192,31 @@ export default async function HomePage() {
           <p className="mt-3 text-sm text-[var(--mm-text-dim)]">
             Moments from the hall — cosplay, minis, fan art and builds.
           </p>
-          <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-3">
-            {GALLERY.map((tile) => (
+          <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+            {galleryTiles.map((tile, i) => (
               <div
-                key={tile.label}
+                key={i}
                 className="group relative h-44 overflow-hidden rounded-2xl border border-[var(--mm-border)]"
               >
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                  style={
-                    tile.img
-                      ? { backgroundImage: `url('${tile.img}')` }
-                      : { background: tile.grad }
-                  }
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={tile.imageUrl}
+                  alt={tile.caption ?? ""}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                {!tile.img && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Icon
-                      icon={tile.icon}
-                      width={46}
-                      className="text-[color-mix(in_srgb,#ffffff_75%,transparent)]"
-                    />
+                {tile.caption && (
+                  <div
+                    className="absolute inset-x-0 bottom-0 p-3"
+                    style={{
+                      background:
+                        "linear-gradient(to top, rgba(11,15,28,0.9), transparent)",
+                    }}
+                  >
+                    <span className="text-sm font-medium text-[var(--mm-text)]">
+                      {tile.caption}
+                    </span>
                   </div>
                 )}
-                <div
-                  className="absolute inset-x-0 bottom-0 p-3"
-                  style={{
-                    background:
-                      "linear-gradient(to top, rgba(11,15,28,0.9), transparent)",
-                  }}
-                >
-                  <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--mm-text)]">
-                    <Icon icon={tile.icon} width={16} className="text-[var(--mm-gold)]" />
-                    {tile.label}
-                  </span>
-                </div>
               </div>
             ))}
           </div>

@@ -10,6 +10,8 @@ import {
   vendors,
   vendorApplications,
   users,
+  galleryItems,
+  eventGalleryItems,
 } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -92,21 +94,35 @@ export async function createEvent(
     return { error: "Add a title (2+ characters) and pick a date and time." };
   }
 
+  const images = formData.getAll("eventImages").map(String).filter(Boolean);
+
   if (process.env.DATABASE_URL) {
     try {
-      await db.insert(events).values({
-        slug: `${slugify(parsed.data.title)}-${Date.now().toString(36)}`,
-        title: parsed.data.title,
-        summary: parsed.data.summary,
-        bodyMd: parsed.data.bodyMd,
-        location: parsed.data.location,
-        lat: parsed.data.lat,
-        lng: parsed.data.lng,
-        startsAt: new Date(parsed.data.startsAt),
-        endsAt: new Date(parsed.data.endsAt),
-        status: "published",
-        createdBy: session.user.id,
-      });
+      const [created] = await db
+        .insert(events)
+        .values({
+          slug: `${slugify(parsed.data.title)}-${Date.now().toString(36)}`,
+          title: parsed.data.title,
+          summary: parsed.data.summary,
+          bodyMd: parsed.data.bodyMd,
+          location: parsed.data.location,
+          lat: parsed.data.lat,
+          lng: parsed.data.lng,
+          startsAt: new Date(parsed.data.startsAt),
+          endsAt: new Date(parsed.data.endsAt),
+          status: "published",
+          createdBy: session.user.id,
+        })
+        .returning({ id: events.id });
+      if (created && images.length) {
+        await db.insert(eventGalleryItems).values(
+          images.map((url, sort) => ({
+            eventId: created.id,
+            imageUrl: url,
+            sort,
+          }))
+        );
+      }
     } catch {
       return { error: "Could not save the event. Please try again." };
     }
@@ -194,4 +210,52 @@ export async function rejectApplication(formData: FormData) {
   });
   revalidatePath("/command/applications");
   redirect("/command/applications?done=1");
+}
+
+const galleryImagesSchema = z.object({
+  caption: z.string().max(300).optional(),
+  images: z.array(z.string().url()).min(1).max(24),
+});
+
+export async function addGalleryImages(formData: FormData) {
+  const session = await requireAdmin();
+  const images = formData.getAll("images").map(String).filter(Boolean);
+  const parsed = galleryImagesSchema.safeParse({
+    caption: formData.get("caption") || undefined,
+    images,
+  });
+  if (!parsed.success) redirect("/command/gallery?error=1");
+
+  if (process.env.DATABASE_URL) {
+    try {
+      await db.insert(galleryItems).values(
+        parsed.data.images.map((url) => ({
+          imageUrl: url,
+          caption: parsed.data.caption,
+          uploadedBy: session.user.id,
+        }))
+      );
+    } catch {
+      redirect("/command/gallery?error=1");
+    }
+  }
+  await logActivity({ actorId: session.user.id, action: "gallery.add" });
+  revalidatePath("/command/gallery");
+  revalidatePath("/");
+  redirect("/command/gallery?saved=1");
+}
+
+export async function removeGalleryImage(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id"));
+  if (process.env.DATABASE_URL) {
+    try {
+      await db.delete(galleryItems).where(eq(galleryItems.id, id));
+    } catch {
+      redirect("/command/gallery?error=1");
+    }
+  }
+  revalidatePath("/command/gallery");
+  revalidatePath("/");
+  redirect("/command/gallery?saved=1");
 }

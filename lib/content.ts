@@ -1,5 +1,12 @@
 import { db } from "@/lib/db";
-import { posts, events, vendors, vendorGalleryItems } from "@/lib/db/schema";
+import {
+  posts,
+  events,
+  vendors,
+  vendorGalleryItems,
+  galleryItems,
+  eventGalleryItems,
+} from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 
 export interface PostView {
@@ -281,4 +288,54 @@ export async function getVendors(): Promise<VendorView[]> {
 export async function getVendor(slug: string): Promise<VendorView | null> {
   const all = await getVendors();
   return all.find((v) => v.slug === slug) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Galleries — global (homepage) + per-event
+// ---------------------------------------------------------------------------
+export interface GalleryImage {
+  imageUrl: string;
+  caption: string | null;
+}
+
+const sampleGallery: GalleryImage[] = [
+  { imageUrl: "/MythicMechaBackground.png", caption: "Tavern nights" },
+  { imageUrl: "/MythicMechaBackground2.png", caption: "On the cliff" },
+  { imageUrl: "/MythicMechaBackground3.png", caption: "Into the woods" },
+  { imageUrl: "/MythicMechaAuthBackground.png", caption: "Under the aurora" },
+];
+
+export async function getGalleryImages(): Promise<GalleryImage[]> {
+  if (!useDb) return sampleGallery;
+  try {
+    const rows = await db
+      .select()
+      .from(galleryItems)
+      .where(eq(galleryItems.published, true))
+      .orderBy(galleryItems.sort, desc(galleryItems.createdAt));
+    if (rows.length === 0) return sampleGallery;
+    return rows.map((r) => ({ imageUrl: r.imageUrl, caption: r.caption }));
+  } catch {
+    return sampleGallery;
+  }
+}
+
+export async function getEventGallery(slug: string): Promise<GalleryImage[]> {
+  if (!useDb) return [];
+  try {
+    const [e] = await db
+      .select({ id: events.id })
+      .from(events)
+      .where(eq(events.slug, slug))
+      .limit(1);
+    if (!e) return [];
+    const rows = await db
+      .select()
+      .from(eventGalleryItems)
+      .where(eq(eventGalleryItems.eventId, e.id))
+      .orderBy(eventGalleryItems.sort);
+    return rows.map((r) => ({ imageUrl: r.imageUrl, caption: r.caption }));
+  } catch {
+    return [];
+  }
 }

@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getEvent, isEventStarted, isEventLive } from "@/lib/content";
+import {
+  getEvent,
+  isEventStarted,
+  isEventLive,
+  getEventGallery,
+} from "@/lib/content";
 import {
   getComments,
   getReviews,
@@ -23,10 +28,11 @@ export default async function EventPage({
   const event = await getEvent(slug);
   if (!event) notFound();
 
-  const [comments, reviews, summary] = await Promise.all([
+  const [comments, reviews, summary, gallery] = await Promise.all([
     getComments(slug),
     getReviews(slug),
     getReviewSummary(slug),
+    getEventGallery(slug),
   ]);
   const started = isEventStarted(event);
   const live = isEventLive(event);
@@ -87,6 +93,29 @@ export default async function EventPage({
       <div className="mt-8">
         <SimpleProse text={event.bodyMd} />
       </div>
+
+      {gallery.length > 0 && (
+        <section className="mt-12">
+          <h2 className="mb-4 font-[family-name:var(--font-display)] text-xl tracking-wide">
+            Gallery
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {gallery.map((g, i) => (
+              <div
+                key={i}
+                className="aspect-square overflow-hidden rounded-xl border border-[var(--mm-border)]"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={g.imageUrl}
+                  alt={g.caption ?? ""}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Comments */}
       <section id="comments" className="mt-14">

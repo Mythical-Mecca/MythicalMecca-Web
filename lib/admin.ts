@@ -8,6 +8,7 @@ import {
   errorLog,
   pageHits,
   users,
+  galleryItems,
 } from "@/lib/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import { sampleEvents } from "@/lib/content";
@@ -90,6 +91,29 @@ export async function listEvents(): Promise<AdminEvent[]> {
     }));
   } catch {
     return sampleAdminEvents();
+  }
+}
+
+export interface AdminGalleryItem {
+  id: string;
+  imageUrl: string;
+  caption: string | null;
+}
+
+export async function listGallery(): Promise<AdminGalleryItem[]> {
+  if (!useDb) return [];
+  try {
+    const rows = await db
+      .select()
+      .from(galleryItems)
+      .orderBy(galleryItems.sort, desc(galleryItems.createdAt));
+    return rows.map((r) => ({
+      id: r.id,
+      imageUrl: r.imageUrl,
+      caption: r.caption,
+    }));
+  } catch {
+    return [];
   }
 }
 

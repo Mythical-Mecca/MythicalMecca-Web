@@ -8,6 +8,7 @@ const NAV: NavItem[] = [
   { href: "/command", label: "Overview", sub: "Dashboard", icon: "mdi:view-dashboard-outline", color: "#4aa8ff" },
   { href: "/command/posts", label: "Tidings", sub: "News / posts", icon: "game-icons:scroll-unfurled", color: "#f2b441" },
   { href: "/command/events", label: "Gatherings", sub: "Events", icon: "game-icons:campfire", color: "#5cc08c" },
+  { href: "/command/gallery", label: "Gallery", sub: "Homepage photos", icon: "mdi:image-multiple", color: "#e0b0ff" },
   { href: "/command/applications", label: "Petitions", sub: "Vendor applications", icon: "mdi:file-document-outline", color: "#9a6cff" },
   { href: "/command/telemetry", label: "Chronicle", sub: "Logs / activity", icon: "game-icons:book-cover", color: "#48c8d6" },
 ];
