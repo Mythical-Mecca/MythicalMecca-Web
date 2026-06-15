@@ -1,11 +1,17 @@
 import { listEvents } from "@/lib/admin";
 import { createEvent } from "../../actions";
+import {
+  Field,
+  FormCard,
+  PageHeader,
+  inputCls,
+  textareaCls,
+} from "@/components/form";
+import { Icon } from "@/components/icon";
 import { formatDateTime } from "@/lib/format";
 
 const DIVISIONS = ["tabletop", "arcade", "otaku", "maker"] as const;
-
-const inputCls =
-  "w-full rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm outline-none focus:border-[var(--mm-violet)]";
+const ACCENT = "#5cc08c";
 
 export default async function AdminEventsPage({
   searchParams,
@@ -16,14 +22,17 @@ export default async function AdminEventsPage({
   const { created, error } = await searchParams;
 
   return (
-    <div className="max-w-3xl space-y-8">
-      <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
-        Events
-      </h1>
+    <div className="space-y-8">
+      <PageHeader
+        title="Gatherings"
+        sub="Events — schedule feasts, tournaments and quests."
+        icon="game-icons:campfire"
+        accent={ACCENT}
+      />
 
       {created && (
         <div className="mm-glass border-[var(--mm-live)] p-3 text-sm text-[var(--mm-live)]">
-          Op scheduled.
+          Event scheduled.
         </div>
       )}
       {error && (
@@ -32,82 +41,64 @@ export default async function AdminEventsPage({
         </div>
       )}
 
-      <section className="mm-glass p-6">
-        <h2 className="mb-4 font-[family-name:var(--font-display)] text-lg">
-          New op
-        </h2>
-        <form action={createEvent} className="space-y-4">
-          <input name="title" required placeholder="Title" className={inputCls} />
-          <input
-            name="summary"
-            placeholder="Summary"
-            className={inputCls}
-          />
-          <input
-            name="location"
-            placeholder="Location"
-            className={inputCls}
-          />
-          <select name="division" defaultValue="" className={`${inputCls} capitalize`}>
-            <option value="">No division</option>
-            {DIVISIONS.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="text-sm text-[var(--mm-text-dim)]">
-              Starts
-              <input
-                name="startsAt"
-                type="datetime-local"
-                required
-                className={`${inputCls} mt-1`}
-              />
-            </label>
-            <label className="text-sm text-[var(--mm-text-dim)]">
-              Ends
-              <input
-                name="endsAt"
-                type="datetime-local"
-                required
-                className={`${inputCls} mt-1`}
-              />
-            </label>
+      <FormCard title="New event" icon="mdi:plus" accent={ACCENT}>
+        <form action={createEvent} className="grid gap-4 sm:grid-cols-2">
+          <Field label="Title" className="sm:col-span-2">
+            <input name="title" required placeholder="Event name" className={inputCls} />
+          </Field>
+          <Field label="Summary" hint="optional">
+            <input name="summary" placeholder="One-liner" className={inputCls} />
+          </Field>
+          <Field label="Location" hint="optional">
+            <input name="location" placeholder="Where" className={inputCls} />
+          </Field>
+          <Field label="Division" hint="optional">
+            <select name="division" defaultValue="" className={`${inputCls} capitalize`}>
+              <option value="">No division</option>
+              {DIVISIONS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <div />
+          <Field label="Starts">
+            <input name="startsAt" type="datetime-local" required className={inputCls} />
+          </Field>
+          <Field label="Ends">
+            <input name="endsAt" type="datetime-local" required className={inputCls} />
+          </Field>
+          <Field label="Details" hint="optional" className="sm:col-span-2">
+            <textarea name="bodyMd" rows={4} placeholder="What's happening…" className={textareaCls} />
+          </Field>
+          <div className="sm:col-span-2">
+            <button type="submit" className="mm-btn mm-btn-primary">
+              <Icon icon="mdi:calendar-plus" width={16} /> Schedule event
+            </button>
           </div>
-          <textarea
-            name="bodyMd"
-            rows={5}
-            placeholder="Details"
-            className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--mm-violet)]"
-          />
-          <button type="submit" className="mm-btn mm-btn-primary">
-            Create event
-          </button>
         </form>
-      </section>
+      </FormCard>
 
       <section>
-        <h2 className="mb-3 font-[family-name:var(--font-display)] text-lg">
-          Scheduled
+        <h2 className="mb-3 flex items-center gap-2 font-[family-name:var(--font-display)] text-lg">
+          <Icon icon="mdi:calendar-month-outline" width={20} className="text-[var(--mm-text-dim)]" />
+          Scheduled <span className="text-sm text-[var(--mm-text-dim)]">({events.length})</span>
         </h2>
         {events.length === 0 ? (
           <p className="text-sm text-[var(--mm-text-dim)]">No events yet.</p>
         ) : (
-          <ul className="space-y-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {events.map((e) => (
-              <li
-                key={e.id}
-                className="mm-glass flex items-center justify-between p-3 text-sm"
-              >
-                <span>{e.title}</span>
-                <span className="text-xs text-[var(--mm-text-dim)]">
+              <div key={e.id} className="mm-glass p-4">
+                <p className="font-medium">{e.title}</p>
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--mm-text-dim)]">
+                  <Icon icon="mdi:clock-outline" width={14} />
                   {e.startsAt ? formatDateTime(e.startsAt) : "—"}
-                </span>
-              </li>
+                </p>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </section>
     </div>

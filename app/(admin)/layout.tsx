@@ -5,11 +5,11 @@ import { AuroraField } from "@/components/aurora-field";
 import { ParticleField } from "@/components/particle-field";
 
 const NAV: NavItem[] = [
-  { href: "/command", label: "Overview", icon: "mdi:view-dashboard-outline" },
-  { href: "/command/posts", label: "Tidings", icon: "game-icons:scroll-unfurled" },
-  { href: "/command/events", label: "Gatherings", icon: "game-icons:campfire" },
-  { href: "/command/applications", label: "Petitions", icon: "mdi:file-document-outline" },
-  { href: "/command/telemetry", label: "Chronicle", icon: "game-icons:book-cover" },
+  { href: "/command", label: "Overview", sub: "Dashboard", icon: "mdi:view-dashboard-outline", color: "#4aa8ff" },
+  { href: "/command/posts", label: "Tidings", sub: "News / posts", icon: "game-icons:scroll-unfurled", color: "#f2b441" },
+  { href: "/command/events", label: "Gatherings", sub: "Events", icon: "game-icons:campfire", color: "#5cc08c" },
+  { href: "/command/applications", label: "Petitions", sub: "Vendor applications", icon: "mdi:file-document-outline", color: "#9a6cff" },
+  { href: "/command/telemetry", label: "Chronicle", sub: "Logs / activity", icon: "game-icons:book-cover", color: "#48c8d6" },
 ];
 
 export default async function AdminLayout({

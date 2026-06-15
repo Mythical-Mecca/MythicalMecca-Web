@@ -1,7 +1,18 @@
 import { listPosts } from "@/lib/admin";
 import { createPost } from "../../actions";
+import {
+  Field,
+  FormCard,
+  PageHeader,
+  inputCls,
+  textareaCls,
+} from "@/components/form";
+import { DivisionBadge } from "@/components/content-ui";
+import { Icon } from "@/components/icon";
+import type { Division } from "@/lib/content";
 
 const DIVISIONS = ["tabletop", "arcade", "otaku", "maker"] as const;
+const ACCENT = "#f2b441";
 
 export default async function AdminPostsPage({
   searchParams,
@@ -12,10 +23,13 @@ export default async function AdminPostsPage({
   const { created, error } = await searchParams;
 
   return (
-    <div className="max-w-3xl space-y-8">
-      <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
-        Posts
-      </h1>
+    <div className="space-y-8">
+      <PageHeader
+        title="Tidings"
+        sub="News & posts — write and publish to the homepage feed."
+        icon="game-icons:scroll-unfurled"
+        accent={ACCENT}
+      />
 
       {created && (
         <div className="mm-glass border-[var(--mm-live)] p-3 text-sm text-[var(--mm-live)]">
@@ -28,67 +42,57 @@ export default async function AdminPostsPage({
         </div>
       )}
 
-      <section className="mm-glass p-6">
-        <h2 className="mb-4 font-[family-name:var(--font-display)] text-lg">
-          New transmission
-        </h2>
-        <form action={createPost} className="space-y-4">
-          <input
-            name="title"
-            required
-            placeholder="Title"
-            className="w-full rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm outline-none focus:border-[var(--mm-violet)]"
-          />
-          <input
-            name="excerpt"
-            placeholder="Excerpt (optional)"
-            className="w-full rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm outline-none focus:border-[var(--mm-violet)]"
-          />
-          <select
-            name="division"
-            defaultValue=""
-            className="w-full rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm capitalize outline-none focus:border-[var(--mm-violet)]"
-          >
-            <option value="">No division</option>
-            {DIVISIONS.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-          <textarea
-            name="bodyMd"
-            required
-            rows={6}
-            placeholder="Body (markdown-ish — blank lines separate paragraphs)"
-            className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--mm-violet)]"
-          />
-          <button type="submit" className="mm-btn mm-btn-primary">
-            Publish post
-          </button>
+      <FormCard title="New post" icon="mdi:plus" accent={ACCENT}>
+        <form action={createPost} className="grid gap-4 sm:grid-cols-2">
+          <Field label="Title" className="sm:col-span-2">
+            <input name="title" required placeholder="Headline" className={inputCls} />
+          </Field>
+          <Field label="Division" hint="optional">
+            <select name="division" defaultValue="" className={`${inputCls} capitalize`}>
+              <option value="">No division</option>
+              {DIVISIONS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Excerpt" hint="optional">
+            <input name="excerpt" placeholder="One-line summary" className={inputCls} />
+          </Field>
+          <Field label="Body" hint="blank lines = paragraphs" className="sm:col-span-2">
+            <textarea name="bodyMd" required rows={6} placeholder="Write the post…" className={textareaCls} />
+          </Field>
+          <div className="sm:col-span-2">
+            <button type="submit" className="mm-btn mm-btn-primary">
+              <Icon icon="mdi:send" width={16} /> Publish post
+            </button>
+          </div>
         </form>
-      </section>
+      </FormCard>
 
       <section>
-        <h2 className="mb-3 font-[family-name:var(--font-display)] text-lg">
-          Published
+        <h2 className="mb-3 flex items-center gap-2 font-[family-name:var(--font-display)] text-lg">
+          <Icon icon="mdi:format-list-bulleted" width={20} className="text-[var(--mm-text-dim)]" />
+          Published <span className="text-sm text-[var(--mm-text-dim)]">({posts.length})</span>
         </h2>
         {posts.length === 0 ? (
           <p className="text-sm text-[var(--mm-text-dim)]">No posts yet.</p>
         ) : (
-          <ul className="space-y-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {posts.map((p) => (
-              <li
-                key={p.id}
-                className="mm-glass flex items-center justify-between p-3 text-sm"
-              >
-                <span>{p.title}</span>
-                <span className="text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
-                  {p.status} · {p.createdAt}
-                </span>
-              </li>
+              <div key={p.id} className="mm-glass p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <DivisionBadge division={(p.division as Division) ?? null} />
+                  <span className="text-[11px] uppercase tracking-widest text-[var(--mm-text-dim)]">
+                    {p.status}
+                  </span>
+                </div>
+                <p className="font-medium">{p.title}</p>
+                <p className="mt-1 text-xs text-[var(--mm-text-dim)]">{p.createdAt}</p>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </section>
     </div>

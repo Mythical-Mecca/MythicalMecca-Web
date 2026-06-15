@@ -6,10 +6,12 @@ export function Icon({
   icon,
   className,
   width = 20,
+  style,
 }: {
   icon: string;
   className?: string;
   width?: number;
+  style?: React.CSSProperties;
 }) {
   return (
     <IconifyIcon
@@ -17,6 +19,7 @@ export function Icon({
       className={className}
       width={width}
       height={width}
+      style={style}
       aria-hidden="true"
     />
   );

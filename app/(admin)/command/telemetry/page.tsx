@@ -1,4 +1,5 @@
 import { recentActivity, recentErrors, recentHits, type LogRow } from "@/lib/admin";
+import { PageHeader } from "@/components/form";
 
 function Stream({
   title,
@@ -44,15 +45,12 @@ export default async function TelemetryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
-          The <span className="mm-gradient-text">Chronicle</span>
-        </h1>
-        <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
-          The scribes&apos; ledger — every deed, mishap and footstep across the
-          hall.
-        </p>
-      </div>
+      <PageHeader
+        title="The Chronicle"
+        sub="Logs & activity — every deed, mishap and footstep across the hall."
+        icon="game-icons:book-cover"
+        accent="#48c8d6"
+      />
       <div className="grid gap-4 lg:grid-cols-3">
         <Stream title="Activity" rows={activity} accent="var(--mm-gold)" />
         <Stream title="Errors" rows={errors} accent="var(--mm-danger)" />

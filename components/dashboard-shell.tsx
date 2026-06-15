@@ -2,7 +2,13 @@ import Link from "next/link";
 import { signOut } from "@/lib/auth";
 import { Icon } from "@/components/icon";
 
-export type NavItem = { href: string; label: string; icon?: string };
+export type NavItem = {
+  href: string;
+  label: string;
+  icon?: string;
+  sub?: string;
+  color?: string;
+};
 
 export function DashboardShell({
   area,
@@ -26,15 +32,35 @@ export function DashboardShell({
           {area}
         </p>
 
-        <nav className="mt-8 flex flex-col gap-1 text-sm">
+        <nav className="mt-8 flex flex-col gap-1.5">
           {nav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[var(--mm-text-dim)] transition hover:bg-[color-mix(in_srgb,var(--mm-elevated)_70%,transparent)] hover:text-[var(--mm-text)]"
+              className="group flex items-center gap-3 rounded-xl px-2.5 py-2 transition hover:bg-[color-mix(in_srgb,var(--mm-elevated)_60%,transparent)]"
             >
-              {item.icon && <Icon icon={item.icon} width={18} />}
-              {item.label}
+              <span
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition group-hover:scale-105"
+                style={{
+                  background: `${item.color ?? "#9aa3bd"}22`,
+                  color: item.color ?? "var(--mm-text-dim)",
+                }}
+              >
+                {item.icon && <Icon icon={item.icon} width={19} />}
+              </span>
+              <span className="min-w-0 leading-tight">
+                <span
+                  className="block truncate text-sm font-medium"
+                  style={item.color ? { color: item.color } : undefined}
+                >
+                  {item.label}
+                </span>
+                {item.sub && (
+                  <span className="block truncate text-[11px] text-[var(--mm-text-dim)]">
+                    {item.sub}
+                  </span>
+                )}
+              </span>
             </Link>
           ))}
         </nav>
