@@ -57,19 +57,32 @@ export default async function VendorPage({
       <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {vendor.gallery.map((g, i) => (
           <div key={i} className="mm-glass overflow-hidden p-0">
-            <div
-              className="h-40 w-full"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(124,58,237,0.45), rgba(245,196,81,0.35))",
-              }}
-            />
-            <div className="p-4">
-              <p className="font-medium">{g.title}</p>
-              <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
-                {g.caption}
-              </p>
-            </div>
+            {g.imageUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={g.imageUrl}
+                alt={g.title || g.caption || ""}
+                className="h-44 w-full object-cover"
+              />
+            ) : (
+              <div
+                className="h-40 w-full"
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgba(124,58,237,0.45), rgba(245,196,81,0.35))",
+                }}
+              />
+            )}
+            {(g.title || g.caption) && (
+              <div className="p-4">
+                {g.title && <p className="font-medium">{g.title}</p>}
+                {g.caption && (
+                  <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
+                    {g.caption}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>

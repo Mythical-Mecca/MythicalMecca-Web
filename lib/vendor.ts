@@ -16,6 +16,7 @@ export interface MyVendor {
 
 export interface GalleryItem {
   id: string;
+  imageUrl: string | null;
   title: string | null;
   caption: string | null;
   externalUrl: string | null;
@@ -54,6 +55,7 @@ export async function listMyGallery(vendorId: string): Promise<GalleryItem[]> {
       .orderBy(asc(vendorGalleryItems.sort));
     return rows.map((r) => ({
       id: r.id,
+      imageUrl: r.imageUrl,
       title: r.title,
       caption: r.caption,
       externalUrl: r.externalUrl,

@@ -27,7 +27,12 @@ export interface VendorView {
   tagline: string;
   bio: string;
   socials: { label: string; url: string }[];
-  gallery: { title: string; caption: string; externalUrl?: string }[];
+  gallery: {
+    title: string;
+    caption: string;
+    externalUrl?: string;
+    imageUrl?: string;
+  }[];
 }
 
 // Switches to live Postgres data the moment DATABASE_URL is set + seeded.
@@ -263,6 +268,7 @@ export async function getVendors(): Promise<VendorView[]> {
           title: i.title ?? "",
           caption: i.caption ?? "",
           externalUrl: i.externalUrl ?? undefined,
+          imageUrl: i.imageUrl ?? undefined,
         })),
       });
     }

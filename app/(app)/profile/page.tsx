@@ -2,10 +2,11 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getMyProfile } from "@/lib/member";
 import { updateProfile } from "../actions";
-import { FileUploader } from "@/components/file-uploader";
+import { ImageUploader } from "@/components/image-uploader";
+import { TextField, FormSection } from "@/components/form";
+import { Icon } from "@/components/icon";
 import { getUserBadges, getUserXp, rankForXp } from "@/lib/gamification";
 import { SyncGauge } from "@/components/sync-gauge";
-
 
 export default async function ProfilePage({
   searchParams,
@@ -22,20 +23,48 @@ export default async function ProfilePage({
   const rank = rankForXp(xp);
   const { saved, error } = await searchParams;
 
-  return (
-    <div className="max-w-2xl space-y-10">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-wide">
-          Character <span className="mm-gradient-text">sheet</span>
-        </h1>
-        <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
-          {user.email} · standing{" "}
-          <span className="uppercase tracking-widest text-[var(--mm-gold)]">
-            {user.role}
-          </span>
-        </p>
-      </div>
+  const avatar = profile?.avatarUrl ?? user.image ?? null;
+  const banner = profile?.bannerUrl ?? null;
+  const displayName = profile?.name ?? user.name ?? "Adventurer";
 
+  return (
+    <div className="max-w-2xl space-y-8">
+      {/* Profile header: banner + avatar */}
+      <section className="overflow-hidden rounded-2xl border border-[var(--mm-border)]">
+        <div
+          className="h-36 bg-cover bg-center"
+          style={
+            banner
+              ? { backgroundImage: `url('${banner}')` }
+              : { background: "linear-gradient(135deg,#2c7be5,#7c3aed)" }
+          }
+        />
+        <div className="flex items-end gap-4 px-6 pb-5">
+          <div className="-mt-10 h-20 w-20 shrink-0 overflow-hidden rounded-full border-4 border-[var(--mm-bg)] bg-[var(--mm-elevated)]">
+            {avatar ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={avatar} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center text-2xl text-[var(--mm-text-dim)]">
+                <Icon icon="game-icons:visored-helm" width={32} />
+              </span>
+            )}
+          </div>
+          <div className="pb-1">
+            <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
+              {displayName}
+            </h1>
+            <p className="text-sm text-[var(--mm-text-dim)]">
+              {user.email} · standing{" "}
+              <span className="uppercase tracking-widest text-[var(--mm-gold)]">
+                {user.role}
+              </span>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Renown + badges */}
       <section className="mm-glass flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between">
         <SyncGauge pct={rank.pct} rank={rank.rank} />
         <div className="text-sm">
@@ -68,8 +97,8 @@ export default async function ProfilePage({
       </section>
 
       {saved && (
-        <div className="mm-glass border-[var(--mm-live)] p-3 text-sm text-[var(--mm-live)]">
-          Saved.
+        <div className="mm-glass flex items-center gap-2 border-[var(--mm-live)] p-3 text-sm text-[var(--mm-live)]">
+          <Icon icon="mdi:check" width={16} /> Saved.
         </div>
       )}
       {error && (
@@ -78,33 +107,42 @@ export default async function ProfilePage({
         </div>
       )}
 
-      <section>
-        <h2 className="mb-4 font-[family-name:var(--font-display)] text-lg tracking-wide">
-          Identity
-        </h2>
-        <form action={updateProfile} className="space-y-5">
-          <div>
-            <label className="mb-1.5 block text-sm text-[var(--mm-text-dim)]">
-              Adventurer name
-            </label>
-            <input
-              name="name"
-              defaultValue={profile?.name ?? user.name ?? ""}
-              className="w-full rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm outline-none focus:border-[var(--mm-violet)]"
-            />
-          </div>
-          <button type="submit" className="mm-btn mm-btn-primary">
-            Save
-          </button>
-        </form>
-      </section>
+      {/* Edit */}
+      <form action={updateProfile} className="space-y-7">
+        <TextField
+          name="name"
+          label="Adventurer name"
+          icon="game-icons:visored-helm"
+          defaultValue={profile?.name ?? user.name ?? ""}
+          placeholder="Your name"
+        />
 
-      <section>
-        <h2 className="mb-4 font-[family-name:var(--font-display)] text-lg tracking-wide">
-          Portrait
-        </h2>
-        <FileUploader entityType="avatar" multiple={false} />
-      </section>
+        <FormSection title="Avatar" icon="mdi:account-circle-outline">
+          <ImageUploader
+            name="avatarUrl"
+            entityType="avatar"
+            maxFiles={1}
+            accent="#4aa8ff"
+            label="Upload a new avatar"
+            description="Square works best · up to 10 MB"
+          />
+        </FormSection>
+
+        <FormSection title="Portrait banner" icon="mdi:image-outline">
+          <ImageUploader
+            name="bannerUrl"
+            entityType="banner"
+            maxFiles={1}
+            accent="#7c3aed"
+            label="Upload a banner"
+            description="Wide image for your profile header · up to 10 MB"
+          />
+        </FormSection>
+
+        <button type="submit" className="mm-btn mm-btn-primary">
+          <Icon icon="mdi:content-save-outline" width={16} /> Save changes
+        </button>
+      </form>
 
       <section className="mm-glass p-6">
         <h2 className="font-[family-name:var(--font-display)] text-lg tracking-wide">

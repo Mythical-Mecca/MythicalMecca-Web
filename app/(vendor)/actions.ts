@@ -53,17 +53,16 @@ export async function updateManufacturer(formData: FormData) {
 }
 
 const gallerySchema = z.object({
-  title: z.string().min(1).max(160),
   caption: z.string().max(300).optional(),
-  externalUrl: z.string().url().optional().or(z.literal("")),
+  images: z.array(z.string().url()).min(1).max(12),
 });
 
 export async function addGalleryItem(formData: FormData) {
   const session = await requireVendor();
+  const images = formData.getAll("images").map(String).filter(Boolean);
   const parsed = gallerySchema.safeParse({
-    title: formData.get("title"),
     caption: formData.get("caption") || undefined,
-    externalUrl: formData.get("externalUrl") || undefined,
+    images,
   });
   if (!parsed.success) redirect("/forge/gallery?error=1");
 
@@ -75,12 +74,13 @@ export async function addGalleryItem(formData: FormData) {
         .where(eq(vendors.userId, session.user.id))
         .limit(1);
       if (v) {
-        await db.insert(vendorGalleryItems).values({
-          vendorId: v.id,
-          title: parsed.data.title,
-          caption: parsed.data.caption,
-          externalUrl: parsed.data.externalUrl || null,
-        });
+        await db.insert(vendorGalleryItems).values(
+          parsed.data.images.map((url) => ({
+            vendorId: v.id,
+            imageUrl: url,
+            caption: parsed.data.caption,
+          }))
+        );
       }
     } catch {
       redirect("/forge/gallery?error=1");

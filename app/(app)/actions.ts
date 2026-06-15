@@ -22,11 +22,19 @@ export async function updateProfile(formData: FormData) {
   });
   if (!parsed.success) redirect("/profile?error=1");
 
+  const avatarUrl = String(formData.get("avatarUrl") ?? "").trim();
+  const bannerUrl = String(formData.get("bannerUrl") ?? "").trim();
+
   if (process.env.DATABASE_URL) {
     try {
       await db
         .update(users)
-        .set({ name: parsed.data.name })
+        .set({
+          name: parsed.data.name,
+          // only overwrite when a new image was uploaded
+          ...(avatarUrl ? { avatarUrl } : {}),
+          ...(bannerUrl ? { bannerUrl } : {}),
+        })
         .where(eq(users.id, session.user.id));
     } catch {
       redirect("/profile?error=1");
