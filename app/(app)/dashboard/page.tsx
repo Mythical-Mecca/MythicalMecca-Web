@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { getLiveEvent } from "@/lib/content";
 import { formatDateTime } from "@/lib/format";
 import { getUserXp, rankForXp, getUserBadges } from "@/lib/gamification";
+import { getMyVendor } from "@/lib/vendor";
+import { getMyApplication } from "@/lib/member";
 import { SyncGauge } from "@/components/sync-gauge";
 import { Icon } from "@/components/icon";
 
@@ -52,12 +54,21 @@ const LINKS = [
 export default async function DashboardPage() {
   const session = await auth();
   const name = session?.user?.name ?? "Adventurer";
-  const [liveEvent, xp, myBadges] = await Promise.all([
+  const [liveEvent, xp, myBadges, vendor, application] = await Promise.all([
     getLiveEvent(),
     getUserXp(session!.user.id),
     getUserBadges(session!.user.id),
+    getMyVendor(session!.user.id),
+    getMyApplication(session!.user.id),
   ]);
   const rank = rankForXp(xp);
+  // An in-progress application — draft (not yet submitted) or pending (under review).
+  const openApplication =
+    !vendor &&
+    (application?.status === "draft" || application?.status === "pending")
+      ? application
+      : null;
+  const isDraft = openApplication?.status === "draft";
 
   const stats = [
     { label: "Rank", value: rank.rank, icon: "mdi:shield-star-outline", color: "#f2b441" },
@@ -177,6 +188,82 @@ export default async function DashboardPage() {
           ))}
         </div>
       </section>
+
+      {/* Vendor stall — active vendor account */}
+      {vendor && (
+        <section>
+          <h2 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-lg tracking-wide">
+            <Icon icon="game-icons:anvil" width={20} className="text-[var(--mm-gold)]" />
+            Your stall
+          </h2>
+          <div
+            className="mm-glass mt-4 flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between"
+            style={softCard}
+          >
+            <div className="min-w-0">
+              <p className="font-[family-name:var(--font-display)] text-xl tracking-wide">
+                {vendor.businessName}
+              </p>
+              <p className="mt-0.5 text-sm text-[var(--mm-text-dim)]">
+                {vendor.tagline || "Manage your Armory stall and gallery."}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/forge" className="mm-btn mm-btn-primary text-sm">
+                <Icon icon="mdi:storefront-outline" width={16} /> Manage stall
+              </Link>
+              <Link href="/forge/gallery" className="mm-btn mm-btn-ghost text-sm">
+                <Icon icon="mdi:image-multiple-outline" width={16} /> Gallery
+              </Link>
+              <Link
+                href={`/armory/${vendor.slug}`}
+                className="mm-btn mm-btn-ghost text-sm"
+              >
+                <Icon icon="mdi:open-in-new" width={16} /> Public page
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Vendor application in progress — draft or pending */}
+      {openApplication && (
+        <section>
+          <h2 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-lg tracking-wide">
+            <Icon icon="game-icons:shop" width={20} className="text-[var(--mm-gold)]" />
+            Vendor application
+          </h2>
+          <div
+            className="mm-glass mt-4 flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between"
+            style={softCard}
+          >
+            <div className="min-w-0">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--mm-gold)] px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-widest text-[var(--mm-gold)]">
+                <Icon
+                  icon={isDraft ? "mdi:file-document-edit-outline" : "mdi:clock-outline"}
+                  width={13}
+                />
+                {isDraft ? "Draft" : "Pending"}
+              </span>
+              <p className="mt-2 font-[family-name:var(--font-display)] text-xl tracking-wide">
+                {openApplication.businessName || "Your application"}
+              </p>
+              <p className="mt-0.5 text-sm text-[var(--mm-text-dim)]">
+                {isDraft
+                  ? "Not submitted yet — add your demo images to send it to the Keep."
+                  : "Under review by the Keep — we'll let you know when there's a verdict."}
+              </p>
+            </div>
+            <Link
+              href="/vendor-application"
+              className="mm-btn mm-btn-primary shrink-0 text-sm"
+            >
+              <Icon icon="mdi:arrow-right" width={16} />{" "}
+              {isDraft ? "Finish application" : "Track application"}
+            </Link>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

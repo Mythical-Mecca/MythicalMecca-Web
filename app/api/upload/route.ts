@@ -24,19 +24,26 @@ export async function POST(request: Request): Promise<NextResponse> {
       { status: 401 }
     );
   }
-  // Blob auth is either the classic RW token, or the newer store model
-  // (BLOB_STORE_ID + VERCEL_OIDC_TOKEN). The SDK resolves whichever is present.
+  // To MINT a client token the SDK needs a real credential — either the classic
+  // RW token, or (store model) a Vercel OIDC token. BLOB_STORE_ID alone is just
+  // an identifier and CANNOT sign tokens, so don't treat it as auth: on Vercel
+  // VERCEL_OIDC_TOKEN is auto-injected; locally you need one of these set.
   const hasBlobAuth = !!(
-    process.env.BLOB_READ_WRITE_TOKEN ||
-    process.env.BLOB_STORE_ID
+    process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_OIDC_TOKEN
   );
   if (!hasBlobAuth) {
     console.error(
-      "[upload] no Blob credentials found (need BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID)"
+      "[upload] no Blob credential to mint a client token. Set BLOB_READ_WRITE_TOKEN " +
+        "in .env.local (copy it from the Vercel dashboard → Storage → your Blob store), " +
+        "or run `vercel env pull .env.local` to fetch a VERCEL_OIDC_TOKEN. " +
+        "BLOB_STORE_ID on its own is not a credential."
     );
     return NextResponse.json(
-      { error: "Uploads are not configured on the server." },
-      { status: 500 }
+      {
+        error:
+          "Uploads aren't configured locally: missing BLOB_READ_WRITE_TOKEN (or a Vercel OIDC token).",
+      },
+      { status: 503 }
     );
   }
 
