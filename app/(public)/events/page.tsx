@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getEvents } from "@/lib/content";
 import { formatDateTime } from "@/lib/format";
 
-export const metadata = { title: "Gatherings — Mythic Mecha" };
+export const metadata = { title: "Gatherings — Mythical Mecha" };
 
 export default async function EventsPage() {
   const events = await getEvents();

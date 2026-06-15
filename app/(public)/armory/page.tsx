@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getVendors } from "@/lib/content";
 
-export const metadata = { title: "The Armory — Mythic Mecha" };
+export const metadata = { title: "The Armory — Mythical Mecha" };
 
 export default async function ArmoryPage() {
   const vendors = await getVendors();

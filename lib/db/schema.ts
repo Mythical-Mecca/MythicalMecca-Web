@@ -27,7 +27,7 @@ export const logLevelEnum = pgEnum("log_level", [
 ]);
 
 // ---------------------------------------------------------------------------
-// Auth.js core tables (+ Mythic Mecha pilot columns)
+// Auth.js core tables (+ Mythical Mecha pilot columns)
 // ---------------------------------------------------------------------------
 export const users = pgTable("user", {
   id: text("id")

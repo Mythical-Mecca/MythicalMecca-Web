@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getPosts } from "@/lib/content";
 import { formatDate } from "@/lib/format";
 
-export const metadata = { title: "News — Mythic Mecha" };
+export const metadata = { title: "News — Mythical Mecha" };
 
 export default async function NewsPage() {
   const posts = await getPosts();

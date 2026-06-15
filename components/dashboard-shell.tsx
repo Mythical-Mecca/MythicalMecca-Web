@@ -26,7 +26,7 @@ export function DashboardShell({
           href="/dashboard"
           className="px-2 font-[family-name:var(--font-display)] text-sm tracking-widest"
         >
-          MYTHIC<span className="mm-gradient-text"> MECHA</span>
+          MYTHICAL<span className="mm-gradient-text"> MECHA</span>
         </Link>
         <p className="mt-1 px-2 text-[10px] uppercase tracking-[0.25em] text-[var(--mm-gold)]">
           {area}

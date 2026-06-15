@@ -8,7 +8,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 
 const Footer = () => (
   <footer className="border-t border-[var(--mm-border)] px-6 py-8 text-center text-xs text-[var(--mm-text-dim)]">
-    Mythic Mecha — a hearth for the geek collective.
+    Mythical Mecha — a hearth for the geek collective.
   </footer>
 );
 
@@ -52,7 +52,7 @@ export default async function PublicLayout({
             href="/"
             className="font-[family-name:var(--font-display)] text-lg tracking-widest"
           >
-            MYTHIC<span className="mm-gradient-text"> MECHA</span>
+            MYTHICAL<span className="mm-gradient-text"> MECHA</span>
           </Link>
           <div className="hidden items-center gap-7 text-sm text-[var(--mm-text-dim)] md:flex">
             <Link href="/news" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">

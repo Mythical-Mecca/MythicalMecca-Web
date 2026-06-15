@@ -53,7 +53,7 @@ export const samplePosts: PostView[] = [
     slug: "the-doors-are-open",
     title: "The doors are open",
     excerpt:
-      "Mythic Mecha is reborn. Here's what greets you at the threshold.",
+      "Mythical Mecha is reborn. Here's what greets you at the threshold.",
     bodyMd:
       "We rebuilt the hall from the foundation stones up.\n\nOne hearth for the whole collective. Expect quests, scavenger trails, an Armory of artisans, and a leaderboard worth boasting about.\n\nPull up a chair — the tale is only beginning.",
     publishedAt: "2026-06-10",

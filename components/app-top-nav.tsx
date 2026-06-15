@@ -86,7 +86,7 @@ export function AppTopNav({
             href="/dashboard"
             className="shrink-0 font-[family-name:var(--font-display)] tracking-widest"
           >
-            MYTHIC<span className="mm-gradient-text"> MECHA</span>
+            MYTHICAL<span className="mm-gradient-text"> MECHA</span>
           </Link>
           {liveEvent && (
             <Link

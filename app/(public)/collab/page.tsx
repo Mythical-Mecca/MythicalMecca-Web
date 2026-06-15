@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { collabSubmissions } from "@/lib/db/schema";
 import { logActivity } from "@/lib/logging";
 
-export const metadata = { title: "Collab — Mythic Mecha" };
+export const metadata = { title: "Collab — Mythical Mecha" };
 
 const schema = z.object({
   name: z.string().min(1).max(120),
