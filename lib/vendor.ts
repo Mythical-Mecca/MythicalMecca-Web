@@ -11,7 +11,6 @@ export interface MyVendor {
   businessName: string;
   tagline: string | null;
   bio: string | null;
-  division: string | null;
   socials: { raw?: string } | null;
 }
 
@@ -38,7 +37,6 @@ export async function getMyVendor(userId: string): Promise<MyVendor | null> {
       businessName: r.businessName,
       tagline: r.tagline,
       bio: r.bio,
-      division: r.division,
       socials: (r.socials as { raw?: string }) ?? null,
     };
   } catch {

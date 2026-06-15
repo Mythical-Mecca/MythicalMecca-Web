@@ -20,7 +20,6 @@ async function requireVendor() {
 const manufacturerSchema = z.object({
   tagline: z.string().max(160).optional(),
   bio: z.string().max(2000).optional(),
-  division: z.enum(["tabletop", "arcade", "otaku", "maker"]).optional(),
   socials: z.string().max(500).optional(),
 });
 
@@ -29,7 +28,6 @@ export async function updateManufacturer(formData: FormData) {
   const parsed = manufacturerSchema.safeParse({
     tagline: formData.get("tagline") || undefined,
     bio: formData.get("bio") || undefined,
-    division: formData.get("division") || undefined,
     socials: formData.get("socials") || undefined,
   });
   if (!parsed.success) redirect("/forge/profile?error=1");
@@ -41,7 +39,6 @@ export async function updateManufacturer(formData: FormData) {
         .set({
           tagline: parsed.data.tagline,
           bio: parsed.data.bio,
-          division: parsed.data.division,
           socials: parsed.data.socials ? { raw: parsed.data.socials } : null,
           updatedAt: new Date(),
         })

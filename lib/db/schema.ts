@@ -18,12 +18,6 @@ import type { AdapterAccountType } from "next-auth/adapters";
 // Enums
 // ---------------------------------------------------------------------------
 export const roleEnum = pgEnum("role", ["member", "vendor", "admin"]);
-export const divisionEnum = pgEnum("division", [
-  "tabletop",
-  "arcade",
-  "otaku",
-  "maker",
-]);
 export const logLevelEnum = pgEnum("log_level", [
   "debug",
   "info",
@@ -45,7 +39,6 @@ export const users = pgTable("user", {
   image: text("image"),
   // pilot profile
   role: roleEnum("role").notNull().default("member"),
-  division: divisionEnum("division"),
   xp: integer("xp").notNull().default(0),
   syncRate: integer("sync_rate").notNull().default(0),
   rank: text("rank"),
@@ -230,7 +223,6 @@ export const posts = pgTable(
     coverFileId: uuid("cover_file_id").references(() => files.id, {
       onDelete: "set null",
     }),
-    division: divisionEnum("division"),
     status: postStatusEnum("status").notNull().default("draft"),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -257,7 +249,6 @@ export const events = pgTable(
     coverFileId: uuid("cover_file_id").references(() => files.id, {
       onDelete: "set null",
     }),
-    division: divisionEnum("division"),
     status: eventStatusEnum("status").notNull().default("draft"),
     location: text("location"),
     lat: doublePrecision("lat"),
@@ -310,7 +301,6 @@ export const vendors = pgTable("vendors", {
     onDelete: "set null",
   }),
   socials: jsonb("socials"),
-  division: divisionEnum("division"),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -554,22 +544,6 @@ export const seasons = pgTable("seasons", {
   active: boolean("active").notNull().default(true),
 });
 
-export const squadronScores = pgTable(
-  "squadron_scores",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    seasonId: uuid("season_id")
-      .notNull()
-      .references(() => seasons.id, { onDelete: "cascade" }),
-    division: divisionEnum("division").notNull(),
-    points: integer("points").notNull().default(0),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => [uniqueIndex("squadron_scores_unique").on(t.seasonId, t.division)]
-);
-
 // ---------------------------------------------------------------------------
 // Arcade — training simulators
 // ---------------------------------------------------------------------------
@@ -579,7 +553,6 @@ export const games = pgTable("games", {
   title: text("title").notNull(),
   description: text("description"),
   active: boolean("active").notNull().default(true),
-  division: divisionEnum("division"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

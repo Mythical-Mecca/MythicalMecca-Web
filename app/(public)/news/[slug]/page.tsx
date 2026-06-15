@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPost, getPosts } from "@/lib/content";
-import { DivisionBadge, SimpleProse } from "@/components/content-ui";
+import { SimpleProse } from "@/components/content-ui";
 import { formatDate } from "@/lib/format";
 
 export async function generateStaticParams() {
@@ -27,7 +27,6 @@ export default async function PostPage({
         ← All news
       </Link>
       <div className="mt-6 flex items-center gap-3">
-        <DivisionBadge division={post.division} />
         <span className="text-xs text-[var(--mm-text-dim)]">
           {formatDate(post.publishedAt)}
         </span>

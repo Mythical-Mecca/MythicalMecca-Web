@@ -7,11 +7,8 @@ import {
   inputCls,
   textareaCls,
 } from "@/components/form";
-import { DivisionBadge } from "@/components/content-ui";
 import { Icon } from "@/components/icon";
-import type { Division } from "@/lib/content";
 
-const DIVISIONS = ["tabletop", "arcade", "otaku", "maker"] as const;
 const ACCENT = "#f2b441";
 
 export default async function AdminPostsPage({
@@ -47,17 +44,7 @@ export default async function AdminPostsPage({
           <Field label="Title" className="sm:col-span-2">
             <input name="title" required placeholder="Headline" className={inputCls} />
           </Field>
-          <Field label="Division" hint="optional">
-            <select name="division" defaultValue="" className={`${inputCls} capitalize`}>
-              <option value="">No division</option>
-              {DIVISIONS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Excerpt" hint="optional">
+          <Field label="Excerpt" hint="optional" className="sm:col-span-2">
             <input name="excerpt" placeholder="One-line summary" className={inputCls} />
           </Field>
           <Field label="Body" hint="blank lines = paragraphs" className="sm:col-span-2">
@@ -82,8 +69,7 @@ export default async function AdminPostsPage({
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {posts.map((p) => (
               <div key={p.id} className="mm-glass p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <DivisionBadge division={(p.division as Division) ?? null} />
+                <div className="mb-2 flex items-center justify-end">
                   <span className="text-[11px] uppercase tracking-widest text-[var(--mm-text-dim)]">
                     {p.status}
                   </span>

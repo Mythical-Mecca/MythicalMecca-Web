@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getPosts } from "@/lib/content";
-import { DivisionBadge } from "@/components/content-ui";
 import { formatDate } from "@/lib/format";
 
 export const metadata = { title: "News — Mythic Mecha" };
@@ -14,7 +13,7 @@ export default async function NewsPage() {
         <span className="mm-gradient-text">Transmissions</span>
       </h1>
       <p className="mt-3 text-[var(--mm-text-dim)]">
-        News and dispatches from across the divisions.
+        News and dispatches from across the hall.
       </p>
 
       <div className="mt-10 grid gap-4 md:grid-cols-2">
@@ -25,7 +24,6 @@ export default async function NewsPage() {
             className="mm-glass group p-6 transition hover:border-[var(--mm-violet)]"
           >
             <div className="mb-3 flex items-center justify-between">
-              <DivisionBadge division={p.division} />
               <span className="text-xs text-[var(--mm-text-dim)]">
                 {formatDate(p.publishedAt)}
               </span>

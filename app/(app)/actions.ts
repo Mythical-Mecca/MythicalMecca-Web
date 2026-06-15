@@ -11,7 +11,6 @@ import { logActivity } from "@/lib/logging";
 
 const profileSchema = z.object({
   name: z.string().min(1).max(120),
-  division: z.enum(["tabletop", "arcade", "otaku", "maker"]).optional(),
 });
 
 export async function updateProfile(formData: FormData) {
@@ -20,7 +19,6 @@ export async function updateProfile(formData: FormData) {
 
   const parsed = profileSchema.safeParse({
     name: formData.get("name"),
-    division: formData.get("division") || undefined,
   });
   if (!parsed.success) redirect("/profile?error=1");
 
@@ -28,7 +26,7 @@ export async function updateProfile(formData: FormData) {
     try {
       await db
         .update(users)
-        .set({ name: parsed.data.name, division: parsed.data.division })
+        .set({ name: parsed.data.name })
         .where(eq(users.id, session.user.id));
     } catch {
       redirect("/profile?error=1");

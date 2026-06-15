@@ -2,7 +2,6 @@ import { auth } from "@/lib/auth";
 import { getMyVendor } from "@/lib/vendor";
 import { updateManufacturer } from "../../actions";
 
-const DIVISIONS = ["tabletop", "arcade", "otaku", "maker"] as const;
 const inputCls =
   "w-full rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm outline-none focus:border-[var(--mm-violet)]";
 
@@ -57,23 +56,6 @@ export default async function ForgeProfilePage({
               defaultValue={vendor.tagline ?? ""}
               className={inputCls}
             />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm text-[var(--mm-text-dim)]">
-              Division
-            </label>
-            <select
-              name="division"
-              defaultValue={vendor.division ?? ""}
-              className={`${inputCls} capitalize`}
-            >
-              <option value="">Unaffiliated</option>
-              {DIVISIONS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
           </div>
           <div>
             <label className="mb-1.5 block text-sm text-[var(--mm-text-dim)]">

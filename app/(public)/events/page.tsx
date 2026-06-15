@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getEvents } from "@/lib/content";
-import { DivisionBadge } from "@/components/content-ui";
 import { formatDateTime } from "@/lib/format";
 
 export const metadata = { title: "Gatherings — Mythic Mecha" };
@@ -26,7 +25,6 @@ export default async function EventsPage() {
           >
             <div>
               <div className="mb-2 flex items-center gap-3">
-                <DivisionBadge division={e.division} />
                 <span className="text-xs text-[var(--mm-text-dim)]">
                   {formatDateTime(e.startsAt)}
                 </span>

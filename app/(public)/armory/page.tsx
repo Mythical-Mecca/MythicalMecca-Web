@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getVendors } from "@/lib/content";
-import { DivisionBadge } from "@/components/content-ui";
 
 export const metadata = { title: "The Armory — Mythic Mecha" };
 
@@ -40,8 +39,7 @@ export default async function ArmoryPage() {
               }}
             />
             <div className="p-5">
-              <div className="mb-2 flex items-center justify-between">
-                <DivisionBadge division={v.division} />
+              <div className="mb-2 flex items-center justify-end">
                 <span className="text-xs text-[var(--mm-text-dim)]">
                   {v.gallery.length} items
                 </span>

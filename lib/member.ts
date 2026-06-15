@@ -42,7 +42,6 @@ export async function getMyApplication(
 
 export interface MyProfile {
   name: string | null;
-  division: string | null;
   xp: number;
   rank: string | null;
 }
@@ -57,7 +56,7 @@ export async function getMyProfile(userId: string): Promise<MyProfile | null> {
       .limit(1);
     const r = rows[0];
     if (!r) return null;
-    return { name: r.name, division: r.division, xp: r.xp, rank: r.rank };
+    return { name: r.name, xp: r.xp, rank: r.rank };
   } catch {
     return null;
   }

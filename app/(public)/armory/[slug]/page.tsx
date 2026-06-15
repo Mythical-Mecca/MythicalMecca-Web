@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getVendor, getVendors } from "@/lib/content";
-import { DivisionBadge } from "@/components/content-ui";
 
 export async function generateStaticParams() {
   const vendors = await getVendors();
@@ -28,9 +27,6 @@ export default async function VendorPage({
 
       <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="mb-2">
-            <DivisionBadge division={vendor.division} />
-          </div>
           <h1 className="font-[family-name:var(--font-display)] text-4xl">
             {vendor.businessName}
           </h1>

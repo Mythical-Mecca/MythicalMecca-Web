@@ -10,7 +10,6 @@ import {
 import { Icon } from "@/components/icon";
 import { formatDateTime } from "@/lib/format";
 
-const DIVISIONS = ["tabletop", "arcade", "otaku", "maker"] as const;
 const ACCENT = "#5cc08c";
 
 export default async function AdminEventsPage({
@@ -52,17 +51,6 @@ export default async function AdminEventsPage({
           <Field label="Location" hint="optional">
             <input name="location" placeholder="Where" className={inputCls} />
           </Field>
-          <Field label="Division" hint="optional">
-            <select name="division" defaultValue="" className={`${inputCls} capitalize`}>
-              <option value="">No division</option>
-              {DIVISIONS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <div />
           <Field label="Starts">
             <input name="startsAt" type="datetime-local" required className={inputCls} />
           </Field>

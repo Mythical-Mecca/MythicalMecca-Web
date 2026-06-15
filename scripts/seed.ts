@@ -48,8 +48,8 @@ async function main() {
   await db
     .insert(posts)
     .values([
-      { slug: "the-doors-are-open", title: "The doors are open", excerpt: "Mythic Mecha is reborn.", bodyMd: "We rebuilt the hall from the foundation stones up.\n\nFour guilds, one hearth.", division: "maker", status: "published", publishedAt: new Date("2026-06-10") },
-      { slug: "midsummer-revel-announced", title: "Midsummer Revel announced", excerpt: "Our grandest gathering yet.", bodyMd: "Mark your calendars, adventurers.", division: "arcade", status: "published", publishedAt: new Date("2026-06-04") },
+      { slug: "the-doors-are-open", title: "The doors are open", excerpt: "Mythic Mecha is reborn.", bodyMd: "We rebuilt the hall from the foundation stones up.\n\nFour guilds, one hearth.", status: "published", publishedAt: new Date("2026-06-10") },
+      { slug: "midsummer-revel-announced", title: "Midsummer Revel announced", excerpt: "Our grandest gathering yet.", bodyMd: "Mark your calendars, adventurers.", status: "published", publishedAt: new Date("2026-06-04") },
     ])
     .onConflictDoNothing();
 
@@ -57,15 +57,15 @@ async function main() {
   await db
     .insert(events)
     .values([
-      { slug: "opening-night-revel", title: "Opening Night Revel", summary: "An evening to christen the new hall.", bodyMd: "We're throwing open the doors.", division: "maker", location: "The Hall, Woodstock", startsAt: new Date("2026-06-14T18:00:00Z"), endsAt: new Date("2026-06-14T23:00:00Z"), status: "live" },
-      { slug: "midsummer-revel-2026", title: "Midsummer Revel 2026", summary: "A full-day gathering.", bodyMd: "The grand gathering of the year.", division: "arcade", location: "Cape Town — The Hall", startsAt: new Date("2026-07-18T09:00:00Z"), endsAt: new Date("2026-07-18T20:00:00Z"), status: "published" },
+      { slug: "opening-night-revel", title: "Opening Night Revel", summary: "An evening to christen the new hall.", bodyMd: "We're throwing open the doors.", location: "The Hall, Woodstock", startsAt: new Date("2026-06-14T18:00:00Z"), endsAt: new Date("2026-06-14T23:00:00Z"), status: "live" },
+      { slug: "midsummer-revel-2026", title: "Midsummer Revel 2026", summary: "A full-day gathering.", bodyMd: "The grand gathering of the year.", location: "Cape Town — The Hall", startsAt: new Date("2026-07-18T09:00:00Z"), endsAt: new Date("2026-07-18T20:00:00Z"), status: "published" },
     ])
     .onConflictDoNothing();
 
   // Vendor + gallery
   const [vendor] = await db
     .insert(vendors)
-    .values([{ slug: "neon-forge-minis", businessName: "Neon Forge Minis", tagline: "Hand-painted miniatures & 3D-printed terrain", bio: "A two-person studio.", division: "tabletop", socials: { raw: "https://instagram.com" } }])
+    .values([{ slug: "neon-forge-minis", businessName: "Neon Forge Minis", tagline: "Hand-painted miniatures & 3D-printed terrain", bio: "A two-person studio.", socials: { raw: "https://instagram.com" } }])
     .onConflictDoNothing()
     .returning();
   if (vendor) {

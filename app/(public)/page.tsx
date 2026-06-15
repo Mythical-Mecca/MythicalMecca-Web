@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ParticleField } from "@/components/particle-field";
 import { Icon } from "@/components/icon";
 import { getEvents, getPosts } from "@/lib/content";
-import { DivisionBadge } from "@/components/content-ui";
 import { formatDate, formatDateTime } from "@/lib/format";
 
 const TAVERN = "/MythicMechaBackground.png";
@@ -27,11 +26,11 @@ function ImageBackdrop({ src, overlay }: { src: string; overlay: string }) {
   );
 }
 
-const GUILDS = [
-  { k: "Tabletop", d: "TTRPG & minis", icon: "game-icons:rolling-dices" },
-  { k: "Arcade", d: "Gaming & esports", icon: "game-icons:joystick" },
-  { k: "Otaku", d: "Anime & comics", icon: "game-icons:katana" },
-  { k: "Maker", d: "Tech & crafts", icon: "game-icons:anvil" },
+const FEATURES = [
+  { k: "Quests", d: "Scavenger trails & riddles", icon: "game-icons:treasure-map" },
+  { k: "The Armory", d: "Makers & merchants", icon: "game-icons:anvil" },
+  { k: "Training Yard", d: "Mini-games & leaderboards", icon: "mdi:target" },
+  { k: "Gatherings", d: "Events, feasts & tournaments", icon: "game-icons:campfire" },
 ];
 
 // Placeholder gallery tiles — swap for real community photos later.
@@ -90,8 +89,8 @@ export default async function HomePage() {
             Begin your quest.
           </p>
           <p className="mt-5 max-w-xl text-balance text-lg text-[var(--mm-text-dim)]">
-            Mythic Mecha is the hearth for the geek collective — tabletop,
-            arcade, otaku and maker guilds gathered under one roof.
+            Mythic Mecha is the hearth for the geek collective — gathered
+            under one roof.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link href="/login" className="mm-btn mm-btn-primary">
@@ -146,8 +145,7 @@ export default async function HomePage() {
                 href={`/events/${e.slug}`}
                 className="mm-glass group p-5 transition hover:border-[var(--mm-violet)]"
               >
-                <div className="mb-3 flex items-center justify-between">
-                  <DivisionBadge division={e.division} />
+                <div className="mb-3 flex items-center justify-end">
                   <Icon
                     icon="game-icons:campfire"
                     width={18}
@@ -194,8 +192,7 @@ export default async function HomePage() {
                 href={`/news/${p.slug}`}
                 className="mm-glass group p-5 transition hover:border-[var(--mm-violet)]"
               >
-                <div className="mb-3 flex items-center justify-between">
-                  <DivisionBadge division={p.division} />
+                <div className="mb-3 flex items-center justify-end">
                   <span className="text-xs text-[var(--mm-text-dim)]">
                     {formatDate(p.publishedAt)}
                   </span>
@@ -284,11 +281,11 @@ export default async function HomePage() {
             }
           />
           <p className="mt-3 max-w-2xl text-[var(--mm-text-dim)]">
-            One hearth, four guilds — whatever your flavour of geek, there&apos;s
-            a table with your name on it.
+            One hearth for the whole collective — whatever your flavour of geek,
+            there&apos;s a table with your name on it.
           </p>
           <div className="mt-8 grid gap-4 md:grid-cols-4">
-            {GUILDS.map((g) => (
+            {FEATURES.map((g) => (
               <div
                 key={g.k}
                 className="mm-glass flex flex-col items-start gap-3 p-6 transition hover:border-[var(--mm-violet)]"

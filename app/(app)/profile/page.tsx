@@ -6,7 +6,6 @@ import { FileUploader } from "@/components/file-uploader";
 import { getUserBadges, getUserXp, rankForXp } from "@/lib/gamification";
 import { SyncGauge } from "@/components/sync-gauge";
 
-const DIVISIONS = ["tabletop", "arcade", "otaku", "maker"] as const;
 
 export default async function ProfilePage({
   searchParams,
@@ -22,7 +21,6 @@ export default async function ProfilePage({
   ]);
   const rank = rankForXp(xp);
   const { saved, error } = await searchParams;
-  const division = profile?.division ?? "";
 
   return (
     <div className="max-w-2xl space-y-10">
@@ -82,7 +80,7 @@ export default async function ProfilePage({
 
       <section>
         <h2 className="mb-4 font-[family-name:var(--font-display)] text-lg tracking-wide">
-          Name &amp; guild
+          Identity
         </h2>
         <form action={updateProfile} className="space-y-5">
           <div>
@@ -94,23 +92,6 @@ export default async function ProfilePage({
               defaultValue={profile?.name ?? user.name ?? ""}
               className="w-full rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm outline-none focus:border-[var(--mm-violet)]"
             />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm text-[var(--mm-text-dim)]">
-              Division
-            </label>
-            <select
-              name="division"
-              defaultValue={division}
-              className="w-full rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm capitalize outline-none focus:border-[var(--mm-violet)]"
-            >
-              <option value="">Unaffiliated</option>
-              {DIVISIONS.map((d) => (
-                <option key={d} value={d} className="capitalize">
-                  {d}
-                </option>
-              ))}
-            </select>
           </div>
           <button type="submit" className="mm-btn mm-btn-primary">
             Save

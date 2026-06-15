@@ -18,7 +18,6 @@ export interface AdminPost {
   title: string;
   slug: string;
   status: string;
-  division: string | null;
   createdAt: string;
 }
 export interface AdminEvent {
@@ -52,7 +51,6 @@ export async function listPosts(): Promise<AdminPost[]> {
       title: r.title,
       slug: r.slug,
       status: r.status,
-      division: r.division,
       createdAt: r.createdAt.toISOString().slice(0, 10),
     }));
   } catch {

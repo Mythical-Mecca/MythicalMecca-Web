@@ -2,21 +2,11 @@ import { db } from "@/lib/db";
 import { posts, events, vendors, vendorGalleryItems } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 
-export type Division = "tabletop" | "arcade" | "otaku" | "maker";
-
-export const DIVISION_LABEL: Record<Division, string> = {
-  tabletop: "Tabletop",
-  arcade: "Arcade",
-  otaku: "Otaku",
-  maker: "Maker",
-};
-
 export interface PostView {
   slug: string;
   title: string;
   excerpt: string;
   bodyMd: string;
-  division: Division | null;
   publishedAt: string;
 }
 
@@ -25,7 +15,6 @@ export interface EventView {
   title: string;
   summary: string;
   bodyMd: string;
-  division: Division | null;
   location: string | null;
   startsAt: string;
   endsAt: string;
@@ -37,7 +26,6 @@ export interface VendorView {
   businessName: string;
   tagline: string;
   bio: string;
-  division: Division | null;
   socials: { label: string; url: string }[];
   gallery: { title: string; caption: string; externalUrl?: string }[];
 }
@@ -55,8 +43,7 @@ export const samplePosts: PostView[] = [
     excerpt:
       "Mythic Mecha is reborn. Here's what greets you at the threshold.",
     bodyMd:
-      "We rebuilt the hall from the foundation stones up.\n\nFour guilds, one hearth: Tabletop, Arcade, Otaku and Maker. Expect quests, scavenger trails, an Armory of artisans, and a leaderboard worth boasting about.\n\nPull up a chair — the tale is only beginning.",
-    division: "maker",
+      "We rebuilt the hall from the foundation stones up.\n\nOne hearth for the whole collective. Expect quests, scavenger trails, an Armory of artisans, and a leaderboard worth boasting about.\n\nPull up a chair — the tale is only beginning.",
     publishedAt: "2026-06-10",
   },
   {
@@ -64,8 +51,7 @@ export const samplePosts: PostView[] = [
     title: "Midsummer Revel announced",
     excerpt: "Our grandest gathering yet, with a quest woven through it.",
     bodyMd:
-      "Mark your calendars, adventurers.\n\nThe Midsummer Revel returns with tournaments, a costume parade, an artisans' market, and a town-wide scavenger quest with rune seals and riddles.\n\nGuild renown is on the line. Which order claims the season?",
-    division: "arcade",
+      "Mark your calendars, adventurers.\n\nThe Midsummer Revel returns with tournaments, a costume parade, an artisans' market, and a town-wide scavenger quest with rune seals and riddles.\n\nRenown is on the line. Who claims the season?",
     publishedAt: "2026-06-04",
   },
   {
@@ -74,7 +60,6 @@ export const samplePosts: PostView[] = [
     excerpt: "The Armory opens its stalls to makers and merchants.",
     bodyMd:
       "The Armory is where our community's makers, artists and shops set out their wares.\n\nPetition from your character sheet, await word from the Keep, and your stall goes live with a gallery and links to your socials.",
-    division: "tabletop",
     publishedAt: "2026-05-28",
   },
 ];
@@ -85,8 +70,7 @@ export const sampleEvents: EventView[] = [
     title: "Opening Night Revel",
     summary: "An evening to christen the new hall. Ale, dice, and good company.",
     bodyMd:
-      "We're throwing open the doors.\n\nMeet fellow adventurers across all four guilds, try the training-yard trials, and claim an opening-night badge. The first gathering of the season.",
-    division: "maker",
+      "We're throwing open the doors.\n\nMeet fellow adventurers, try the training-yard trials, and claim an opening-night badge. The first gathering of the season.",
     location: "The Hall, Woodstock",
     startsAt: "2026-06-14T18:00:00Z",
     endsAt: "2026-06-14T23:00:00Z",
@@ -98,7 +82,6 @@ export const sampleEvents: EventView[] = [
     summary: "A full-day gathering: tournaments, costumes, artisans, and a quest.",
     bodyMd:
       "The grand gathering of the year.\n\nExpect open gaming tables, a tourney stage, a screening lounge, an artisans' market, and a town-wide scavenger quest. Hearty fare on site.",
-    division: "arcade",
     location: "Cape Town — The Hall, Woodstock",
     startsAt: "2026-07-18T09:00:00Z",
     endsAt: "2026-07-18T20:00:00Z",
@@ -110,7 +93,6 @@ export const sampleEvents: EventView[] = [
     summary: "Bring a campaign, find a party. Minis painting corner open.",
     bodyMd:
       "A relaxed evening of TTRPGs and board games.\n\nNewcomers welcome — we'll get you to a table. Paint-and-take miniatures station running all night.",
-    division: "tabletop",
     location: "Online + The Hall",
     startsAt: "2026-06-27T17:00:00Z",
     endsAt: "2026-06-27T22:00:00Z",
@@ -122,7 +104,6 @@ export const sampleEvents: EventView[] = [
     summary: "Back-to-back classic mecha anime. Cosplay encouraged.",
     bodyMd:
       "A night of giant robots.\n\nWe run a curated marathon of genre-defining mecha anime. Bring your cosplay; the finest costume earns renown.",
-    division: "otaku",
     location: "The Hall",
     startsAt: "2026-08-02T18:00:00Z",
     endsAt: "2026-08-02T23:30:00Z",
@@ -136,7 +117,6 @@ export const sampleVendors: VendorView[] = [
     businessName: "Neon Forge Minis",
     tagline: "Hand-painted miniatures & 3D-printed terrain",
     bio: "A two-person studio printing and painting tabletop minis and bespoke terrain for campaigns.",
-    division: "tabletop",
     socials: [
       { label: "Instagram", url: "https://instagram.com" },
       { label: "Etsy", url: "https://etsy.com" },
@@ -151,7 +131,6 @@ export const sampleVendors: VendorView[] = [
     businessName: "Pixel Pantry",
     tagline: "Retro-arcade apparel & enamel pins",
     bio: "Streetwear and collectibles inspired by 8-bit and 16-bit classics.",
-    division: "arcade",
     socials: [{ label: "Shop", url: "https://example.com" }],
     gallery: [
       { title: "Glitch tee", caption: "Limited run" },
@@ -163,7 +142,6 @@ export const sampleVendors: VendorView[] = [
     businessName: "Ronin Ink",
     tagline: "Original manga-style prints & commissions",
     bio: "Illustrator taking commissions and selling giclée prints of original characters.",
-    division: "otaku",
     socials: [
       { label: "ArtStation", url: "https://artstation.com" },
       { label: "X", url: "https://x.com" },
@@ -191,7 +169,6 @@ export async function getPosts(): Promise<PostView[]> {
       title: r.title,
       excerpt: r.excerpt ?? "",
       bodyMd: r.bodyMd,
-      division: (r.division as Division) ?? null,
       publishedAt: (r.publishedAt ?? r.createdAt).toISOString().slice(0, 10),
     }));
   } catch {
@@ -217,7 +194,6 @@ export async function getEvents(): Promise<EventView[]> {
       title: r.title,
       summary: r.summary ?? "",
       bodyMd: r.bodyMd ?? "",
-      division: (r.division as Division) ?? null,
       location: r.location,
       startsAt: (r.startsAt ?? r.createdAt).toISOString(),
       endsAt: (r.endsAt ?? r.createdAt).toISOString(),
@@ -234,8 +210,8 @@ export async function getEvent(slug: string): Promise<EventView | null> {
 }
 
 /**
- * The event a Pilot should be nudged toward right now: within its window, or
- * the same day leading up to its start. Drives the sortie card + green dot.
+ * The event to nudge an adventurer toward right now: within its window, or the
+ * same day leading up to its start. Drives the live card + green dot.
  */
 export async function getLiveEvent(): Promise<EventView | null> {
   const all = await getEvents();
@@ -282,7 +258,6 @@ export async function getVendors(): Promise<VendorView[]> {
         businessName: v.businessName,
         tagline: v.tagline ?? "",
         bio: v.bio ?? "",
-        division: (v.division as Division) ?? null,
         socials: (v.socials as { label: string; url: string }[]) ?? [],
         gallery: items.map((i) => ({
           title: i.title ?? "",

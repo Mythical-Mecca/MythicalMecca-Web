@@ -6,7 +6,7 @@ import {
   getReviews,
   getReviewSummary,
 } from "@/lib/events-social";
-import { DivisionBadge, SimpleProse } from "@/components/content-ui";
+import { SimpleProse } from "@/components/content-ui";
 import { EventActions } from "@/components/event-actions";
 import { formatDateTime, formatDate } from "@/lib/format";
 import { addComment, addReview } from "../actions";
@@ -41,7 +41,6 @@ export default async function EventPage({
       </Link>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
-        <DivisionBadge division={event.division} />
         {live && (
           <span className="inline-flex items-center gap-2 rounded-full border border-[var(--mm-live)] px-3 py-0.5 text-xs uppercase tracking-widest text-[var(--mm-live)]">
             <span className="mm-dot-live" /> Live now

@@ -24,13 +24,10 @@ async function requireAdmin() {
   return session;
 }
 
-const divisionEnum = z.enum(["tabletop", "arcade", "otaku", "maker"]);
-
 const postSchema = z.object({
   title: z.string().min(2).max(200),
   excerpt: z.string().max(400).optional(),
   bodyMd: z.string().min(1),
-  division: divisionEnum.optional(),
 });
 
 export async function createPost(formData: FormData) {
@@ -39,7 +36,6 @@ export async function createPost(formData: FormData) {
     title: formData.get("title"),
     excerpt: formData.get("excerpt") || undefined,
     bodyMd: formData.get("bodyMd"),
-    division: formData.get("division") || undefined,
   });
   if (!parsed.success) redirect("/command/posts?error=1");
 
@@ -51,7 +47,6 @@ export async function createPost(formData: FormData) {
         title: parsed.data.title,
         excerpt: parsed.data.excerpt,
         bodyMd: parsed.data.bodyMd,
-        division: parsed.data.division,
         status: "published",
         publishedAt: new Date(),
       });
@@ -69,7 +64,6 @@ const eventSchema = z.object({
   title: z.string().min(2).max(200),
   summary: z.string().max(400).optional(),
   bodyMd: z.string().optional(),
-  division: divisionEnum.optional(),
   location: z.string().max(200).optional(),
   startsAt: z.string().min(1),
   endsAt: z.string().min(1),
@@ -81,7 +75,6 @@ export async function createEvent(formData: FormData) {
     title: formData.get("title"),
     summary: formData.get("summary") || undefined,
     bodyMd: formData.get("bodyMd") || undefined,
-    division: formData.get("division") || undefined,
     location: formData.get("location") || undefined,
     startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt"),
@@ -95,7 +88,6 @@ export async function createEvent(formData: FormData) {
         title: parsed.data.title,
         summary: parsed.data.summary,
         bodyMd: parsed.data.bodyMd,
-        division: parsed.data.division,
         location: parsed.data.location,
         startsAt: new Date(parsed.data.startsAt),
         endsAt: new Date(parsed.data.endsAt),
