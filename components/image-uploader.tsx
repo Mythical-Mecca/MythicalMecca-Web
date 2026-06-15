@@ -12,6 +12,7 @@ type Item = {
   pct: number;
   status: Status;
   url?: string;
+  error?: string;
 };
 
 function extOf(name: string): string {
@@ -81,8 +82,8 @@ export function ImageUploader({
               patch(id, { pct: Math.round(percentage) }),
           });
           patch(id, { status: "done", pct: 100, url: res.url });
-        } catch {
-          patch(id, { status: "error" });
+        } catch (err) {
+          patch(id, { status: "error", error: (err as Error).message });
         }
       }
     },
@@ -176,8 +177,9 @@ export function ImageUploader({
                 </div>
               )}
               {it.status === "error" && (
-                <div className="absolute inset-0 grid place-items-center bg-[color-mix(in_srgb,var(--mm-danger)_70%,transparent)] p-1 text-center text-[10px] text-white">
-                  Upload failed
+                <div className="absolute inset-0 grid place-items-center gap-0.5 bg-[color-mix(in_srgb,var(--mm-danger)_75%,transparent)] p-1.5 text-center text-[10px] leading-tight text-white">
+                  <Icon icon="mdi:alert-circle-outline" width={16} />
+                  <span className="line-clamp-3">{it.error || "Upload failed"}</span>
                 </div>
               )}
               {it.status === "done" && (
