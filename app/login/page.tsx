@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { signIn, auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { AuroraField } from "@/components/aurora-field";
@@ -30,6 +31,13 @@ export default async function LoginPage({
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <AuroraField />
       </div>
+
+      <Link
+        href="/"
+        className="absolute left-6 top-6 z-10 inline-flex items-center gap-2 rounded-full border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_55%,transparent)] px-4 py-2 text-sm text-[var(--mm-text-dim)] backdrop-blur transition hover:text-[var(--mm-text)]"
+      >
+        <Icon icon="mdi:arrow-left" width={18} /> Back
+      </Link>
 
       <div className="relative mm-glass w-full max-w-sm p-8 text-center">
         <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-widest">
