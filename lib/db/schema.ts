@@ -180,6 +180,7 @@ export const eventStatusEnum = pgEnum("event_status", [
   "cancelled",
 ]);
 export const appStatusEnum = pgEnum("app_status", [
+  "draft",
   "pending",
   "approved",
   "rejected",

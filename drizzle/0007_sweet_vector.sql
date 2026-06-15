@@ -1,0 +1,1 @@
+ALTER TYPE "public"."app_status" ADD VALUE 'draft' BEFORE 'pending';

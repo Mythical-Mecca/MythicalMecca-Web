@@ -50,6 +50,13 @@
       "when": 1781525635277,
       "tag": "0006_gray_chronomancer",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781530168323,
+      "tag": "0007_sweet_vector",
+      "breakpoints": true
     }
   ]
 }

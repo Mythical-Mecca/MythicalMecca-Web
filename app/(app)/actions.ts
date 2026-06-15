@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { users, vendorApplications } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { auth, signIn } from "@/lib/auth";
 import { logActivity } from "@/lib/logging";
 
@@ -65,15 +65,83 @@ const SOCIAL_KEYS = [
   "website",
 ] as const;
 
-const applicationSchema = z.object({
+export type ApplicationFormState = { error?: string };
+
+const detailsSchema = z.object({
   businessName: z.string().max(160).optional(),
   description: z.string().min(10).max(2000),
+});
+
+// Step 1 — save the application details (creates/updates a DB draft).
+export async function startApplication(
+  _prev: ApplicationFormState,
+  formData: FormData
+): Promise<ApplicationFormState> {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  if (!process.env.DATABASE_URL) {
+    return { error: "Applications need a database — DATABASE_URL isn't set." };
+  }
+
+  const socials: Record<string, string> = {};
+  for (const k of SOCIAL_KEYS) {
+    const v = String(formData.get(`social_${k}`) ?? "").trim();
+    if (v) socials[k] = v;
+  }
+  const parsed = detailsSchema.safeParse({
+    businessName: formData.get("businessName") || undefined,
+    description: formData.get("description"),
+  });
+  if (!parsed.success) {
+    return { error: "Add a description of your products (10+ characters)." };
+  }
+
+  try {
+    const [draft] = await db
+      .select({ id: vendorApplications.id })
+      .from(vendorApplications)
+      .where(
+        and(
+          eq(vendorApplications.userId, session.user.id),
+          eq(vendorApplications.status, "draft")
+        )
+      )
+      .limit(1);
+
+    const values = {
+      businessName: parsed.data.businessName ?? null,
+      pitch: parsed.data.description,
+      socials: Object.keys(socials).length ? socials : null,
+      updatedAt: new Date(),
+    };
+
+    if (draft) {
+      await db
+        .update(vendorApplications)
+        .set(values)
+        .where(eq(vendorApplications.id, draft.id));
+    } else {
+      await db.insert(vendorApplications).values({
+        userId: session.user.id,
+        status: "draft",
+        images: [],
+        ...values,
+      });
+    }
+  } catch {
+    return { error: "Could not save your details. Please try again." };
+  }
+
+  await logActivity({ actorId: session.user.id, action: "vendor_application.draft" });
+  redirect("/vendor-application?step=2");
+}
+
+const imagesSchema = z.object({
   images: z.array(z.string().url()).min(1).max(8),
 });
 
-export type ApplicationFormState = { error?: string };
-
-export async function submitVendorApplication(
+// Step 2 — attach the uploaded images to the draft and submit it.
+export async function submitDraftApplication(
   _prev: ApplicationFormState,
   formData: FormData
 ): Promise<ApplicationFormState> {
@@ -81,42 +149,37 @@ export async function submitVendorApplication(
   if (!session?.user) redirect("/login");
 
   const images = formData.getAll("images").map(String).filter(Boolean);
-  const socials: Record<string, string> = {};
-  for (const k of SOCIAL_KEYS) {
-    const v = String(formData.get(`social_${k}`) ?? "").trim();
-    if (v) socials[k] = v;
-  }
-
-  const parsed = applicationSchema.safeParse({
-    businessName: formData.get("businessName") || undefined,
-    description: formData.get("description"),
-    images,
-  });
-  if (!parsed.success) {
-    return {
-      error:
-        images.length === 0
-          ? "Add at least one demo image."
-          : "Add a description (10+ characters) and at least one image.",
-    };
-  }
+  const parsed = imagesSchema.safeParse({ images });
+  if (!parsed.success) return { error: "Add at least one demo image." };
 
   if (process.env.DATABASE_URL) {
     try {
-      await db.insert(vendorApplications).values({
-        userId: session.user.id,
-        businessName: parsed.data.businessName,
-        pitch: parsed.data.description,
-        images: parsed.data.images,
-        socials: Object.keys(socials).length ? socials : undefined,
-      });
+      const [draft] = await db
+        .select({ id: vendorApplications.id })
+        .from(vendorApplications)
+        .where(
+          and(
+            eq(vendorApplications.userId, session.user.id),
+            eq(vendorApplications.status, "draft")
+          )
+        )
+        .orderBy(desc(vendorApplications.createdAt))
+        .limit(1);
+      if (!draft) {
+        return { error: "No draft found — please start the application again." };
+      }
+      await db
+        .update(vendorApplications)
+        .set({
+          images: parsed.data.images,
+          status: "pending",
+          updatedAt: new Date(),
+        })
+        .where(eq(vendorApplications.id, draft.id));
     } catch {
       return { error: "Could not submit your application. Please try again." };
     }
   }
-  await logActivity({
-    actorId: session.user.id,
-    action: "vendor_application.submit",
-  });
+  await logActivity({ actorId: session.user.id, action: "vendor_application.submit" });
   redirect("/vendor-application?sent=1");
 }

@@ -10,7 +10,7 @@ import {
   users,
   galleryItems,
 } from "@/lib/db/schema";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, ne, sql } from "drizzle-orm";
 import { sampleEvents } from "@/lib/content";
 
 const useDb = !!process.env.DATABASE_URL;
@@ -123,6 +123,7 @@ export async function listApplications(): Promise<AdminApplication[]> {
     const rows = await db
       .select()
       .from(vendorApplications)
+      .where(ne(vendorApplications.status, "draft"))
       .orderBy(desc(vendorApplications.createdAt));
     return rows.map((r) => ({
       id: r.id,
