@@ -38,6 +38,8 @@ export const users = pgTable("user", {
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
   // pilot profile
+  avatarUrl: text("avatar_url"),
+  bannerUrl: text("banner_url"),
   role: roleEnum("role").notNull().default("member"),
   xp: integer("xp").notNull().default(0),
   syncRate: integer("sync_rate").notNull().default(0),
@@ -357,8 +359,9 @@ export const vendorApplications = pgTable("vendor_applications", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   status: appStatusEnum("status").notNull().default("pending"),
-  businessName: text("business_name").notNull(),
+  businessName: text("business_name"),
   pitch: text("pitch").notNull(),
+  images: jsonb("images"),
   socials: jsonb("socials"),
   payload: jsonb("payload"),
   reviewedBy: text("reviewed_by").references(() => users.id, {
@@ -379,6 +382,7 @@ export const vendorGalleryItems = pgTable("vendor_gallery_items", {
     .notNull()
     .references(() => vendors.id, { onDelete: "cascade" }),
   fileId: uuid("file_id").references(() => files.id, { onDelete: "set null" }),
+  imageUrl: text("image_url"),
   title: text("title"),
   caption: text("caption"),
   externalUrl: text("external_url"),
@@ -387,6 +391,44 @@ export const vendorGalleryItems = pgTable("vendor_gallery_items", {
     .notNull()
     .defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// Galleries — global (homepage) + per-event
+// ---------------------------------------------------------------------------
+export const galleryItems = pgTable(
+  "gallery_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    imageUrl: text("image_url").notNull(),
+    caption: text("caption"),
+    uploadedBy: text("uploaded_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    published: boolean("published").notNull().default(true),
+    sort: integer("sort").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("gallery_items_sort_idx").on(t.sort)]
+);
+
+export const eventGalleryItems = pgTable(
+  "event_gallery_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    imageUrl: text("image_url").notNull(),
+    caption: text("caption"),
+    sort: integer("sort").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("event_gallery_event_idx").on(t.eventId, t.sort)]
+);
 
 // ---------------------------------------------------------------------------
 // Scavenger hunts ("Ops")

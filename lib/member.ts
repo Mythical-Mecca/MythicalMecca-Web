@@ -9,8 +9,9 @@ export type AppStatus = "pending" | "approved" | "rejected";
 
 export interface MyApplication {
   status: AppStatus;
-  businessName: string;
+  businessName: string | null;
   pitch: string;
+  images: string[];
   reviewNote: string | null;
   createdAt: string;
 }
@@ -32,6 +33,7 @@ export async function getMyApplication(
       status: r.status,
       businessName: r.businessName,
       pitch: r.pitch,
+      images: (r.images as string[] | null) ?? [],
       reviewNote: r.reviewNote,
       createdAt: r.createdAt.toISOString(),
     };

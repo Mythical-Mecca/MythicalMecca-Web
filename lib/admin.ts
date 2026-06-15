@@ -44,8 +44,10 @@ export interface AdminEvent {
 }
 export interface AdminApplication {
   id: string;
-  businessName: string;
+  businessName: string | null;
   pitch: string;
+  images: string[];
+  socials: Record<string, string>;
   status: string;
   userId: string;
   createdAt: string;
@@ -102,6 +104,8 @@ export async function listApplications(): Promise<AdminApplication[]> {
       id: r.id,
       businessName: r.businessName,
       pitch: r.pitch,
+      images: (r.images as string[] | null) ?? [],
+      socials: (r.socials as Record<string, string> | null) ?? {},
       status: r.status,
       userId: r.userId,
       createdAt: r.createdAt.toISOString().slice(0, 10),

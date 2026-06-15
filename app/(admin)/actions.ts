@@ -143,12 +143,13 @@ export async function approveApplication(formData: FormData) {
           .update(users)
           .set({ role: "vendor" })
           .where(eq(users.id, app.userId));
+        const storeName = app.businessName || "New stall";
         await db
           .insert(vendors)
           .values({
             userId: app.userId,
-            slug: `${slugify(app.businessName)}-${Date.now().toString(36)}`,
-            businessName: app.businessName,
+            slug: `${slugify(storeName)}-${Date.now().toString(36)}`,
+            businessName: storeName,
             tagline: app.pitch.slice(0, 140),
           })
           .onConflictDoNothing();
