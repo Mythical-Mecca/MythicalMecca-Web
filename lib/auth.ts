@@ -2,9 +2,51 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Discord from "next-auth/providers/discord";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import { put } from "@vercel/blob";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, accounts, sessions, verificationTokens } from "@/lib/db/schema";
 import type { Role } from "@/lib/rbac";
+
+/**
+ * Pull a provider avatar (Google/Discord) into our own Blob the first time we
+ * see a user, and save it as their avatar. Self-hosted = always renderable and
+ * stable even if the provider URL rotates. Runs once: skipped if avatarUrl set.
+ */
+async function importSocialAvatar(userId?: string, src?: string | null) {
+  if (!userId || !src || !process.env.BLOB_READ_WRITE_TOKEN) return;
+  try {
+    const [row] = await db
+      .select({ avatarUrl: users.avatarUrl })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (row?.avatarUrl) return; // already imported / custom avatar set
+
+    const res = await fetch(src);
+    if (!res.ok) return;
+    const buf = await res.arrayBuffer();
+    const contentType = res.headers.get("content-type") ?? "image/png";
+    const ext = contentType.includes("gif")
+      ? "gif"
+      : contentType.includes("webp")
+        ? "webp"
+        : contentType.includes("jpeg")
+          ? "jpg"
+          : "png";
+    const blob = await put(`avatars/${userId}.${ext}`, buf, {
+      access: "public",
+      contentType,
+      allowOverwrite: true,
+    });
+    await db
+      .update(users)
+      .set({ avatarUrl: blob.url })
+      .where(eq(users.id, userId));
+  } catch (err) {
+    console.error("[auth] avatar import failed", err);
+  }
+}
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "")
   .split(",")
@@ -47,6 +89,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.role = (token.role as Role) ?? "member";
       }
       return session;
+    },
+  },
+  events: {
+    async signIn({ user }) {
+      await importSocialAvatar(user.id, user.image);
     },
   },
 });
