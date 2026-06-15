@@ -2,9 +2,9 @@ import { requireRole } from "@/lib/guard";
 import { DashboardShell, type NavItem } from "@/components/dashboard-shell";
 
 const NAV: NavItem[] = [
-  { href: "/forge", label: "Overview" },
-  { href: "/forge/gallery", label: "Gallery" },
-  { href: "/forge/profile", label: "Stall" },
+  { href: "/forge", label: "Overview", icon: "mdi:view-dashboard-outline" },
+  { href: "/forge/gallery", label: "Gallery", icon: "mdi:image-multiple-outline" },
+  { href: "/forge/profile", label: "Stall", icon: "game-icons:shop" },
 ];
 
 export default async function VendorLayout({
