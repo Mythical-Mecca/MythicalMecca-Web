@@ -15,12 +15,11 @@ export default async function ArmoryPage() {
           </h1>
           <p className="mt-3 max-w-xl text-[var(--mm-text-dim)]">
             Artisans from across the collective — makers, artists and shops
-            setting out their wares. Want a stall? Petition from your character
-            sheet.
+            setting out their wares. Want a stall? Apply to join.
           </p>
         </div>
-        <Link href="/login" className="mm-btn mm-btn-ghost text-sm">
-          Apply
+        <Link href="/vendor-application" className="mm-btn mm-btn-primary text-sm">
+          Apply for a stall
         </Link>
       </div>
 
