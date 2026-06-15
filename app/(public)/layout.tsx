@@ -1,14 +1,52 @@
 import Link from "next/link";
 import { Icon } from "@/components/icon";
+import { auth } from "@/lib/auth";
+import { getLiveEvent } from "@/lib/content";
+import { AppTopNav } from "@/components/app-top-nav";
+import { AppBackdrop } from "@/components/app-backdrop";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 
-export default function PublicLayout({
+const Footer = () => (
+  <footer className="border-t border-[var(--mm-border)] px-6 py-8 text-center text-xs text-[var(--mm-text-dim)]">
+    Mythic Mecha — a hearth for the geek collective.
+  </footer>
+);
+
+export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth();
+
+  // Logged-in visitors get the full app shell so public pages stay connected.
+  if (session?.user) {
+    const liveEvent = await getLiveEvent();
+    return (
+      <div className="flex min-h-full flex-col">
+        <AppBackdrop />
+        <AppTopNav
+          role={session.user.role}
+          liveEvent={
+            liveEvent
+              ? { slug: liveEvent.slug, title: liveEvent.title }
+              : null
+          }
+        />
+        <main className="flex-1">
+          <div className="mx-auto max-w-6xl px-6 pt-6 empty:hidden">
+            <Breadcrumbs />
+          </div>
+          {children}
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_62%,transparent)] backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_55%,transparent)] backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link
             href="/"
@@ -36,9 +74,7 @@ export default function PublicLayout({
         </nav>
       </header>
       <main className="flex-1">{children}</main>
-      <footer className="border-t border-[var(--mm-border)] px-6 py-8 text-center text-xs text-[var(--mm-text-dim)]">
-        Mythic Mecha — a hearth for the geek collective.
-      </footer>
+      <Footer />
     </div>
   );
 }

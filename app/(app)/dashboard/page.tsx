@@ -4,11 +4,7 @@ import { getLiveEvent } from "@/lib/content";
 import { formatDateTime } from "@/lib/format";
 import { getUserXp, rankForXp } from "@/lib/gamification";
 import { SyncGauge } from "@/components/sync-gauge";
-import { ParticleField } from "@/components/particle-field";
-import { AuroraField } from "@/components/aurora-field";
 import { Icon } from "@/components/icon";
-
-const SCENE = "/gamer-scene.svg";
 
 // slightly transparent so the scene shows through the cards
 const softCard = {
@@ -46,29 +42,7 @@ export default async function DashboardPage() {
   const rank = rankForXp(xp);
 
   return (
-    <>
-      {/* Full-page backdrop: gamer scene + aurora + particle/line overlay */}
-      <div aria-hidden className="fixed inset-0 -z-10">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url('${SCENE}')` }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to bottom, rgba(8,11,22,0.6), rgba(8,11,22,0.78))",
-          }}
-        />
-        <div className="pointer-events-none absolute inset-0 opacity-75">
-          <AuroraField />
-        </div>
-        <div className="pointer-events-none absolute inset-0 opacity-60">
-          <ParticleField />
-        </div>
-      </div>
-
-      <div className="space-y-8">
+    <div className="space-y-8">
         {liveEvent && (
           <div
             className="rounded-2xl border border-[var(--mm-live)] p-6"
@@ -139,7 +113,6 @@ export default async function DashboardPage() {
             ))}
           </div>
         </section>
-      </div>
-    </>
+    </div>
   );
 }
