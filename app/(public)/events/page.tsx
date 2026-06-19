@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { ParticleField } from "@/components/particle-field";
 import { Icon } from "@/components/icon";
+import { EventCalendar } from "@/components/event-calendar";
 import { getEvents, isEventLive, type EventView } from "@/lib/content";
 import { formatDateTime } from "@/lib/format";
 
-export const metadata = { title: "Events — Mythical Mecha" };
+export const metadata = { title: "Events — Mythical Mecca" };
 
 const HERO_BG = "/MythicMechaBackground.png";
 const heroOverlay =
@@ -31,6 +32,14 @@ function LiveBadge() {
 export default async function EventsPage() {
   const events = await getEvents();
   const [featured, ...rest] = events;
+  const nowIso = new Date().toISOString();
+  const calEvents = events.map((e) => ({
+    slug: e.slug,
+    title: e.title,
+    startsAt: e.startsAt,
+    endsAt: e.endsAt,
+    location: e.location,
+  }));
 
   return (
     <div className="flex flex-col">
@@ -47,7 +56,7 @@ export default async function EventsPage() {
           aria-hidden
           className="pointer-events-none absolute inset-0 -z-10 opacity-60"
         >
-          <ParticleField color="242, 180, 65" />
+          <ParticleField color="225, 141, 1" />
         </div>
         <div className="mx-auto max-w-5xl px-6 py-24 text-center">
           <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_45%,transparent)] px-4 py-1.5 text-xs uppercase tracking-[0.2em] text-[var(--mm-text-dim)] backdrop-blur">
@@ -65,7 +74,23 @@ export default async function EventsPage() {
       </section>
 
       <div className="mx-auto w-full max-w-5xl px-6 pb-24">
+        {/* ---------------- Mystical calendar ---------------- */}
+        <EventCalendar events={calEvents} todayIso={nowIso} />
+
+        {/* ---------------- Upcoming list ---------------- */}
+        <div className="mt-14 flex items-center gap-3">
+          <Icon
+            icon="game-icons:campfire"
+            width={26}
+            className="text-[var(--mm-gold)]"
+          />
+          <h2 className="font-[family-name:var(--font-display)] text-2xl tracking-wide md:text-3xl">
+            Upcoming <span className="mm-gradient-text">gatherings</span>
+          </h2>
+        </div>
+
         {/* ---------------- Featured / next ---------------- */}
+        <div className="mt-6" />
         {featured && (
           <Link
             href={`/events/${featured.slug}`}

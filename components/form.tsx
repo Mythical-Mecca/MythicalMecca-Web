@@ -157,7 +157,7 @@ export function FormCard({
           <span
             className="grid h-8 w-8 place-items-center rounded-lg"
             style={{
-              background: `${accent ?? "#f2b441"}22`,
+              background: `${accent ?? "#E18D01"}22`,
               color: accent ?? "var(--mm-gold)",
             }}
           >
@@ -191,7 +191,7 @@ export function PageHeader({
           <span
             className="grid h-11 w-11 place-items-center rounded-xl"
             style={{
-              background: `${accent ?? "#f2b441"}22`,
+              background: `${accent ?? "#E18D01"}22`,
               color: accent ?? "var(--mm-gold)",
             }}
           >

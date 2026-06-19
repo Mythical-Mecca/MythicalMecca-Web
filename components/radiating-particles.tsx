@@ -38,7 +38,7 @@ export function RadiatingParticles({
       "(prefers-reduced-motion: reduce)"
     ).matches;
 
-    const colors = ["242, 180, 65", "74, 168, 255", "255, 210, 122"];
+    const colors = ["225, 141, 1", "74, 168, 255", "255, 177, 61"];
     let raf = 0;
     let w = 0;
     let h = 0;

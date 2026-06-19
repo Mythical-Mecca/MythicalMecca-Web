@@ -17,7 +17,7 @@ async function main() {
     console.error("DATABASE_URL not set — aborting seed.");
     process.exit(1);
   }
-  console.log("Seeding Mythic Mecha…");
+  console.log("Seeding Mythic Mecca…");
 
   // Badges
   await db
@@ -48,7 +48,7 @@ async function main() {
   await db
     .insert(posts)
     .values([
-      { slug: "the-doors-are-open", title: "The doors are open", excerpt: "Mythic Mecha is reborn.", bodyMd: "We rebuilt the hall from the foundation stones up.\n\nFour guilds, one hearth.", status: "published", publishedAt: new Date("2026-06-10") },
+      { slug: "the-doors-are-open", title: "The doors are open", excerpt: "Mythic Mecca is reborn.", bodyMd: "We rebuilt the hall from the foundation stones up.\n\nFour guilds, one hearth.", status: "published", publishedAt: new Date("2026-06-10") },
       { slug: "midsummer-revel-announced", title: "Midsummer Revel announced", excerpt: "Our grandest gathering yet.", bodyMd: "Mark your calendars, adventurers.", status: "published", publishedAt: new Date("2026-06-04") },
     ])
     .onConflictDoNothing();

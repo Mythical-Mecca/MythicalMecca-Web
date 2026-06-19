@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { signOut } from "@/lib/auth";
 import { Icon } from "@/components/icon";
+import { Brand } from "@/components/brand";
 
 export type NavItem = {
   href: string;
@@ -22,12 +23,7 @@ export function DashboardShell({
   return (
     <div className="flex min-h-screen">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_55%,transparent)] px-4 py-6 backdrop-blur-md md:flex">
-        <Link
-          href="/dashboard"
-          className="px-2 font-[family-name:var(--font-display)] text-sm tracking-widest"
-        >
-          MYTHICAL<span className="mm-gradient-text"> MECHA</span>
-        </Link>
+        <Brand href="/dashboard" className="px-2 text-sm" />
         <p className="mt-1 px-2 text-[10px] uppercase tracking-[0.25em] text-[var(--mm-gold)]">
           {area}
         </p>

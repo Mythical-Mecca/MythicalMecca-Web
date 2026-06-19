@@ -19,7 +19,7 @@ export async function GET(
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Mythical Mecha//Ops//EN",
+    "PRODID:-//Mythical Mecca//Ops//EN",
     "BEGIN:VEVENT",
     `UID:${slug}@mythicmecha`,
     `DTSTART:${toIcsDate(event.startsAt)}`,

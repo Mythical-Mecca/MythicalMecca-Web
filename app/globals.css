@@ -2,8 +2,8 @@
 
 :root {
   /* Cozy tavern / candlelit-inn palette */
-  --mm-gold: #f2b441;
-  --mm-gold-hi: #ffd27a;
+  --mm-gold: #E18D01;
+  --mm-gold-hi: #FFB13D;
   /* accent: saber blue (matches the blade in the background art) */
   --mm-blue: #4aa8ff;
   --mm-violet: #2c7be5;
@@ -52,7 +52,7 @@ body {
   background-image:
     radial-gradient(circle at 50% -10%, rgba(44, 123, 229, 0.16), transparent 52%),
     radial-gradient(circle at 100% 0%, rgba(74, 168, 255, 0.08), transparent 45%),
-    radial-gradient(circle at 50% 115%, rgba(242, 180, 65, 0.06), transparent 50%);
+    radial-gradient(circle at 50% 115%, rgba(225, 141, 1, 0.06), transparent 50%);
   background-attachment: fixed;
 }
 
@@ -93,7 +93,7 @@ body {
   }
   .mm-btn-primary:hover {
     background: var(--mm-gold-hi);
-    box-shadow: 0 0 26px rgba(242, 180, 65, 0.45);
+    box-shadow: 0 0 26px rgba(225, 141, 1, 0.45);
   }
 
   .mm-btn-ghost {
@@ -174,14 +174,14 @@ body {
     border-radius: 9999px;
     color: #160f0a;
     background: color-mix(in srgb, var(--mm-gold) 92%, transparent);
-    box-shadow: 0 0 0 rgba(242, 180, 65, 0);
+    box-shadow: 0 0 0 rgba(225, 141, 1, 0);
     transition: transform 0.2s ease, box-shadow 0.25s ease, background 0.2s ease;
     cursor: pointer;
   }
   .mm-menu-trigger:hover {
     background: var(--mm-gold-hi);
     transform: translateY(-1px) scale(1.06);
-    box-shadow: 0 0 22px rgba(242, 180, 65, 0.55);
+    box-shadow: 0 0 22px rgba(225, 141, 1, 0.55);
   }
   .mm-menu-trigger:active {
     transform: scale(0.97);

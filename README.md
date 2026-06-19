@@ -1,4 +1,4 @@
-# Mythical Mecha 2.0
+# Mythical Mecca 2.0
 
 A sci-fi themed homebase for the geek community. Members are **Pilots**; the site is
 their hangar/cockpit. See [PLAN.md](PLAN.md) and [`docs/`](docs/) for the full design.

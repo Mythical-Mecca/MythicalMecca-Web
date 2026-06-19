@@ -3,6 +3,7 @@ import { signIn, auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { AuroraField } from "@/components/aurora-field";
 import { Icon } from "@/components/icon";
+import { LogoMark } from "@/components/brand";
 
 export default async function LoginPage({
   searchParams,
@@ -40,6 +41,7 @@ export default async function LoginPage({
       </Link>
 
       <div className="relative mm-glass w-full max-w-sm p-8 text-center">
+        <LogoMark className="mx-auto mb-6 h-24 w-24" />
         <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-widest">
           ENTER THE <span className="mm-gradient-text">HALL</span>
         </h1>

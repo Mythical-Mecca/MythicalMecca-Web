@@ -6,7 +6,7 @@ import { ParticleField } from "@/components/particle-field";
 
 const NAV: NavItem[] = [
   { href: "/command", label: "Overview", sub: "Dashboard", icon: "mdi:view-dashboard-outline", color: "#4aa8ff" },
-  { href: "/command/posts", label: "News", sub: "Tidings — posts", icon: "game-icons:scroll-unfurled", color: "#f2b441" },
+  { href: "/command/posts", label: "News", sub: "Tidings — posts", icon: "game-icons:scroll-unfurled", color: "#E18D01" },
   { href: "/command/events", label: "Events", sub: "Gatherings & schedule", icon: "game-icons:campfire", color: "#5cc08c" },
   { href: "/command/gallery", label: "Gallery", sub: "Homepage photos", icon: "mdi:image-multiple", color: "#e0b0ff" },
   { href: "/command/applications", label: "Petitions", sub: "Vendor applications", icon: "mdi:file-document-outline", color: "#9a6cff" },

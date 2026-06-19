@@ -40,7 +40,7 @@ const LINKS = [
     title: "Partners",
     desc: "The Armory — makers & merchants",
     icon: "game-icons:anvil",
-    color: "#f2b441",
+    color: "#E18D01",
   },
   {
     href: "/profile",
@@ -71,7 +71,7 @@ export default async function DashboardPage() {
   const isDraft = openApplication?.status === "draft";
 
   const stats = [
-    { label: "Rank", value: rank.rank, icon: "mdi:shield-star-outline", color: "#f2b441" },
+    { label: "Rank", value: rank.rank, icon: "mdi:shield-star-outline", color: "#E18D01" },
     { label: "Renown", value: xp.toLocaleString(), icon: "mdi:star-four-points", color: "#4aa8ff" },
     {
       label: rank.next ? `To ${rank.next}` : "Standing",

@@ -6,6 +6,7 @@ import { AppTopNav } from "@/components/app-top-nav";
 import { AppBackdrop } from "@/components/app-backdrop";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { BackToDashboard } from "@/components/back-to-dashboard";
+import { Brand } from "@/components/brand";
 
 const Footer = () => (
   <footer className="flex flex-col items-center gap-3 border-t border-[var(--mm-border)] px-6 py-8 text-center text-xs text-[var(--mm-text-dim)]">
@@ -17,7 +18,7 @@ const Footer = () => (
     >
       <Icon icon="mdi:discord" width={16} /> Join our Discord
     </a>
-    <span>Mythical Mecha — a hearth for the geek collective.</span>
+    <span>Mythical Mecca — a hearth for the geek collective.</span>
   </footer>
 );
 
@@ -60,12 +61,7 @@ export default async function PublicLayout({
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_55%,transparent)] backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link
-            href="/"
-            className="font-[family-name:var(--font-display)] text-lg tracking-widest"
-          >
-            MYTHICAL<span className="mm-gradient-text"> MECHA</span>
-          </Link>
+          <Brand href="/" className="text-lg" />
           <div className="hidden items-center gap-7 text-sm text-[var(--mm-text-dim)] md:flex">
             <Link href="/news" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">
               <Icon icon="game-icons:scroll-unfurled" width={16} /> News

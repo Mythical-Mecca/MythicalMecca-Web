@@ -10,11 +10,11 @@ type GearSpec = {
 };
 
 const GEARS: GearSpec[] = [
-  { cx: 1460, cy: 110, r: 250, teeth: 22, color: "#f2b441", dur: 28, dir: 1, opacity: 0.5 },
+  { cx: 1460, cy: 110, r: 250, teeth: 22, color: "#E18D01", dur: 28, dir: 1, opacity: 0.5 },
   { cx: 120, cy: 840, r: 300, teeth: 26, color: "#4aa8ff", dur: 36, dir: -1, opacity: 0.42 },
-  { cx: 1210, cy: 830, r: 180, teeth: 18, color: "#f2b441", dur: 22, dir: -1, opacity: 0.4 },
+  { cx: 1210, cy: 830, r: 180, teeth: 18, color: "#E18D01", dur: 22, dir: -1, opacity: 0.4 },
   { cx: 520, cy: 540, r: 150, teeth: 16, color: "#4aa8ff", dur: 18, dir: 1, opacity: 0.38 },
-  { cx: 300, cy: 410, r: 92, teeth: 12, color: "#f2b441", dur: 12, dir: -1, opacity: 0.4 },
+  { cx: 300, cy: 410, r: 92, teeth: 12, color: "#E18D01", dur: 12, dir: -1, opacity: 0.4 },
 ];
 
 function Gear({ cx, cy, r, teeth, color, dur, dir, opacity }: GearSpec) {

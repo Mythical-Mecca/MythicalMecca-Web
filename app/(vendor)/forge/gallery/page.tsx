@@ -21,7 +21,7 @@ export default async function ForgeGalleryPage({
         title="Gallery"
         sub="Show off your wares — these appear on your public stall."
         icon="mdi:image-multiple-outline"
-        accent="#f2b441"
+        accent="#E18D01"
       />
 
       {saved && (
@@ -35,13 +35,13 @@ export default async function ForgeGalleryPage({
         </div>
       )}
 
-      <FormCard title="Add to your gallery" icon="mdi:plus" accent="#f2b441">
+      <FormCard title="Add to your gallery" icon="mdi:plus" accent="#E18D01">
         <form action={addGalleryItem} className="space-y-5">
           <ImageUploader
             name="images"
             entityType="vendor_gallery"
             maxFiles={12}
-            accent="#f2b441"
+            accent="#E18D01"
             label="Upload product photos"
             description="Up to 12 · 10 MB each"
           />

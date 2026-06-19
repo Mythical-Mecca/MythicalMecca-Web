@@ -22,7 +22,7 @@ const CHANNEL_ENV: Record<DiscordChannel, string> = {
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "";
 
-const GOLD = 0xf2b441;
+const GOLD = 0xE18D01;
 const GREEN = 0x5cc08c;
 
 type Embed = {
@@ -84,7 +84,7 @@ export async function announcePost(p: {
   slug: string;
 }): Promise<boolean> {
   return send("news", {
-    content: "📜 **New post on Mythical Mecha**",
+    content: "📜 **New post on Mythical Mecca**",
     embeds: [
       {
         title: p.title,

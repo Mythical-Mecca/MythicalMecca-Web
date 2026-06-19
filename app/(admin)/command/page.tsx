@@ -6,7 +6,7 @@ export default async function CommandOverviewPage() {
   const c = await getCounts();
   const cards = [
     { k: "Adventurers", v: c.pilots, icon: "mdi:account-group", color: "#4aa8ff" },
-    { k: "News", v: c.posts, icon: "game-icons:scroll-unfurled", color: "#f2b441" },
+    { k: "News", v: c.posts, icon: "game-icons:scroll-unfurled", color: "#E18D01" },
     { k: "Active events", v: c.activeOps, icon: "game-icons:campfire", color: "#5cc08c" },
     { k: "Errors (24h)", v: c.errors24h, icon: "mdi:alert-outline", color: "#f0795a" },
   ];
@@ -18,7 +18,7 @@ export default async function CommandOverviewPage() {
         title="The Keep"
         sub="Command overview — the state of the realm at a glance."
         icon="game-icons:tower-flag"
-        accent="#f2b441"
+        accent="#E18D01"
       />
 
       {!dbConnected && (

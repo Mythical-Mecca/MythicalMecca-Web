@@ -4,7 +4,7 @@ import { Icon } from "@/components/icon";
 import { getPosts } from "@/lib/content";
 import { formatDate } from "@/lib/format";
 
-export const metadata = { title: "News — Mythical Mecha" };
+export const metadata = { title: "News — Mythical Mecca" };
 
 const HERO_BG = "/MythicMechaBackground3.png";
 const heroOverlay =

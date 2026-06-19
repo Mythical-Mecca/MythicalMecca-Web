@@ -9,7 +9,7 @@ import {
 } from "@/components/form";
 import { Icon } from "@/components/icon";
 
-const ACCENT = "#f2b441";
+const ACCENT = "#E18D01";
 
 export default async function AdminPostsPage({
   searchParams,

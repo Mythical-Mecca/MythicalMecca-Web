@@ -19,7 +19,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mythical Mecha — the Adventurers' Guild",
+  title: "Mythical Mecca — the Adventurers' Guild",
   description:
     "A homebase for the geek collective. Gather, quest, and earn your renown.",
 };

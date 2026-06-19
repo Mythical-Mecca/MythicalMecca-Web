@@ -19,7 +19,7 @@ export function ParticleField({
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const dotColor = color ? `rgba(${color}, 0.85)` : "rgba(242, 180, 65, 0.8)";
+    const dotColor = color ? `rgba(${color}, 0.85)` : "rgba(225, 141, 1, 0.8)";
     const lineRGB = color ?? "74, 168, 255";
     const canvas = ref.current;
     if (!canvas) return;

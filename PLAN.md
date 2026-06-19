@@ -1,11 +1,11 @@
-# Mythical Mecha 2.0 — Master Plan
+# Mythical Mecca 2.0 — Master Plan
 
 > A geek community homebase. Members are **Pilots**; the site is their **hangar / cockpit**.
 > Dark sci-fi HUD aesthetic: gold primary, blue→purple gradient, navy/purple darks.
 
 ## 1. Vision
 
-Mythical Mecha is a homebase for a broad geek community spanning four domains, modelled as
+Mythical Mecca is a homebase for a broad geek community spanning four domains, modelled as
 **Divisions / Squadrons**:
 
 - **Tabletop Division** — TTRPG, board games, miniatures
@@ -32,7 +32,7 @@ Three visual treatments:
 
 ## 3. Concept mapping
 
-| Generic | Mythical Mecha framing |
+| Generic | Mythical Mecca framing |
 |---------|----------------------|
 | Roles | Recruit → Pilot → Forge → Command |
 | Profile | Mech loadout: rank, XP core, badges, squadron emblem |

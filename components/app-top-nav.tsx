@@ -3,6 +3,7 @@ import { signOut } from "@/lib/auth";
 import { roleAtLeast, type Role } from "@/lib/rbac";
 import { Icon } from "@/components/icon";
 import { NavMenu, type NavMenuItem } from "@/components/nav-menu";
+import { Brand } from "@/components/brand";
 
 const NAV: NavMenuItem[] = [
   {
@@ -38,7 +39,7 @@ const NAV: NavMenuItem[] = [
     title: "Partners",
     desc: "The Armory — makers & merchants",
     icon: "game-icons:anvil",
-    color: "#f2b441",
+    color: "#E18D01",
   },
   {
     href: "/profile",
@@ -54,7 +55,7 @@ const FORGE_ITEM: NavMenuItem = {
   title: "Forge",
   desc: "Vendor workshop",
   icon: "game-icons:anvil",
-  color: "#f2b441",
+  color: "#E18D01",
 };
 
 const KEEP_ITEM: NavMenuItem = {
@@ -62,7 +63,7 @@ const KEEP_ITEM: NavMenuItem = {
   title: "The Keep",
   desc: "Command & control",
   icon: "game-icons:tower-flag",
-  color: "#ffd27a",
+  color: "#FFB13D",
 };
 
 export function AppTopNav({
@@ -82,12 +83,7 @@ export function AppTopNav({
     <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_62%,transparent)] backdrop-blur-md">
       <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3.5">
         <div className="flex min-w-0 items-center gap-4">
-          <Link
-            href="/dashboard"
-            className="shrink-0 font-[family-name:var(--font-display)] tracking-widest"
-          >
-            MYTHICAL<span className="mm-gradient-text"> MECHA</span>
-          </Link>
+          <Brand href="/dashboard" className="shrink-0" />
           {liveEvent && (
             <Link
               href={`/events/${liveEvent.slug}`}

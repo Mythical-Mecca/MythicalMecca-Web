@@ -62,7 +62,7 @@ export default async function HomePage() {
             Begin your quest.
           </p>
           <p className="mt-5 max-w-xl text-balance text-lg text-[var(--mm-text-dim)]">
-            Mythical Mecha is the hearth for the geek collective — gathered
+            Mythical Mecca is the hearth for the geek collective — gathered
             under one roof.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
