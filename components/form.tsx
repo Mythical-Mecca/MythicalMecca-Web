@@ -81,6 +81,37 @@ export function TextareaField({
   );
 }
 
+export function CheckboxField({
+  label,
+  icon,
+  description,
+  className,
+  ...rest
+}: Omit<BaseField, "hint"> & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <label
+      className={`flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_60%,transparent)] px-4 py-3 transition hover:border-[var(--mm-violet)] ${className ?? ""}`}
+    >
+      <input
+        type="checkbox"
+        {...rest}
+        className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--mm-gold)]"
+      />
+      <span className="min-w-0">
+        <span className="flex items-center gap-2 text-sm font-medium text-[var(--mm-text)]">
+          {icon && <Icon icon={icon} width={16} className="text-[var(--mm-gold)]" />}
+          {label}
+        </span>
+        {description && (
+          <span className="mt-0.5 block text-xs text-[var(--mm-text-dim)]">
+            {description}
+          </span>
+        )}
+      </span>
+    </label>
+  );
+}
+
 export function SelectField({
   label,
   icon,

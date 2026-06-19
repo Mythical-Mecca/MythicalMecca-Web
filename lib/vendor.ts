@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { vendors, vendorGalleryItems } from "@/lib/db/schema";
 import { asc, eq } from "drizzle-orm";
+import { toMediaSrc } from "@/lib/media";
 
 const useDb = !!process.env.DATABASE_URL;
 
@@ -55,7 +56,7 @@ export async function listMyGallery(vendorId: string): Promise<GalleryItem[]> {
       .orderBy(asc(vendorGalleryItems.sort));
     return rows.map((r) => ({
       id: r.id,
-      imageUrl: r.imageUrl,
+      imageUrl: toMediaSrc(r.imageUrl),
       title: r.title,
       caption: r.caption,
       externalUrl: r.externalUrl,

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getVendors } from "@/lib/content";
 
-export const metadata = { title: "The Armory — Mythical Mecha" };
+export const metadata = { title: "Partners — Mythical Mecha" };
 
 export default async function ArmoryPage() {
   const vendors = await getVendors();
@@ -11,11 +11,11 @@ export default async function ArmoryPage() {
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div>
           <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wide">
-            The <span className="mm-gradient-text">Armory</span>
+            Our <span className="mm-gradient-text">partners</span>
           </h1>
           <p className="mt-3 max-w-xl text-[var(--mm-text-dim)]">
-            Artisans from across the collective — makers, artists and shops
-            setting out their wares. Want a stall? Apply to join.
+            The Armory — artisans from across the collective. Makers, artists and
+            shops setting out their wares. Want a stall? Apply to join.
           </p>
         </div>
         <Link href="/vendor-application" className="mm-btn mm-btn-primary text-sm">

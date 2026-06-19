@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ParticleField } from "@/components/particle-field";
 import { Icon } from "@/components/icon";
-import { getEvents, getPosts, getGalleryImages } from "@/lib/content";
+import { getEvents, getPosts, getGalleryImages, isEventLive } from "@/lib/content";
 import { formatDate, formatDateTime } from "@/lib/format";
 
 const TAVERN = "/MythicMechaBackground.png";
@@ -28,9 +28,9 @@ function ImageBackdrop({ src, overlay }: { src: string; overlay: string }) {
 
 const FEATURES = [
   { k: "Quests", d: "Scavenger trails & riddles", icon: "game-icons:treasure-map" },
-  { k: "The Armory", d: "Makers & merchants", icon: "game-icons:anvil" },
+  { k: "Partners", d: "Makers & merchants", icon: "game-icons:anvil" },
   { k: "Training Yard", d: "Mini-games & leaderboards", icon: "mdi:target" },
-  { k: "Gatherings", d: "Events, feasts & tournaments", icon: "game-icons:campfire" },
+  { k: "Events", d: "Gatherings, feasts & tournaments", icon: "game-icons:campfire" },
 ];
 
 export default async function HomePage() {
@@ -40,7 +40,6 @@ export default async function HomePage() {
     getGalleryImages(),
   ]);
   const latest = posts.slice(0, 3);
-  const upcoming = events.slice(0, 3);
   const nextGathering = events[0];
   const galleryTiles = gallery.slice(0, 8);
 
@@ -83,59 +82,60 @@ export default async function HomePage() {
           <SectionTitle icon="game-icons:campfire" lead="Upcoming" accent="Events" />
 
           {nextGathering && (
-            <div className="mm-glass mt-8 flex flex-col items-start justify-between gap-4 p-6 md:flex-row md:items-center">
+            <div className="mm-glass mt-8 flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-4">
                 <Icon
                   icon="game-icons:tower-flag"
                   width={34}
-                  className="mt-1 text-[var(--mm-gold)]"
+                  className="mt-1 shrink-0 text-[var(--mm-gold)]"
                 />
                 <div>
-                  <p className="text-xs uppercase tracking-widest text-[var(--mm-gold)]">
-                    Next gathering
-                  </p>
-                  <h3 className="mt-1 font-[family-name:var(--font-display)] text-xl">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-xs uppercase tracking-widest text-[var(--mm-gold)]">
+                      Next gathering
+                    </p>
+                    {isEventLive(nextGathering) && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--mm-live)] px-2.5 py-0.5 text-[10px] uppercase tracking-widest text-[var(--mm-live)]">
+                        <span className="mm-dot-live" /> Live now
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="mt-1.5 font-[family-name:var(--font-display)] text-2xl">
                     {nextGathering.title}
                   </h3>
-                  <p className="mt-1 flex items-center gap-2 text-sm text-[var(--mm-text-dim)]">
-                    <Icon icon="mdi:map-marker-outline" width={15} />
-                    {formatDate(nextGathering.startsAt)} · {nextGathering.location}
+                  <p className="mt-2 max-w-xl text-sm text-[var(--mm-text-dim)]">
+                    {nextGathering.summary}
                   </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-[var(--mm-text-dim)]">
+                    <span className="flex items-center gap-1.5">
+                      <Icon
+                        icon="mdi:clock-outline"
+                        width={15}
+                        className="text-[var(--mm-gold)]"
+                      />
+                      {formatDateTime(nextGathering.startsAt)}
+                    </span>
+                    {nextGathering.location && (
+                      <span className="flex items-center gap-1.5">
+                        <Icon
+                          icon="mdi:map-marker-outline"
+                          width={15}
+                          className="text-[var(--mm-gold)]"
+                        />
+                        {nextGathering.location}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <Link
                 href={`/events/${nextGathering.slug}`}
-                className="mm-btn mm-btn-primary text-sm"
+                className="mm-btn mm-btn-primary shrink-0 text-sm"
               >
                 Read more <Icon icon="mdi:arrow-right" width={16} />
               </Link>
             </div>
           )}
-
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {upcoming.map((e) => (
-              <Link
-                key={e.slug}
-                href={`/events/${e.slug}`}
-                className="mm-glass group p-5 transition hover:border-[var(--mm-violet)]"
-              >
-                <div className="mb-3 flex items-center justify-end">
-                  <Icon
-                    icon="game-icons:campfire"
-                    width={18}
-                    className="text-[var(--mm-text-dim)] group-hover:text-[var(--mm-gold)]"
-                  />
-                </div>
-                <h3 className="font-medium group-hover:text-[var(--mm-gold)]">
-                  {e.title}
-                </h3>
-                <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--mm-text-dim)]">
-                  <Icon icon="mdi:clock-outline" width={14} />
-                  {formatDateTime(e.startsAt)}
-                </p>
-              </Link>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -240,7 +240,7 @@ export default async function HomePage() {
                 href="/armory"
                 className="inline-flex items-center gap-1.5 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
               >
-                Visit the Armory <Icon icon="mdi:arrow-right" width={16} />
+                Meet our partners <Icon icon="mdi:arrow-right" width={16} />
               </Link>
             }
           />

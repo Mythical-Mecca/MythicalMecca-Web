@@ -43,7 +43,7 @@ export default async function EventPage({
         href="/events"
         className="text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
       >
-        ← All gatherings
+        ← All events
       </Link>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">

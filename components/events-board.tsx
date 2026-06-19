@@ -6,7 +6,13 @@ import { Icon } from "./icon";
 import { Drawer } from "./drawer";
 import { LocationField } from "./location-field";
 import { EventSchedule } from "./event-schedule";
-import { TextField, TextareaField, FormSection, PageHeader } from "./form";
+import {
+  TextField,
+  TextareaField,
+  CheckboxField,
+  FormSection,
+  PageHeader,
+} from "./form";
 import { ImageUploader } from "./image-uploader";
 import { createEvent } from "@/app/(admin)/actions";
 
@@ -88,6 +94,14 @@ function NewEventForm() {
         />
       </FormSection>
 
+      <CheckboxField
+        name="postToDiscord"
+        defaultChecked
+        icon="mdi:discord"
+        label="Post to Discord"
+        description="Announce this event in the Discord server when scheduled."
+      />
+
       {state.error && (
         <p
           role="alert"
@@ -168,8 +182,8 @@ export function EventsBoard({ events }: { events: Ev[] }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Gatherings"
-        sub="Plan and manage events on the calendar."
+        title="Events"
+        sub="Plan and manage gatherings on the calendar."
         icon="game-icons:campfire"
         accent="#5cc08c"
         action={

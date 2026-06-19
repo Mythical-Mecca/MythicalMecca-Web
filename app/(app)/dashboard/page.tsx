@@ -16,7 +16,7 @@ const softCard = {
 const LINKS = [
   {
     href: "/events",
-    title: "Gatherings",
+    title: "Events",
     desc: "Feasts, gatherings & quests",
     icon: "game-icons:campfire",
     color: "#5cc08c",
@@ -37,8 +37,8 @@ const LINKS = [
   },
   {
     href: "/armory",
-    title: "Armory",
-    desc: "Gear & loadouts",
+    title: "Partners",
+    desc: "The Armory — makers & merchants",
     icon: "game-icons:anvil",
     color: "#f2b441",
   },

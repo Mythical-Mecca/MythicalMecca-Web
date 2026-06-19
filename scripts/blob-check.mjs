@@ -1,16 +1,16 @@
-// Standalone Vercel Blob credential check — no app, no auth, no browser.
-// Exercises the SAME credential the /api/upload route uses to mint client tokens.
+// Standalone PRIVATE Vercel Blob check — no app, no auth, no browser.
+// Exercises the exact pipeline the app uses:
+//   1. put(..., access:'private')  — what client uploads land as
+//   2. get(pathname, access:'private') — what /api/media streams back
+//   3. del() — cleanup
 //
 //   node scripts/blob-check.mjs
 //
-// Loads .env then .env.local (without clobbering vars already in your shell),
-// reports which Blob credentials are present, then does a REAL put()+del() so a
-// green result means uploads will actually work.
+// Loads .env then .env.local (without clobbering real shell vars).
 
 import { readFileSync } from "node:fs";
-import { put, del } from "@vercel/blob";
+import { put, get, del } from "@vercel/blob";
 
-// Minimal .env loader: later files win, real shell env always wins.
 function loadEnv(file) {
   let text;
   try {
@@ -22,7 +22,7 @@ function loadEnv(file) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/i);
     if (!m) continue;
     const key = m[1];
-    let val = m[2].replace(/^["']|["']$/g, "");
+    const val = m[2].replace(/^["']|["']$/g, "");
     if (process.env[key] === undefined) process.env[key] = val;
   }
 }
@@ -32,35 +32,39 @@ loadEnv(".env.local");
 const present = (v) => (v ? `SET (${v.length} chars)` : "— missing");
 console.log("Blob credentials visible to this process:");
 console.log("  BLOB_READ_WRITE_TOKEN :", present(process.env.BLOB_READ_WRITE_TOKEN));
-console.log("  VERCEL_OIDC_TOKEN     :", present(process.env.VERCEL_OIDC_TOKEN));
-console.log("  BLOB_STORE_ID         :", present(process.env.BLOB_STORE_ID), "(identifier only, NOT a credential)");
+console.log("  BLOB_STORE_ID         :", present(process.env.BLOB_STORE_ID));
 console.log();
 
-const hasCredential =
-  !!process.env.BLOB_READ_WRITE_TOKEN || !!process.env.VERCEL_OIDC_TOKEN;
-if (!hasCredential) {
-  console.error(
-    "RESULT: ❌ No token-minting credential. Uploads will fail with\n" +
-      '        "Failed to retrieve the client token".\n' +
-      "        Add BLOB_READ_WRITE_TOKEN to .env.local and re-run."
-  );
+if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  console.error("RESULT: ❌ BLOB_READ_WRITE_TOKEN missing — uploads cannot work. Add it and re-run.");
   process.exit(1);
 }
 
 const key = `diagnostics/blob-check-${Date.now()}.txt`;
 try {
+  // 1. Upload a private blob (mirrors a client upload).
   const blob = await put(key, "ok", {
-    access: "public",
+    access: "private",
     contentType: "text/plain",
     addRandomSuffix: true,
   });
-  console.log("RESULT: ✅ put() succeeded — credential is valid and can mint tokens.");
-  console.log("        uploaded:", blob.url);
+  console.log("✅ put(access:'private') ok →", blob.pathname);
+
+  // 2. Read it back via get() — exactly what /api/media does.
+  const result = await get(blob.pathname, { access: "private" });
+  if (!result || result.statusCode !== 200) {
+    throw new Error(`get() returned ${result ? result.statusCode : "null"}`);
+  }
+  const text = await new Response(result.stream).text();
+  console.log("✅ get(access:'private') ok → body:", JSON.stringify(text), "contentType:", result.blob.contentType);
+
+  // 3. Clean up.
   await del(blob.url);
-  console.log("        cleaned up test blob.");
+  console.log("✅ del() ok — cleaned up.");
+  console.log("\nRESULT: ✅ Private store pipeline works (put → get → del). Uploads + /api/media are good.");
   process.exit(0);
 } catch (err) {
-  console.error("RESULT: ❌ put() failed — credential present but rejected:");
+  console.error("\nRESULT: ❌ Private pipeline failed:");
   console.error("        ", err?.message || err);
   process.exit(1);
 }

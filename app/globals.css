@@ -192,6 +192,48 @@ body {
   .mm-menu-trigger:hover .mm-menu-trigger-icon {
     transform: rotate(90deg);
   }
+
+  /* Animated "back to dashboard" pill — arrow nudges left on a loop, then
+     locks left with a gold glow on hover. */
+  .mm-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 1rem 0.45rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    color: var(--mm-text-dim);
+    background: color-mix(in srgb, var(--mm-surface) 50%, transparent);
+    border: 1px solid color-mix(in srgb, var(--mm-border) 85%, transparent);
+    backdrop-filter: blur(8px);
+    transition: color 0.2s ease, border-color 0.25s ease, box-shadow 0.3s ease,
+      transform 0.2s ease;
+  }
+  .mm-back:hover {
+    color: var(--mm-text);
+    border-color: var(--mm-gold);
+    box-shadow: 0 0 22px -6px var(--mm-gold);
+    transform: translateY(-1px);
+  }
+  .mm-back-arrow {
+    color: var(--mm-gold);
+    animation: mm-back-nudge 1.8s ease-in-out infinite;
+    transition: transform 0.25s ease;
+  }
+  .mm-back:hover .mm-back-arrow {
+    animation: none;
+    transform: translateX(-3px);
+  }
+}
+
+@keyframes mm-back-nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-3px);
+  }
 }
 
 @keyframes mm-rota-spin {
@@ -214,6 +256,12 @@ body {
     transform: none;
   }
   .mm-menu-trigger:hover .mm-menu-trigger-icon {
+    transform: none;
+  }
+  .mm-back-arrow {
+    animation: none;
+  }
+  .mm-back:hover {
     transform: none;
   }
 }

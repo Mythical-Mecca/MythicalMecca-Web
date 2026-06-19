@@ -3,6 +3,7 @@ import { createPost } from "../../actions";
 import {
   TextField,
   TextareaField,
+  CheckboxField,
   FormCard,
   PageHeader,
 } from "@/components/form";
@@ -21,8 +22,8 @@ export default async function AdminPostsPage({
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Tidings"
-        sub="News & posts — write and publish to the homepage feed."
+        title="News"
+        sub="Tidings — write and publish to the homepage feed."
         icon="game-icons:scroll-unfurled"
         accent={ACCENT}
       />
@@ -63,6 +64,13 @@ export default async function AdminPostsPage({
             required
             rows={6}
             placeholder="Write the post…"
+          />
+          <CheckboxField
+            name="postToDiscord"
+            defaultChecked
+            icon="mdi:discord"
+            label="Post to Discord"
+            description="Announce this post in the Discord server when published."
           />
           <button type="submit" className="mm-btn mm-btn-primary">
             <Icon icon="mdi:send" width={16} /> Publish post

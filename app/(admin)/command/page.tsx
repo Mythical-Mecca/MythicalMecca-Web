@@ -6,8 +6,8 @@ export default async function CommandOverviewPage() {
   const c = await getCounts();
   const cards = [
     { k: "Adventurers", v: c.pilots, icon: "mdi:account-group", color: "#4aa8ff" },
-    { k: "Tidings", v: c.posts, icon: "game-icons:scroll-unfurled", color: "#f2b441" },
-    { k: "Active gatherings", v: c.activeOps, icon: "game-icons:campfire", color: "#5cc08c" },
+    { k: "News", v: c.posts, icon: "game-icons:scroll-unfurled", color: "#f2b441" },
+    { k: "Active events", v: c.activeOps, icon: "game-icons:campfire", color: "#5cc08c" },
     { k: "Errors (24h)", v: c.errors24h, icon: "mdi:alert-outline", color: "#f0795a" },
   ];
   const dbConnected = !!process.env.DATABASE_URL;

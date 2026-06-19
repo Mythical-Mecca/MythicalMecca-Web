@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { users, vendorApplications, accounts } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
+import { toMediaSrc } from "@/lib/media";
 
 const useDb = !!process.env.DATABASE_URL;
 
@@ -36,7 +37,7 @@ export async function getMyApplication(
       status: r.status,
       businessName: r.businessName,
       pitch: r.pitch,
-      images: (r.images as string[] | null) ?? [],
+      images: ((r.images as string[] | null) ?? []).map((u) => toMediaSrc(u)),
       socials: (r.socials as Record<string, string> | null) ?? {},
       reviewNote: r.reviewNote,
       createdAt: r.createdAt.toISOString(),
@@ -82,8 +83,8 @@ export async function getMyProfile(userId: string): Promise<MyProfile | null> {
       name: r.name,
       xp: r.xp,
       rank: r.rank,
-      avatarUrl: r.avatarUrl,
-      bannerUrl: r.bannerUrl,
+      avatarUrl: toMediaSrc(r.avatarUrl),
+      bannerUrl: toMediaSrc(r.bannerUrl),
     };
   } catch {
     return null;

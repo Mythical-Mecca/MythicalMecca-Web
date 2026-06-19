@@ -75,7 +75,8 @@ export function ImageUploader({
         const key = `uploads/${entityType}/${crypto.randomUUID()}${extOf(file.name)}`;
         try {
           const res = await upload(key, file, {
-            access: "public",
+            // Private store: blobs require auth to read and are served via /api/media.
+            access: "private",
             handleUploadUrl: "/api/upload",
             clientPayload: entityType,
             onUploadProgress: ({ percentage }) =>
@@ -159,9 +160,11 @@ export function ImageUploader({
               key={it.id}
               className="group relative aspect-square overflow-hidden rounded-xl border border-[var(--mm-border)]"
             >
+              {/* Show the local preview — private blob URLs can't load directly;
+                  the stored URL is served via /api/media once persisted. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={it.url ?? it.preview}
+                src={it.preview ?? it.url}
                 alt=""
                 className="h-full w-full object-cover"
               />

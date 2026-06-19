@@ -12,6 +12,7 @@ import {
 } from "@/lib/db/schema";
 import { desc, eq, ne, sql } from "drizzle-orm";
 import { sampleEvents } from "@/lib/content";
+import { toMediaSrc } from "@/lib/media";
 
 const useDb = !!process.env.DATABASE_URL;
 
@@ -109,7 +110,7 @@ export async function listGallery(): Promise<AdminGalleryItem[]> {
       .orderBy(galleryItems.sort, desc(galleryItems.createdAt));
     return rows.map((r) => ({
       id: r.id,
-      imageUrl: r.imageUrl,
+      imageUrl: toMediaSrc(r.imageUrl),
       caption: r.caption,
     }));
   } catch {
@@ -129,7 +130,7 @@ export async function listApplications(): Promise<AdminApplication[]> {
       id: r.id,
       businessName: r.businessName,
       pitch: r.pitch,
-      images: (r.images as string[] | null) ?? [],
+      images: ((r.images as string[] | null) ?? []).map((u) => toMediaSrc(u)),
       socials: (r.socials as Record<string, string> | null) ?? {},
       status: r.status,
       userId: r.userId,

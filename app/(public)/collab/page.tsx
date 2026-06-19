@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { collabSubmissions } from "@/lib/db/schema";
 import { logActivity } from "@/lib/logging";
 
-export const metadata = { title: "Collab — Mythical Mecha" };
+export const metadata = { title: "Contact — Mythical Mecha" };
 
 const schema = z.object({
   name: z.string().min(1).max(120),
@@ -50,7 +50,7 @@ export default async function CollabPage({
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
       <h1 className="font-[family-name:var(--font-display)] text-4xl tracking-wide">
-        Send a <span className="mm-gradient-text">raven</span>
+        Get in <span className="mm-gradient-text">touch</span>
       </h1>
       <p className="mt-3 text-[var(--mm-text-dim)]">
         Want to collaborate, sponsor, host, or propose something? Send a raven to

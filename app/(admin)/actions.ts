@@ -18,6 +18,7 @@ import { auth } from "@/lib/auth";
 import { roleAtLeast } from "@/lib/rbac";
 import { slugify } from "@/lib/slug";
 import { logActivity } from "@/lib/logging";
+import { announcePost, announceEvent } from "@/lib/discord";
 
 async function requireAdmin() {
   const session = await auth();
@@ -41,11 +42,14 @@ export async function createPost(formData: FormData) {
   });
   if (!parsed.success) redirect("/command/posts?error=1");
 
+  const toDiscord = formData.get("postToDiscord") != null;
+  const slug = `${slugify(parsed.data.title)}-${Date.now().toString(36)}`;
+
   if (process.env.DATABASE_URL) {
     try {
       await db.insert(posts).values({
         authorId: session.user.id,
-        slug: `${slugify(parsed.data.title)}-${Date.now().toString(36)}`,
+        slug,
         title: parsed.data.title,
         excerpt: parsed.data.excerpt,
         bodyMd: parsed.data.bodyMd,
@@ -54,6 +58,14 @@ export async function createPost(formData: FormData) {
       });
     } catch {
       redirect("/command/posts?error=1");
+    }
+
+    if (toDiscord) {
+      await announcePost({
+        title: parsed.data.title,
+        excerpt: parsed.data.excerpt,
+        slug,
+      });
     }
   }
   await logActivity({ actorId: session.user.id, action: "post.create" });
@@ -95,20 +107,23 @@ export async function createEvent(
   }
 
   const images = formData.getAll("eventImages").map(String).filter(Boolean);
+  const toDiscord = formData.get("postToDiscord") != null;
+  const slug = `${slugify(parsed.data.title)}-${Date.now().toString(36)}`;
+  const startsAt = new Date(parsed.data.startsAt);
 
   if (process.env.DATABASE_URL) {
     try {
       const [created] = await db
         .insert(events)
         .values({
-          slug: `${slugify(parsed.data.title)}-${Date.now().toString(36)}`,
+          slug,
           title: parsed.data.title,
           summary: parsed.data.summary,
           bodyMd: parsed.data.bodyMd,
           location: parsed.data.location,
           lat: parsed.data.lat,
           lng: parsed.data.lng,
-          startsAt: new Date(parsed.data.startsAt),
+          startsAt,
           endsAt: new Date(parsed.data.endsAt),
           status: "published",
           createdBy: session.user.id,
@@ -125,6 +140,16 @@ export async function createEvent(
       }
     } catch {
       return { error: "Could not save the event. Please try again." };
+    }
+
+    if (toDiscord) {
+      await announceEvent({
+        title: parsed.data.title,
+        summary: parsed.data.summary,
+        location: parsed.data.location,
+        startsAt,
+        slug,
+      });
     }
   }
   await logActivity({ actorId: session.user.id, action: "event.create" });

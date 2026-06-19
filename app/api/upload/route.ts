@@ -24,24 +24,22 @@ export async function POST(request: Request): Promise<NextResponse> {
       { status: 401 }
     );
   }
-  // To MINT a client token the SDK needs a real credential — either the classic
-  // RW token, or (store model) a Vercel OIDC token. BLOB_STORE_ID alone is just
-  // an identifier and CANNOT sign tokens, so don't treat it as auth: on Vercel
-  // VERCEL_OIDC_TOKEN is auto-injected; locally you need one of these set.
-  const hasBlobAuth = !!(
-    process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_OIDC_TOKEN
-  );
-  if (!hasBlobAuth) {
+  // Client uploads mint a token via handleUpload → generateClientTokenFromReadWriteToken,
+  // which REQUIRES a read-write token (it parses the store id out of it and signs with
+  // it). OIDC / BLOB_STORE_ID are NOT accepted for this path (confirmed in @vercel/blob
+  // source + docs). So BLOB_READ_WRITE_TOKEN must be set in EVERY environment — including
+  // production; the auto-injected VERCEL_OIDC_TOKEN does not work here.
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
     console.error(
-      "[upload] no Blob credential to mint a client token. Set BLOB_READ_WRITE_TOKEN " +
-        "in .env.local (copy it from the Vercel dashboard → Storage → your Blob store), " +
-        "or run `vercel env pull .env.local` to fetch a VERCEL_OIDC_TOKEN. " +
-        "BLOB_STORE_ID on its own is not a credential."
+      "[upload] BLOB_READ_WRITE_TOKEN is missing. Client uploads require it in every " +
+        "environment (prod + preview + local). Add it from the Vercel dashboard → " +
+        "Storage → your Blob store → tokens, then redeploy / restart. OIDC is not " +
+        "accepted for client-token generation."
     );
     return NextResponse.json(
       {
         error:
-          "Uploads aren't configured locally: missing BLOB_READ_WRITE_TOKEN (or a Vercel OIDC token).",
+          "Uploads aren't configured: server is missing BLOB_READ_WRITE_TOKEN.",
       },
       { status: 503 }
     );

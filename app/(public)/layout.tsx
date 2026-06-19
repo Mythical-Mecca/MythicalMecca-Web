@@ -5,6 +5,7 @@ import { getLiveEvent } from "@/lib/content";
 import { AppTopNav } from "@/components/app-top-nav";
 import { AppBackdrop } from "@/components/app-backdrop";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { BackToDashboard } from "@/components/back-to-dashboard";
 
 const Footer = () => (
   <footer className="flex flex-col items-center gap-3 border-t border-[var(--mm-border)] px-6 py-8 text-center text-xs text-[var(--mm-text-dim)]">
@@ -31,7 +32,7 @@ export default async function PublicLayout({
   if (session?.user) {
     const liveEvent = await getLiveEvent();
     return (
-      <div className="flex min-h-full flex-col">
+      <div className="flex min-h-dvh flex-col">
         <AppBackdrop />
         <AppTopNav
           role={session.user.role}
@@ -42,8 +43,11 @@ export default async function PublicLayout({
           }
         />
         <main className="flex-1">
-          <div className="mx-auto max-w-6xl px-6 pt-6 empty:hidden">
-            <Breadcrumbs />
+          <div className="mx-auto max-w-6xl space-y-3 px-6 pt-6">
+            <BackToDashboard />
+            <div className="empty:hidden">
+              <Breadcrumbs />
+            </div>
           </div>
           {children}
         </main>
@@ -53,7 +57,7 @@ export default async function PublicLayout({
   }
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_55%,transparent)] backdrop-blur-md">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link
@@ -64,16 +68,16 @@ export default async function PublicLayout({
           </Link>
           <div className="hidden items-center gap-7 text-sm text-[var(--mm-text-dim)] md:flex">
             <Link href="/news" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">
-              <Icon icon="game-icons:scroll-unfurled" width={16} /> Tidings
+              <Icon icon="game-icons:scroll-unfurled" width={16} /> News
             </Link>
             <Link href="/events" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">
-              <Icon icon="game-icons:campfire" width={16} /> Gatherings
+              <Icon icon="game-icons:campfire" width={16} /> Events
             </Link>
             <Link href="/armory" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">
-              <Icon icon="game-icons:anvil" width={16} /> Armory
+              <Icon icon="game-icons:anvil" width={16} /> Partners
             </Link>
             <Link href="/collab" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">
-              <Icon icon="game-icons:raven" width={16} /> Send a raven
+              <Icon icon="game-icons:raven" width={16} /> Contact
             </Link>
           </div>
           <Link href="/login" className="mm-btn mm-btn-primary text-sm">

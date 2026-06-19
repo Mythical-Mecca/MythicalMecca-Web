@@ -22,7 +22,7 @@ export default async function VendorPage({
         href="/armory"
         className="text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
       >
-        ← The Armory
+        ← Partners
       </Link>
 
       <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">

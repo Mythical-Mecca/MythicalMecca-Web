@@ -6,17 +6,17 @@ import { Icon } from "./icon";
 
 const LABELS: Record<string, string> = {
   dashboard: "Guild Hall",
-  events: "Gatherings",
+  events: "Events",
   hunts: "Quests",
   hunt: "Quests",
   arcade: "Training Yard",
-  armory: "Armory",
+  armory: "Partners",
   profile: "Character",
   "vendor-application": "Vendor application",
   forge: "Forge",
   command: "The Keep",
-  news: "Tidings",
-  collab: "Send a raven",
+  news: "News",
+  collab: "Contact",
   scan: "Scan",
 };
 

@@ -8,6 +8,7 @@ import {
   eventGalleryItems,
 } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
+import { toMediaSrc } from "@/lib/media";
 
 export interface PostView {
   slug: string;
@@ -275,7 +276,7 @@ export async function getVendors(): Promise<VendorView[]> {
           title: i.title ?? "",
           caption: i.caption ?? "",
           externalUrl: i.externalUrl ?? undefined,
-          imageUrl: i.imageUrl ?? undefined,
+          imageUrl: toMediaSrc(i.imageUrl) ?? undefined,
         })),
       });
     }
@@ -314,7 +315,7 @@ export async function getGalleryImages(): Promise<GalleryImage[]> {
       .where(eq(galleryItems.published, true))
       .orderBy(galleryItems.sort, desc(galleryItems.createdAt));
     if (rows.length === 0) return sampleGallery;
-    return rows.map((r) => ({ imageUrl: r.imageUrl, caption: r.caption }));
+    return rows.map((r) => ({ imageUrl: toMediaSrc(r.imageUrl), caption: r.caption }));
   } catch {
     return sampleGallery;
   }
@@ -334,7 +335,7 @@ export async function getEventGallery(slug: string): Promise<GalleryImage[]> {
       .from(eventGalleryItems)
       .where(eq(eventGalleryItems.eventId, e.id))
       .orderBy(eventGalleryItems.sort);
-    return rows.map((r) => ({ imageUrl: r.imageUrl, caption: r.caption }));
+    return rows.map((r) => ({ imageUrl: toMediaSrc(r.imageUrl), caption: r.caption }));
   } catch {
     return [];
   }
