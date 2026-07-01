@@ -1,7 +1,14 @@
 name: Deploy (production)
 
 # Deploys to Vercel production on every push to main, via the Vercel CLI.
+# Builds SERVER-SIDE on Vercel (no --prebuilt) — mirrors the crcapps projects
+# that deploy reliably. The older --prebuilt flow (vercel build in CI + upload)
+# stalled at "Building…" on Vercel's side. Vercel auto-detects pnpm from the
+# committed pnpm-lock.yaml, so no package-manager setup is needed here.
+#
 # Requires repo secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+# All build-time env vars must be set in the Vercel project's Production
+# environment, since the build runs on Vercel.
 on:
   push:
     branches: [main]
@@ -21,35 +28,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Cache Next.js build
-        uses: actions/cache@v4
-        with:
-          path: .next/cache
-          # Re-use the incremental compiler cache across runs; bust it when deps
-          # or source change, but fall back to the latest partial cache via keys.
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
+          node-version: 22
 
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      - name: Pull Vercel environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      # Links the CLI to the correct team + project and pulls settings.
+      - name: Pull Vercel project settings
+        run: |
+          vercel pull --yes \
+            --environment=production \
+            --scope=${{ secrets.VERCEL_ORG_ID }} \
+            --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-
+      # Builds on Vercel's servers (no --prebuilt).
       - name: Deploy to production
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: |
+          vercel deploy --prod --yes \
+            --scope=${{ secrets.VERCEL_ORG_ID }} \
+            --token=${{ secrets.VERCEL_TOKEN }}
