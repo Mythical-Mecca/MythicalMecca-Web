@@ -44,6 +44,15 @@ jobs:
             --scope=${{ secrets.VERCEL_ORG_ID }} \
             --token=${{ secrets.VERCEL_TOKEN }}
 
+      # Vercel attributes the deploy to the git commit author; it must be a
+      # member of the Vercel team with deploy access or the build is blocked.
+      # Re-author with an empty commit before deploying.
+      - name: Set Git author for Vercel
+        run: |
+          git config user.email "cloudbluedevelopment@gmail.com"
+          git config user.name "CloudBlue Development"
+          git commit --allow-empty -m "Deploy: production (${{ github.sha }})"
+
       # Builds on Vercel's servers (no --prebuilt).
       - name: Deploy to production
         run: |
