@@ -2,6 +2,22 @@ import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 
 /**
+ * Thrown when production has no signing secret. A distinct type so callers can
+ * re-raise it instead of folding it into their "not found" path — this failing
+ * quietly cost an afternoon: the admin quest page caught it, returned null, and
+ * rendered a 404 that looked for all the world like a missing record.
+ */
+export class MissingSigningSecretError extends Error {
+  constructor() {
+    super(
+      "QR_SIGNING_SECRET is not set. Quest check-in security depends on it — " +
+        "set it in the deployment environment and redeploy."
+    );
+    this.name = "MissingSigningSecretError";
+  }
+}
+
+/**
  * Every tag token, station code and player pass is derived from this. If it
  * were missing in production the fallback would be a value published in this
  * repo — anyone could mint a pass for any user id, and the whole
@@ -21,10 +37,7 @@ function signingSecret(): string {
     return cachedSecret;
   }
   if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "QR_SIGNING_SECRET is not set. Quest check-in security depends on it — " +
-        "set it in the deployment environment."
-    );
+    throw new MissingSigningSecretError();
   }
   cachedSecret = "dev-insecure-qr-secret";
   return cachedSecret;

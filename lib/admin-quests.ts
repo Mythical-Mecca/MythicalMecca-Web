@@ -10,7 +10,7 @@ import {
   partners,
 } from "@/lib/db/schema";
 import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
-import { tagUrl } from "@/lib/qr";
+import { tagUrl, MissingSigningSecretError } from "@/lib/qr";
 import type {
   ClaimMode,
   ClaimOutcome,
@@ -171,7 +171,11 @@ export async function getQuestAdmin(
       players: Number(players[0]?.n ?? 0),
       objectiveList,
     };
-  } catch {
+  } catch (e) {
+    // A missing signing secret is a deployment fault, not a missing quest.
+    // Swallowing it here renders a 404, which sends you looking for a deleted
+    // record instead of an unset environment variable.
+    if (e instanceof MissingSigningSecretError) throw e;
     return null;
   }
 }
