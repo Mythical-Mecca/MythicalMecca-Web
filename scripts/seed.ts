@@ -1,15 +1,13 @@
 import "dotenv/config";
+import { eq } from "drizzle-orm";
 import { db } from "../lib/db";
 import {
-  posts,
   events,
-  vendors,
-  vendorGalleryItems,
-  badges,
-  games,
-  seasons,
+  partners,
+  partnerGalleryItems,
   scavengerHunts,
   huntSteps,
+  users,
 } from "../lib/db/schema";
 
 async function main() {
@@ -18,40 +16,6 @@ async function main() {
     process.exit(1);
   }
   console.log("Seeding Mythic Mecca…");
-
-  // Badges
-  await db
-    .insert(badges)
-    .values([
-      { code: "first_contact", name: "First Contact", tier: "bronze", description: "Logged in for the first time." },
-      { code: "hunt_started", name: "Recon Initiate", tier: "bronze", description: "Cleared a hunt objective." },
-      { code: "hunt_master", name: "Hunt Master", tier: "gold", description: "Completed a full hunt." },
-      { code: "armorer", name: "Armorer", tier: "silver", description: "Approved as a vendor." },
-    ])
-    .onConflictDoNothing();
-
-  // Arcade
-  await db
-    .insert(games)
-    .values([
-      { slug: "reaction", title: "Reaction Sim", description: "Wait for the lock, then fire. Fastest reflexes win." },
-    ])
-    .onConflictDoNothing();
-
-  // Season
-  await db
-    .insert(seasons)
-    .values([{ name: "Season 1 — Ignition", active: true }])
-    .onConflictDoNothing();
-
-  // Posts
-  await db
-    .insert(posts)
-    .values([
-      { slug: "the-doors-are-open", title: "The doors are open", excerpt: "Mythic Mecca is reborn.", bodyMd: "We rebuilt the hall from the foundation stones up.\n\nFour guilds, one hearth.", status: "published", publishedAt: new Date("2026-06-10") },
-      { slug: "midsummer-revel-announced", title: "Midsummer Revel announced", excerpt: "Our grandest gathering yet.", bodyMd: "Mark your calendars, adventurers.", status: "published", publishedAt: new Date("2026-06-04") },
-    ])
-    .onConflictDoNothing();
 
   // Events
   await db
@@ -62,33 +26,149 @@ async function main() {
     ])
     .onConflictDoNothing();
 
-  // Vendor + gallery
-  const [vendor] = await db
-    .insert(vendors)
+  // Partner + gallery
+  const [partner] = await db
+    .insert(partners)
     .values([{ slug: "neon-forge-minis", businessName: "Neon Forge Minis", tagline: "Hand-painted miniatures & 3D-printed terrain", bio: "A two-person studio.", socials: { raw: "https://instagram.com" } }])
     .onConflictDoNothing()
     .returning();
-  if (vendor) {
-    await db.insert(vendorGalleryItems).values([
-      { vendorId: vendor.id, title: "Mech squad", caption: "32mm scale", sort: 0 },
-      { vendorId: vendor.id, title: "Ruined city board", caption: "Modular terrain", sort: 1 },
+  if (partner) {
+    await db.insert(partnerGalleryItems).values([
+      { partnerId: partner.id, title: "Mech squad", caption: "32mm scale", sort: 0 },
+      { partnerId: partner.id, title: "Ruined city board", caption: "Modular terrain", sort: 1 },
     ]);
   }
 
-  // Hunt + steps
+  // Origin-flavoured events: partner-hosted, external repost, pending community
+  const [seedPartner] = partner
+    ? [partner]
+    : await db.select().from(partners).where(eq(partners.slug, "neon-forge-minis")).limit(1);
+  const [firstUser] = await db.select().from(users).limit(1);
+  await db
+    .insert(events)
+    .values([
+      {
+        slug: "paint-and-take-at-neon-forge",
+        title: "Paint & Take at Neon Forge",
+        summary: "Mini-painting evening at the Neon Forge studio — brushes provided.",
+        bodyMd: "Bring nothing but enthusiasm. Paints, brushes and a free mini to take home are on the house.",
+        location: "Neon Forge Studio, Woodstock",
+        startsAt: new Date("2026-07-25T17:00:00Z"),
+        endsAt: new Date("2026-07-25T21:00:00Z"),
+        status: "published",
+        origin: "partner",
+        partnerId: seedPartner?.id,
+      },
+      {
+        slug: "cape-town-geek-fest-2026",
+        title: "Cape Town Geek Fest 2026",
+        summary: "The Mother City's biggest pop-culture festival — cosplay, gaming, artists.",
+        bodyMd: "Not one of ours, but the collective will be there in force.",
+        location: "CTICC, Cape Town",
+        startsAt: new Date("2026-08-15T09:00:00Z"),
+        endsAt: new Date("2026-08-16T18:00:00Z"),
+        status: "published",
+        origin: "external",
+        sourceName: "Cape Town Geek Fest",
+        externalUrl: "https://example.com/geek-fest",
+      },
+      {
+        slug: "saturday-board-game-meetup",
+        title: "Saturday board-game meetup",
+        summary: "Casual games afternoon at Railways Cafe — newcomers welcome.",
+        bodyMd: "Bring a game or join a table. We usually start with quick fillers.",
+        location: "Railways Cafe, Irene",
+        startsAt: new Date("2026-07-19T12:00:00Z"),
+        endsAt: new Date("2026-07-19T17:00:00Z"),
+        status: "pending",
+        origin: "community",
+        createdBy: firstUser?.id,
+      },
+    ])
+    .onConflictDoNothing();
+
+  // Quest — a trail around the venue.
+  //
+  // Most objectives are `qr_scan`: walk to a stand and check in there. That's
+  // the shape a real event quest takes. The in-app puzzle types are seeded once
+  // each so the other paths are exercisable without building a quest by hand.
+  const [openingEvent] = await db
+    .select({ id: events.id })
+    .from(events)
+    .where(eq(events.slug, "opening-night-revel"))
+    .limit(1);
+
   const [hunt] = await db
     .insert(scavengerHunts)
-    .values([{ slug: "opening-night-quest", title: "Opening Night Quest", description: "Six trials to christen the new hall.", mode: "hybrid", active: true }])
+    .values([
+      {
+        slug: "opening-night-quest",
+        title: "Opening Night Trail",
+        description:
+          "Walk the hall, meet the makers, collect a seal at every stand.",
+        mode: "in_person",
+        eventId: openingEvent?.id,
+        active: true,
+      },
+    ])
     .onConflictDoNothing()
     .returning();
+
   if (hunt) {
     await db.insert(huntSteps).values([
-      { huntId: hunt.id, sort: 0, type: "riddle", title: "The riddle lock", prompt: "I have keys but open no locks. What am I?", points: 10, config: { answer: "keyboard" } },
-      { huntId: hunt.id, sort: 1, type: "unlock_code", title: "Gatehouse password", prompt: "Find the password near the artisans' market.", points: 10, config: { code: "ALPHA-7" } },
-      { huntId: hunt.id, sort: 2, type: "trivia_gate", title: "Guild lore", prompt: "Which standing sits between Squire and Champion?", points: 15, config: { choices: ["Knight", "Novice", "Legend", "Warden"], correct: 0 } },
-      { huntId: hunt.id, sort: 3, type: "geo_checkpoint", title: "Reach the waypoint", prompt: "Check in at the hall's coordinates.", points: 20, config: { lat: -33.9249, lng: 18.4241, radius_m: 50000 } },
-      { huntId: hunt.id, sort: 4, type: "qr_scan", title: "The rune seal", prompt: "Find the rune seal at the training yard.", points: 20, config: {} },
-      { huntId: hunt.id, sort: 5, type: "photo_proof", title: "Adventurer's portrait", prompt: "Upload a likeness with your token.", points: 15, config: { auto_approve: true } },
+      {
+        huntId: hunt.id,
+        sort: 0,
+        type: "qr_scan",
+        title: "The armourer's stand",
+        prompt: "Say hello and ask what they're working on.",
+        points: 20,
+        partnerId: seedPartner?.id,
+        locationHint: "Hall A, stand 3",
+        revealMode: "direct",
+        claimMode: "live_code",
+      },
+      {
+        huntId: hunt.id,
+        sort: 1,
+        type: "qr_scan",
+        title: "The one who paints small things",
+        // A clue objective hides the destination until it's claimed, so the
+        // prompt has to be enough to find them on its own.
+        prompt:
+          "Seek the hand that makes giants of thimble-sized knights. Their table glitters under the west windows.",
+        points: 25,
+        locationHint: "Hall B, stand 14",
+        revealMode: "clue",
+        claimMode: "live_code",
+      },
+      {
+        huntId: hunt.id,
+        sort: 2,
+        type: "riddle",
+        title: "The riddle lock",
+        prompt: "I have keys but open no locks. What am I?",
+        points: 10,
+        config: { answer: "keyboard" },
+      },
+      {
+        huntId: hunt.id,
+        sort: 3,
+        type: "trivia_gate",
+        title: "Guild lore",
+        prompt: "Which standing sits between Squire and Champion?",
+        points: 15,
+        config: { choices: ["Knight", "Novice", "Legend", "Warden"], correct: 0 },
+      },
+      {
+        huntId: hunt.id,
+        sort: 4,
+        type: "photo_proof",
+        title: "Adventurer's portrait",
+        prompt: "Upload a likeness of you somewhere in the hall.",
+        points: 15,
+        config: { auto_approve: true },
+      },
     ]);
   }
 

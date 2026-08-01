@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { collabSubmissions } from "@/lib/db/schema";
 import { logActivity } from "@/lib/logging";
+import { inputPill } from "@/components/form";
 
 export const metadata = { title: "Contact — Mythical Mecca" };
 
@@ -111,7 +112,7 @@ function Field({
         name={name}
         type={type}
         required={required}
-        className="w-full rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm outline-none focus:border-[var(--mm-violet)]"
+        className={`w-full ${inputPill}`}
       />
     </div>
   );

@@ -1,12 +1,26 @@
 import Link from "next/link";
-import { ParticleField } from "@/components/particle-field";
+import { ParticleField } from "@/components/animations/particle-field";
+import { BackToDashboard } from "@/components/back-to-dashboard";
 import { Icon } from "@/components/icon";
-import { getEvents, getPosts, getGalleryImages, isEventLive } from "@/lib/content";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { auth } from "@/lib/auth";
+import { getEventsPage, getGalleryImages, getPartners, isEventLive } from "@/lib/content";
+import { EventCalendar } from "@/components/event-calendar";
+import { Badge } from "@/components/badge";
+import { formatDateTime } from "@/lib/format";
 
-const TAVERN = "/MythicMechaBackground.png";
-const BG2 = "/MythicMechaBackground2.png";
-const BG3 = "/MythicMechaBackground3.png";
+/*
+ * The public one-pager. Everything a visitor needs to decide whether Mythical
+ * Mecca is for them lives here — what we are, what's on, what the hall looks
+ * like, and who trades with us. Every other route is members-only, so for a
+ * signed-out visitor this page never links into the app; it links to /login.
+ *
+ * News, guilds, lists, the arcade and LFG are out of the launch scope and
+ * deliberately absent from this page (LFG runs in Discord for now).
+ */
+
+const TAVERN = "/MythicMechaBackground.webp";
+const BG2 = "/MythicMechaBackground2.webp";
+const BG3 = "/MythicMechaBackground3.webp";
 const DISCORD = "https://discord.gg/NKWMAtq2B";
 
 const heroOverlay =
@@ -26,22 +40,52 @@ function ImageBackdrop({ src, overlay }: { src: string; overlay: string }) {
   );
 }
 
-const FEATURES = [
-  { k: "Quests", d: "Scavenger trails & riddles", icon: "game-icons:treasure-map" },
-  { k: "Partners", d: "Makers & merchants", icon: "game-icons:anvil" },
-  { k: "Training Yard", d: "Mini-games & leaderboards", icon: "mdi:target" },
-  { k: "Events", d: "Gatherings, feasts & tournaments", icon: "game-icons:campfire" },
+const PILLARS = [
+  {
+    k: "Events",
+    d: "Feasts, tournaments, screenings and meetups — the calendar the whole collective runs on.",
+    icon: "game-icons:campfire",
+  },
+  {
+    k: "Quests",
+    d: "Scavenger trails, riddles and rune seals at our gatherings. Solve, seek, climb the board.",
+    icon: "game-icons:treasure-map",
+  },
+  {
+    k: "Partners",
+    d: "Makers, artists and shops from across the collective, setting out their wares.",
+    icon: "game-icons:anvil",
+  },
 ];
 
 export default async function HomePage() {
-  const [posts, events, gallery] = await Promise.all([
-    getPosts(),
-    getEvents(),
-    getGalleryImages(),
-  ]);
-  const latest = posts.slice(0, 3);
-  const nextGathering = events[0];
+  const [session, { all: events, live, upcoming: allUpcoming }, gallery, partners] =
+    await Promise.all([
+      auth(),
+      getEventsPage(),
+      getGalleryImages(),
+      getPartners(),
+    ]);
+  const loggedIn = !!session?.user;
+
+  // Signed-out visitors can't reach any app route, so every "read more"
+  // affordance collapses to the sign-in page for them.
+  const eventHref = (slug: string) => (loggedIn ? `/events/${slug}` : "/login");
+
+  // A live event is the most newsworthy thing on the page, so it leads;
+  // otherwise the next thing on the diary does.
+  const upcoming = (live ? [live, ...allUpcoming] : allUpcoming).slice(0, 5);
+  const nextGathering = upcoming[0];
   const galleryTiles = gallery.slice(0, 8);
+  const featuredPartners = partners.slice(0, 6);
+  const nowIso = new Date().toISOString();
+  const calEvents = events.map((e) => ({
+    slug: e.slug,
+    title: e.title,
+    startsAt: e.startsAt,
+    endsAt: e.endsAt,
+    location: e.location,
+  }));
 
   return (
     <div className="flex flex-col">
@@ -62,221 +106,319 @@ export default async function HomePage() {
             Begin your quest.
           </p>
           <p className="mt-5 max-w-xl text-balance text-lg text-[var(--mm-text-dim)]">
-            Mythical Mecca is the hearth for the geek collective — gathered
-            under one roof.
+            Mythical Mecca is the hearth for the geek collective — tabletop,
+            gaming, anime, cosplay and making, all gathered under one roof.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Link href="/login" className="mm-btn mm-btn-primary">
-              <Icon icon="mdi:login-variant" width={18} /> Sign in
-            </Link>
-            <Link href="/events" className="mm-btn mm-btn-ghost">
-              <Icon icon="game-icons:campfire" width={18} /> View events
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- Upcoming gatherings — plain ---------------- */}
-      <section className="bg-[var(--mm-bg)]">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <SectionTitle icon="game-icons:campfire" lead="Upcoming" accent="Events" />
-
-          {nextGathering && (
-            <div className="mm-glass mt-8 flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-start gap-4">
-                <Icon
-                  icon="game-icons:tower-flag"
-                  width={34}
-                  className="mt-1 shrink-0 text-[var(--mm-gold)]"
-                />
-                <div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <p className="text-xs uppercase tracking-widest text-[var(--mm-gold)]">
-                      Next gathering
-                    </p>
-                    {isEventLive(nextGathering) && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--mm-live)] px-2.5 py-0.5 text-[10px] uppercase tracking-widest text-[var(--mm-live)]">
-                        <span className="mm-dot-live" /> Live now
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="mt-1.5 font-[family-name:var(--font-display)] text-2xl">
-                    {nextGathering.title}
-                  </h3>
-                  <p className="mt-2 max-w-xl text-sm text-[var(--mm-text-dim)]">
-                    {nextGathering.summary}
-                  </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-[var(--mm-text-dim)]">
-                    <span className="flex items-center gap-1.5">
-                      <Icon
-                        icon="mdi:clock-outline"
-                        width={15}
-                        className="text-[var(--mm-gold)]"
-                      />
-                      {formatDateTime(nextGathering.startsAt)}
-                    </span>
-                    {nextGathering.location && (
-                      <span className="flex items-center gap-1.5">
-                        <Icon
-                          icon="mdi:map-marker-outline"
-                          width={15}
-                          className="text-[var(--mm-gold)]"
-                        />
-                        {nextGathering.location}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <Link
-                href={`/events/${nextGathering.slug}`}
-                className="mm-btn mm-btn-primary shrink-0 text-sm"
-              >
-                Read more <Icon icon="mdi:arrow-right" width={16} />
+            {loggedIn ? (
+              <Link href="/dashboard" className="mm-btn mm-btn-primary">
+                <Icon icon="game-icons:castle" width={18} /> Enter the Guild Hall
               </Link>
+            ) : (
+              <Link href="/login" className="mm-btn mm-btn-primary">
+                <Icon icon="mdi:account" width={18} /> Sign in
+              </Link>
+            )}
+            <a href="#events" className="mm-btn mm-btn-ghost">
+              <Icon icon="game-icons:campfire" width={18} /> See what&apos;s on
+            </a>
+          </div>
+          {loggedIn && (
+            <div className="mt-5 flex justify-center">
+              <BackToDashboard />
             </div>
           )}
         </div>
       </section>
 
-      {/* ---------------- Latest tidings — forest party ---------------- */}
-      <section className="relative isolate overflow-hidden">
-        <ImageBackdrop src={BG3} overlay={bandOverlay} />
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-70">
-          <ParticleField color="105, 219, 124" />
-        </div>
-        <div className="mx-auto flex min-h-[480px] max-w-6xl flex-col justify-center px-6 py-20 sm:min-h-[660px]">
-          <SectionTitle
-            icon="game-icons:scroll-unfurled"
-            lead="Latest"
-            accent="news & posts"
-            right={
-              <Link
-                href="/news"
-                className="inline-flex items-center gap-1.5 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
-              >
-                All news <Icon icon="mdi:arrow-right" width={16} />
-              </Link>
-            }
-          />
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {latest.map((p) => (
-              <Link
-                key={p.slug}
-                href={`/news/${p.slug}`}
-                className="mm-glass group p-5 transition hover:border-[var(--mm-violet)]"
-              >
-                <div className="mb-3 flex items-center justify-end">
-                  <span className="text-xs text-[var(--mm-text-dim)]">
-                    {formatDate(p.publishedAt)}
-                  </span>
-                </div>
-                <h3 className="font-medium group-hover:text-[var(--mm-gold)]">
-                  {p.title}
-                </h3>
-                <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
-                  {p.excerpt}
-                </p>
-                <span className="mt-3 inline-flex items-center gap-1 text-xs text-[var(--mm-gold)]">
-                  Read <Icon icon="mdi:arrow-right" width={14} />
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- Gallery — plain ---------------- */}
-      <section className="bg-[var(--mm-bg)]">
+      {/* ---------------- What we are ---------------- */}
+      <section id="about" className="scroll-mt-20 bg-[var(--mm-bg)]">
         <div className="mx-auto max-w-6xl px-6 py-20">
-          <SectionTitle icon="mdi:image-multiple-outline" lead="The" accent="Gallery" />
-          <p className="mt-3 text-sm text-[var(--mm-text-dim)]">
-            Moments from the hall — cosplay, minis, fan art and builds.
+          <SectionTitle
+            icon="game-icons:castle"
+            lead="What is"
+            accent="Mythical Mecca"
+          />
+          <p className="mt-4 max-w-2xl text-lg text-[var(--mm-text-dim)]">
+            One hearth for the whole collective. We run gatherings, host quests,
+            and give local makers a place to set out their wares. Whatever your
+            flavour of geek, there&apos;s a table with your name on it.
           </p>
-          <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
-            {galleryTiles.map((tile, i) => (
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {PILLARS.map((p) => (
               <div
-                key={i}
-                className="group relative h-44 overflow-hidden rounded-2xl border border-[var(--mm-border)]"
+                key={p.k}
+                className="mm-glass flex flex-col items-start gap-3 p-6 transition hover:border-[var(--mm-violet)]"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={tile.imageUrl}
-                  alt={tile.caption ?? ""}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                {tile.caption && (
-                  <div
-                    className="absolute inset-x-0 bottom-0 p-3"
-                    style={{
-                      background:
-                        "linear-gradient(to top, rgba(11,15,28,0.9), transparent)",
-                    }}
-                  >
-                    <span className="text-sm font-medium text-[var(--mm-text)]">
-                      {tile.caption}
-                    </span>
-                  </div>
-                )}
+                <span
+                  className="grid h-12 w-12 place-items-center rounded-xl"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--mm-gold) 14%, transparent)",
+                    color: "var(--mm-gold)",
+                  }}
+                >
+                  <Icon icon={p.icon} width={26} />
+                </span>
+                <div>
+                  <p className="font-[family-name:var(--font-display)] text-base tracking-wide">
+                    {p.k}
+                  </p>
+                  <p className="mt-1.5 text-sm text-[var(--mm-text-dim)]">
+                    {p.d}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ---------------- Our community — party on the cliff ---------------- */}
-      <section className="relative isolate overflow-hidden">
+      {/* ---------------- Events — the calendar ---------------- */}
+      <section
+        id="events"
+        className="relative isolate scroll-mt-20 overflow-hidden"
+      >
+        <ImageBackdrop src={BG3} overlay={bandOverlay} />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 opacity-70"
+        >
+          <ParticleField color="105, 219, 124" />
+        </div>
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <SectionTitle icon="game-icons:campfire" lead="What's" accent="on" />
+          <p className="mt-3 max-w-2xl text-[var(--mm-text-dim)]">
+            Feasts, tournaments, screenings and quests — every gathering the
+            collective is running.
+          </p>
+
+          {nextGathering ? (
+            <>
+              {/* Next up, spelled out in full */}
+              <div className="mm-glass mt-8 flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-start gap-4">
+                  <Icon
+                    icon="game-icons:tower-flag"
+                    width={34}
+                    className="mt-1 shrink-0 text-[var(--mm-gold)]"
+                  />
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <p className="text-xs uppercase tracking-widest text-[var(--mm-gold)]">
+                        Next gathering
+                      </p>
+                      {isEventLive(nextGathering) && (
+                        <Badge color="var(--mm-live)" dot>
+                          Live now
+                        </Badge>
+                      )}
+                    </div>
+                    <h3 className="mt-1.5 font-[family-name:var(--font-display)] text-2xl">
+                      {nextGathering.title}
+                    </h3>
+                    <p className="mt-2 max-w-xl text-sm text-[var(--mm-text-dim)]">
+                      {nextGathering.summary}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-[var(--mm-text-dim)]">
+                      <span className="flex items-center gap-1.5">
+                        <Icon
+                          icon="mdi:clock-outline"
+                          width={15}
+                          className="text-[var(--mm-gold)]"
+                        />
+                        {formatDateTime(nextGathering.startsAt)}
+                      </span>
+                      {nextGathering.location && (
+                        <span className="flex items-center gap-1.5">
+                          <Icon
+                            icon="mdi:map-marker-outline"
+                            width={15}
+                            className="text-[var(--mm-gold)]"
+                          />
+                          {nextGathering.location}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <Link
+                  href={eventHref(nextGathering.slug)}
+                  className="mm-btn mm-btn-primary shrink-0 text-sm"
+                >
+                  {loggedIn ? "Read more" : "Sign in for details"}{" "}
+                  <Icon icon="mdi:arrow-right" width={16} />
+                </Link>
+              </div>
+
+              {/* The rest of the diary, at a glance */}
+              {upcoming.length > 1 && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {upcoming.slice(1).map((e) => (
+                    <Link
+                      key={e.slug}
+                      href={eventHref(e.slug)}
+                      className="mm-glass group flex items-center gap-4 p-4 transition hover:border-[var(--mm-violet)]"
+                    >
+                      <Icon
+                        icon="game-icons:campfire"
+                        width={22}
+                        className="shrink-0 text-[var(--mm-gold)]"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-[family-name:var(--font-display)] group-hover:text-[var(--mm-gold)]">
+                          {e.title}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-[var(--mm-text-dim)]">
+                          {formatDateTime(e.startsAt)}
+                          {e.location ? ` · ${e.location}` : ""}
+                        </span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {/* Full month view — read-only for signed-out visitors */}
+              <div className="mt-6">
+                <EventCalendar
+                  events={calEvents}
+                  todayIso={nowIso}
+                  linkEvents={loggedIn}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="mm-glass mt-8 p-8 text-center text-[var(--mm-text-dim)]">
+              The calendar is quiet just now — the next gathering will appear
+              here as soon as it&apos;s called.
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ---------------- Gallery ---------------- */}
+      {galleryTiles.length > 0 && (
+        <section id="gallery" className="scroll-mt-20 bg-[var(--mm-bg)]">
+          <div className="mx-auto max-w-6xl px-6 py-20">
+            <SectionTitle
+              icon="mdi:image-multiple-outline"
+              lead="The"
+              accent="Gallery"
+            />
+            <p className="mt-3 text-[var(--mm-text-dim)]">
+              Moments from the hall — cosplay, minis, fan art and builds.
+            </p>
+            <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+              {galleryTiles.map((tile, i) => (
+                <div
+                  key={i}
+                  className="group relative h-44 overflow-hidden rounded-2xl border border-[var(--mm-border)]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={tile.imageUrl}
+                    alt={tile.caption ?? ""}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  {tile.caption && (
+                    <div
+                      className="absolute inset-x-0 bottom-0 p-3"
+                      style={{
+                        background:
+                          "linear-gradient(to top, rgba(11,15,28,0.9), transparent)",
+                      }}
+                    >
+                      <span className="text-sm font-medium text-[var(--mm-text)]">
+                        {tile.caption}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ---------------- Partners ---------------- */}
+      <section
+        id="partners"
+        className="relative isolate scroll-mt-20 overflow-hidden"
+      >
         <ImageBackdrop src={BG2} overlay={bandOverlay} />
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-70">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 opacity-70"
+        >
           <ParticleField color="108, 184, 255" />
         </div>
-        <div className="mx-auto flex min-h-[480px] max-w-6xl flex-col justify-center px-6 py-20 sm:min-h-[660px]">
+        <div className="mx-auto max-w-6xl px-6 py-20">
           <SectionTitle
-            icon="mdi:account-group-outline"
+            icon="game-icons:anvil"
             lead="Our"
-            accent="community"
+            accent="partners"
             right={
               <Link
-                href="/armory"
-                className="inline-flex items-center gap-1.5 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
+                href="/apply"
+                className="inline-flex shrink-0 items-center gap-1.5 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
               >
-                Meet our partners <Icon icon="mdi:arrow-right" width={16} />
+                Apply for a stall <Icon icon="mdi:arrow-right" width={16} />
               </Link>
             }
           />
           <p className="mt-3 max-w-2xl text-[var(--mm-text-dim)]">
-            One hearth for the whole collective — whatever your flavour of geek,
-            there&apos;s a table with your name on it.
+            Artisans from across the collective — makers, artists and shops
+            setting out their wares.
           </p>
-          <a
-            href={DISCORD}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mm-btn mt-5 text-white"
-            style={{ background: "#5865F2" }}
-          >
-            <Icon icon="mdi:discord" width={18} /> Join our Discord
-          </a>
-          <div className="mt-8 grid gap-4 md:grid-cols-4">
-            {FEATURES.map((g) => (
-              <div
-                key={g.k}
-                className="mm-glass flex flex-col items-start gap-3 p-6 transition hover:border-[var(--mm-violet)]"
-              >
-                <Icon icon={g.icon} width={34} className="text-[var(--mm-gold)]" />
-                <div>
-                  <p className="font-[family-name:var(--font-display)] text-sm tracking-widest">
-                    {g.k}
+
+          {featuredPartners.length === 0 ? (
+            <div className="mm-glass mt-8 p-8 text-center text-[var(--mm-text-dim)]">
+              The first stalls are still being set up. Want one?{" "}
+              <Link href="/apply" className="text-[var(--mm-gold)] underline">
+                Apply to join
+              </Link>
+              .
+            </div>
+          ) : (
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredPartners.map((p) => (
+                <Link
+                  key={p.slug}
+                  href={loggedIn ? `/partners/${p.slug}` : "/login"}
+                  className="mm-glass group flex flex-col p-6 transition hover:border-[var(--mm-violet)]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <Icon
+                      icon="game-icons:anvil"
+                      width={28}
+                      className="text-[var(--mm-gold)]"
+                    />
+                    {p.isPremium && (
+                      <Badge color="var(--mm-gold)" icon="mdi:crown">
+                        Premium
+                      </Badge>
+                    )}
+                  </div>
+                  <h3 className="mt-4 font-[family-name:var(--font-display)] text-lg group-hover:text-[var(--mm-gold)]">
+                    {p.businessName}
+                  </h3>
+                  {p.categoryName && (
+                    <span className="mt-1.5 inline-block w-fit">
+                      <Badge color="var(--mm-violet)">{p.categoryName}</Badge>
+                    </span>
+                  )}
+                  <p className="mt-2 flex-1 text-sm text-[var(--mm-text-dim)]">
+                    {p.tagline}
                   </p>
-                  <p className="mt-1 text-xs text-[var(--mm-text-dim)]">{g.d}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* ---------------- Final call — plain ---------------- */}
+      {/* ---------------- Final call ---------------- */}
       <section className="bg-[var(--mm-bg)]">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center">
           <Icon
@@ -288,14 +430,30 @@ export default async function HomePage() {
             Ready to <span className="mm-gradient-text">begin?</span>
           </h2>
           <p className="mt-4 text-[var(--mm-text-dim)]">
-            Join the guild, take up quests, and earn your renown.
+            Sign in to join events and take up quests — or come say hello on
+            Discord first.
           </p>
-          <Link
-            href="/login"
-            className="mm-btn mm-btn-primary mx-auto mt-8 w-fit"
-          >
-            <Icon icon="mdi:login-variant" width={18} /> Enter the hall
-          </Link>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <Link
+              href={loggedIn ? "/dashboard" : "/login"}
+              className="mm-btn mm-btn-primary"
+            >
+              <Icon
+                icon={loggedIn ? "game-icons:castle" : "mdi:account"}
+                width={18}
+              />{" "}
+              {loggedIn ? "Enter the Guild Hall" : "Enter the hall"}
+            </Link>
+            <a
+              href={DISCORD}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mm-btn !rounded-xl text-white"
+              style={{ background: "#5865F2" }}
+            >
+              <Icon icon="mdi:discord" width={18} /> Join our Discord
+            </a>
+          </div>
         </div>
       </section>
     </div>

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."claim_outcome" ADD VALUE 'rate_limited';

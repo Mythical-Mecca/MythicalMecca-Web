@@ -1,12 +1,13 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Discord from "next-auth/providers/discord";
+import Credentials from "next-auth/providers/credentials";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { put } from "@vercel/blob";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, accounts, sessions, verificationTokens } from "@/lib/db/schema";
-import type { Role } from "@/lib/rbac";
+import { normalizeRole, type Role } from "@/lib/rbac";
 
 /**
  * Pull a provider avatar (Google/Discord) into our own Blob the first time we
@@ -56,6 +57,53 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
+/**
+ * Local-only sign-in bypass (triggered by 5 clicks on the visitor logo).
+ * Defense in depth — the UI trigger is NOT the security boundary:
+ *  1. The provider is only registered when NODE_ENV === "development"
+ *     (never true in a production build, on Vercel or anywhere else).
+ *  2. authorize() re-checks the env AND that the request host is localhost.
+ */
+const DEV_LOGIN_ENABLED = process.env.NODE_ENV === "development";
+const DEV_LOGIN_EMAIL = process.env.DEV_LOGIN_EMAIL ?? "test@localhost.dev";
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+
+const devBypassProvider = Credentials({
+  id: "dev-bypass",
+  name: "Dev bypass",
+  credentials: {},
+  async authorize(_credentials, request) {
+    if (process.env.NODE_ENV !== "development") return null;
+    if (!process.env.DATABASE_URL) return null;
+    try {
+      if (!LOCAL_HOSTS.has(new URL(request.url).hostname)) return null;
+    } catch {
+      return null;
+    }
+    // Find-or-create the test account (member role; add DEV_LOGIN_EMAIL to
+    // ADMIN_EMAILS locally if you need the admin view).
+    const [existing] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, DEV_LOGIN_EMAIL))
+      .limit(1);
+    const user =
+      existing ??
+      (
+        await db
+          .insert(users)
+          .values({
+            email: DEV_LOGIN_EMAIL,
+            name: "Test Adventurer",
+            role: "member",
+          })
+          .returning()
+      )[0];
+    if (!user) return null;
+    return { id: user.id, email: user.email, name: user.name, role: user.role };
+  },
+});
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db, {
     usersTable: users,
@@ -68,6 +116,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // either Google or Discord (and link both from their character sheet).
     Google({ allowDangerousEmailAccountLinking: true }),
     Discord({ allowDangerousEmailAccountLinking: true }),
+    ...(DEV_LOGIN_ENABLED ? [devBypassProvider] : []),
   ],
   session: { strategy: "jwt" },
   pages: {
@@ -78,8 +127,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // `user` is present on initial sign-in (from the Drizzle adapter row).
       if (user) {
         token.uid = user.id;
-        token.role = ((user as { role?: Role }).role ?? "member") as Role;
+        token.role = normalizeRole((user as { role?: string }).role ?? "member");
       }
+      // Heal legacy "vendor" roles carried in older JWTs after the rename.
+      if (token.role) token.role = normalizeRole(token.role as string);
       // Bootstrap admins from the allowlist regardless of stored role.
       if (token.email && ADMIN_EMAILS.includes(token.email.toLowerCase())) {
         token.role = "admin";

@@ -6,7 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * <img>/next-image. Private blobs have no public URL — the only way to read one
  * is `get(pathname, { access: "private" })` with the store's read-write token.
  *
- * These are public display assets (avatars, vendor galleries, banners), so there
+ * These are public display assets (avatars, partner galleries, banners), so there
  * is no per-user gate — the unguessable pathname is the capability. We support
  * conditional requests (ETag/If-None-Match → 304) to avoid re-streaming bytes.
  */

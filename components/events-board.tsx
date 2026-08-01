@@ -13,6 +13,7 @@ import {
   FormSection,
   PageHeader,
 } from "./form";
+import { PickerField } from "./picker-field";
 import { ImageUploader } from "./image-uploader";
 import { createEvent } from "@/app/(admin)/actions";
 
@@ -24,6 +25,8 @@ type Ev = {
   endsAt: string | null;
   status: string;
 };
+
+type PartnerOption = { id: string; name: string };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -45,10 +48,11 @@ function fmtDay(iso: string) {
   });
 }
 
-function NewEventForm() {
+function NewEventForm({ partners }: { partners: PartnerOption[] }) {
   const [state, formAction, pending] = useActionState(createEvent, {});
   const [titleOk, setTitleOk] = useState(false);
   const [sched, setSched] = useState({ startsAt: "", endsAt: "" });
+  const [origin, setOrigin] = useState("hosted");
 
   const valid = titleOk && sched.startsAt !== "" && sched.endsAt !== "";
 
@@ -70,6 +74,45 @@ function NewEventForm() {
         description="A one-line teaser shown in listings."
         placeholder="One-liner"
       />
+      <PickerField
+        name="origin"
+        label="Origin"
+        icon="mdi:source-branch"
+        description="Who runs this event?"
+        value={origin}
+        onValueChange={setOrigin}
+        options={[
+          { value: "hosted", label: "Official", hint: "Hosted by us.", icon: "game-icons:castle" },
+          { value: "partner", label: "Partner", hint: "Hosted by one of our partners.", icon: "game-icons:anvil" },
+          { value: "external", label: "External", hint: "Someone else's event that we're sharing.", icon: "mdi:web" },
+        ]}
+      />
+      {origin === "partner" && (
+        <PickerField
+          name="partnerId"
+          label="Partner"
+          icon="game-icons:anvil"
+          placeholder="Pick the hosting partner"
+          options={partners.map((p) => ({ value: p.id, label: p.name, icon: "game-icons:anvil" }))}
+        />
+      )}
+      {origin === "external" && (
+        <div className="grid gap-5 sm:grid-cols-2">
+          <TextField
+            name="sourceName"
+            label="Source"
+            icon="mdi:web"
+            placeholder="Who runs it? e.g. Cape Town Geek Fest"
+          />
+          <TextField
+            name="externalUrl"
+            label="Event link"
+            icon="mdi:open-in-new"
+            type="url"
+            placeholder="https://…"
+          />
+        </div>
+      )}
       <LocationField />
       <FormSection title="When" icon="mdi:calendar-clock">
         <EventSchedule onChange={setSched} />
@@ -125,7 +168,13 @@ function NewEventForm() {
   );
 }
 
-export function EventsBoard({ events }: { events: Ev[] }) {
+export function EventsBoard({
+  events,
+  partners = [],
+}: {
+  events: Ev[];
+  partners?: PartnerOption[];
+}) {
   const [today] = useState(() => new Date());
   const [cursor, setCursor] = useState(
     () => new Date(today.getFullYear(), today.getMonth(), 1)
@@ -192,7 +241,7 @@ export function EventsBoard({ events }: { events: Ev[] }) {
             triggerLabel="New event"
             triggerIcon="mdi:plus"
           >
-            <NewEventForm />
+            <NewEventForm partners={partners} />
           </Drawer>
         }
       />

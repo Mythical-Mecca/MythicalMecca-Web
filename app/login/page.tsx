@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { signIn, auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { AuroraField } from "@/components/aurora-field";
+import { AuroraField } from "@/components/animations/aurora-field";
 import { Icon } from "@/components/icon";
 import { LogoMark } from "@/components/brand";
 
@@ -19,7 +19,7 @@ export default async function LoginPage({
       <div
         aria-hidden
         className="absolute inset-0 -z-20 bg-cover bg-center"
-        style={{ backgroundImage: "url('/MythicMechaAuthBackground.png')" }}
+        style={{ backgroundImage: "url('/MythicMechaAuthBackground.webp')" }}
       />
       <div
         aria-hidden

@@ -2,30 +2,40 @@
 
 ## Directory structure
 
+Removed features are deleted outright, not hidden — `next.config.ts` redirects
+their old URLs to the nearest live section so nothing 404s. Restoring one means
+recovering it from git history and writing a fresh migration.
+
+Cut from the launch scope (code and tables deleted): **news**, **guilds**,
+**lists**, **arcade**, **LFG** (LFG runs in Discord for now).
+
 ```
 app/
-├─ (public)/                 # Recruit — public, SSR/SEO, flashy
-│   ├─ page.tsx              # home
-│   ├─ news/[slug]/
-│   ├─ events/[id]/          # public event page
-│   ├─ armory/               # vendor gallery
-│   └─ collab/               # distress beacon form
-├─ (app)/                    # Pilot — guarded (member+)
+├─ (public)/                 # public — strict one-pager, SSR/SEO, flashy
+│   ├─ page.tsx              # the whole public site: about / events / gallery / partners
+│   └─ collab/               # contact form
+├─ (app)/                    # guarded (member+)
 │   ├─ layout.tsx            # re-verifies session server-side
 │   ├─ dashboard/
 │   ├─ profile/
-│   ├─ vendor-application/
-│   └─ events/[id]/live/     # live sortie view
-├─ (vendor)/                 # Forge — guarded (vendor+), dashboard shell
-│   └─ forge/...
-├─ (admin)/                  # Command — guarded (admin), dashboard shell
-│   └─ command/...
+│   ├─ apply/                # partner application wizard
+│   ├─ events/               # index + [slug] + submit
+│   ├─ partners/             # index + [slug]
+│   └─ quests/               # index + [slug] + scan
+├─ (partner)/                # guarded (partner+), dashboard shell
+│   └─ partner-hub/...
+├─ (admin)/                  # guarded (admin), dashboard shell
+│   └─ admin/...             # events, gallery, partners, reviews, telemetry
 ├─ api/
 │   ├─ auth/[...nextauth]/
-│   ├─ upload/               # Vercel Blob client-token + finalize
-│   ├─ hunt/scan/            # QR uplink verify
-│   └─ log/hit/              # page-hit beacon
-└─ actions/                  # server actions (mutations, deep authz)
+│   ├─ chat/[scopeType]/[scopeId]/   # polling chat
+│   ├─ events/[slug]/ics/    # add-to-calendar
+│   ├─ media/                # blob proxy (obscured keys)
+│   └─ upload/               # Vercel Blob client-token + finalize
+└─ login/
+
+# Server actions live beside the routes that use them —
+# app/(app)/events/actions.ts, app/(admin)/actions*.ts — not in a central folder.
 
 lib/
 ├─ db/ (drizzle schema, client)
@@ -52,8 +62,8 @@ import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 const RULES: { prefix: string; min: Role }[] = [
-  { prefix: "/command", min: "admin" },
-  { prefix: "/forge",   min: "vendor" },
+  { prefix: "/admin", min: "admin" },
+  { prefix: "/partner-hub",   min: "vendor" },
   { prefix: "/dashboard", min: "member" },
   { prefix: "/profile",   min: "member" },
 ];
@@ -71,7 +81,7 @@ export async function proxy(req) {
   return withSecurityHeaders(NextResponse.next());
 }
 
-export const config = { matcher: ["/command/:path*","/forge/:path*","/dashboard/:path*","/profile/:path*"] };
+export const config = { matcher: ["/admin/:path*","/partner-hub/:path*","/dashboard/:path*","/profile/:path*"] };
 ```
 
 > Defense in depth: `proxy.ts` is the fast gate. Each guarded route group's

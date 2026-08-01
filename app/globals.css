@@ -7,6 +7,8 @@
   /* accent: saber blue (matches the blade in the background art) */
   --mm-blue: #4aa8ff;
   --mm-violet: #2c7be5;
+  /* quests / LFG / guild accent (distinct purple, not the blue --mm-violet) */
+  --mm-purple: #9a6cff;
   /* deep navy base so navy chrome + blue accent + gold all sit together */
   --mm-bg: #0b0f1c;
   --mm-surface: #131b30;
@@ -47,13 +49,88 @@ html {
 body {
   background-color: var(--mm-bg);
   color: var(--mm-text);
-  font-family: var(--font-sans), Georgia, serif;
-  /* cool moonlit ambience with a faint gold hearth-hint from below */
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+}
+
+/* ---------------------------------------------------------------------------
+   Scrollbars — the OS default is a bright slab against a dark UI. Style the
+   page scrollbar to sit in the theme, and reserve its gutter so opening a
+   modal (which locks scrolling) doesn't shift the layout.
+   --------------------------------------------------------------------------- */
+html {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mm-border) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--mm-border) 85%, transparent);
+  border-radius: 9999px;
+  /* Inset the thumb so it reads as a slim pill, not a full-width bar. */
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--mm-gold) 55%, var(--mm-border));
+  background-clip: content-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Scroll containers *inside* panels (the nav menu body, drawers). Same look,
+   slightly slimmer, and the thumb only appears once there's overflow. */
+.mm-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--mm-gold) 40%, var(--mm-border))
+    transparent;
+  overscroll-behavior: contain;
+}
+.mm-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.mm-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--mm-gold) 32%, var(--mm-border));
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.mm-scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--mm-gold) 70%, var(--mm-border));
+  background-clip: content-box;
+}
+
+/* Touch devices never fire :hover, so tiles/links could feel "dead" on tap.
+   Give every interactive element a snappy tap highlight + kill the 300ms delay. */
+a,
+button,
+[role="button"] {
+  -webkit-tap-highlight-color: color-mix(in srgb, var(--mm-gold) 20%, transparent);
+  touch-action: manipulation;
+}
+
+/* Cool moonlit ambience with a faint gold hearth-hint from below.
+   Painted on a fixed, compositor-owned layer instead of
+   `background-attachment: fixed`, which forced a full repaint of the
+   gradients on every scroll frame. z-index sits behind page chrome and the
+   AppBackdrop (which uses -z-10). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -20;
+  pointer-events: none;
   background-image:
     radial-gradient(circle at 50% -10%, rgba(44, 123, 229, 0.16), transparent 52%),
     radial-gradient(circle at 100% 0%, rgba(74, 168, 255, 0.08), transparent 45%),
     radial-gradient(circle at 50% 115%, rgba(225, 141, 1, 0.06), transparent 50%);
-  background-attachment: fixed;
 }
 
 @layer components {
@@ -64,17 +141,24 @@ body {
     color: transparent;
   }
 
+  /* NOTE: no backdrop-filter here on purpose. Cards sit above continuously
+     animating canvas backdrops, so a blur would be recomputed for every card
+     region on every canvas frame — it was the page's biggest jank source.
+     A slightly more opaque surface keeps the glassy read at ~zero cost. */
   .mm-glass {
-    background: color-mix(in srgb, var(--mm-surface) 58%, transparent);
+    background: color-mix(in srgb, var(--mm-surface) 80%, transparent);
     border: 1px solid color-mix(in srgb, var(--mm-border) 80%, transparent);
     border-radius: var(--radius-card);
-    backdrop-filter: blur(10px);
   }
 
   .mm-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
+    /* 44px floor: the WCAG target size, and the difference between hitting a
+       button first time and third time while walking through a crowd. */
+    min-height: 44px;
     padding: 0.6rem 1.4rem;
     border-radius: var(--radius-pill);
     font-weight: 500;
@@ -82,29 +166,31 @@ body {
     transition: transform 0.12s ease, box-shadow 0.2s ease, background 0.2s ease;
     cursor: pointer;
   }
-  .mm-btn:hover {
-    transform: translateY(-1px);
-  }
 
   .mm-btn-primary {
-    background: color-mix(in srgb, var(--mm-gold) 88%, transparent);
+    background: color-mix(in srgb, var(--mm-gold) 92%, transparent);
     color: #160f0a;
-    backdrop-filter: blur(6px);
   }
-  .mm-btn-primary:hover {
-    background: var(--mm-gold-hi);
-    box-shadow: 0 0 26px rgba(225, 141, 1, 0.45);
+  @media (hover: hover) {
+    .mm-btn:hover {
+      transform: translateY(-1px);
+    }
+    .mm-btn-primary:hover {
+      background: var(--mm-gold-hi);
+      box-shadow: 0 0 26px rgba(225, 141, 1, 0.45);
+    }
   }
 
   .mm-btn-ghost {
-    background: color-mix(in srgb, var(--mm-surface) 32%, transparent);
+    background: color-mix(in srgb, var(--mm-surface) 52%, transparent);
     color: var(--mm-text);
     border: 1px solid color-mix(in srgb, var(--mm-border) 85%, transparent);
-    backdrop-filter: blur(6px);
   }
-  .mm-btn-ghost:hover {
-    border-color: var(--mm-gold);
-    background: color-mix(in srgb, var(--mm-surface) 48%, transparent);
+  @media (hover: hover) {
+    .mm-btn-ghost:hover {
+      border-color: var(--mm-gold);
+      background: color-mix(in srgb, var(--mm-surface) 48%, transparent);
+    }
   }
 
   .mm-dot-live {
@@ -128,43 +214,60 @@ body {
   }
 }
 
-/* Animated rotating border — two bright arcs (gold + saber-blue) chase
-   around the edge. Used on the nav menu dialog. */
-@property --mm-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
+/* ---------------------------------------------------------------------------
+   Modal enter/exit. The "from" state comes from @starting-style, so the panel
+   animates in on its very first rendered frame with no JS timer to defer it —
+   the menu reacts to the click immediately. Only the exit needs JS, to hold the
+   node in the tree for one transition before unmounting.
+   Browsers without @starting-style simply show it instantly; nothing breaks.
+   --------------------------------------------------------------------------- */
+.mm-pop {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 180ms ease-out, transform 180ms ease-out;
+}
+@starting-style {
+  .mm-pop {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.mm-pop[data-closing="true"] {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.mm-fade {
+  opacity: 1;
+  transition: opacity 180ms ease-out;
+}
+@starting-style {
+  .mm-fade {
+    opacity: 0;
+  }
+}
+.mm-fade[data-closing="true"] {
+  opacity: 0;
+}
+
+/* Admin backdrop cogs. Duration/direction come from inline styles per gear.
+   `will-change` promotes each gear to its own layer so the rotation is a
+   composited transform instead of a per-frame re-rasterisation of the dashed
+   stroke geometry. */
+.mm-gear {
+  animation-name: mm-gear-spin;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes mm-gear-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @layer components {
-  .mm-rota {
-    position: relative;
-  }
-  .mm-rota::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 2px;
-    background: conic-gradient(
-      from var(--mm-angle),
-      transparent 0deg,
-      var(--mm-gold-hi) 16deg,
-      transparent 72deg,
-      transparent 180deg,
-      var(--mm-blue) 196deg,
-      transparent 252deg,
-      transparent 360deg
-    );
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    animation: mm-rota-spin 4s linear infinite;
-    pointer-events: none;
-  }
-
   /* Icon-only golden menu trigger in the top nav. */
   .mm-menu-trigger {
     display: grid;
@@ -180,17 +283,17 @@ body {
   }
   .mm-menu-trigger:hover {
     background: var(--mm-gold-hi);
-    transform: translateY(-1px) scale(1.06);
-    box-shadow: 0 0 22px rgba(225, 141, 1, 0.55);
+    transform: translateY(-1px);
+    box-shadow: 0 0 10px rgba(225, 141, 1, 0.3);
   }
   .mm-menu-trigger:active {
-    transform: scale(0.97);
+    transform: scale(0.98);
   }
   .mm-menu-trigger-icon {
-    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.25s ease;
   }
   .mm-menu-trigger:hover .mm-menu-trigger-icon {
-    transform: rotate(90deg);
+    transform: rotate(45deg);
   }
 
   /* Animated "back to dashboard" pill — arrow nudges left on a loop, then
@@ -203,9 +306,8 @@ body {
     border-radius: 9999px;
     font-size: 0.8125rem;
     color: var(--mm-text-dim);
-    background: color-mix(in srgb, var(--mm-surface) 50%, transparent);
+    background: color-mix(in srgb, var(--mm-surface) 68%, transparent);
     border: 1px solid color-mix(in srgb, var(--mm-border) 85%, transparent);
-    backdrop-filter: blur(8px);
     transition: color 0.2s ease, border-color 0.25s ease, box-shadow 0.3s ease,
       transform 0.2s ease;
   }
@@ -236,21 +338,16 @@ body {
   }
 }
 
-@keyframes mm-rota-spin {
-  to {
-    --mm-angle: 360deg;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .mm-dot-live {
     animation: none;
   }
+  .mm-gear {
+    animation: none;
+    will-change: auto;
+  }
   .mm-btn:hover {
     transform: none;
-  }
-  .mm-rota::before {
-    animation: none;
   }
   .mm-menu-trigger:hover {
     transform: none;

@@ -5,23 +5,28 @@ import { usePathname } from "next/navigation";
 import { Icon } from "./icon";
 
 const LABELS: Record<string, string> = {
-  dashboard: "Guild Hall",
+  dashboard: "Dashboard",
+  // sections
   events: "Events",
-  hunts: "Quests",
-  hunt: "Quests",
-  arcade: "Training Yard",
-  armory: "Partners",
-  profile: "Character",
-  "vendor-application": "Vendor application",
-  forge: "Forge",
-  command: "The Keep",
-  news: "News",
+  quests: "Quests",
+  // sub-sections
+  partners: "Partners",
+  profile: "Profile",
+  apply: "Partner application",
+  submit: "Submit",
+  queue: "Queue",
+  "partner-hub": "Partner Hub",
+  admin: "Admin",
+  categories: "Categories",
+  applications: "Applications",
+  reviews: "Reviews",
+  gallery: "Gallery",
+  telemetry: "Logs",
   collab: "Contact",
   scan: "Scan",
+  station: "Station",
+  q: "Check in",
 };
-
-// segments that aren't real pages on their own → don't link them
-const REROUTE: Record<string, string> = { hunt: "/hunts" };
 
 function humanize(seg: string): string {
   return seg
@@ -29,15 +34,35 @@ function humanize(seg: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Raw ids and signed tag tokens are noise in a breadcrumb — "Station /
+ * D0547017 Abcd 4f37…" tells nobody anything. Slugs still read fine, so only
+ * opaque segments are dropped.
+ */
+function isOpaqueId(seg: string): boolean {
+  return UUID.test(seg) || (seg.length > 24 && !seg.includes("-"));
+}
+
 export function Breadcrumbs() {
   const path = usePathname();
   if (!path || path === "/" || path === "/dashboard") return null;
 
   const segs = path.split("/").filter(Boolean);
-  const crumbs = segs.map((seg, i) => ({
-    href: REROUTE[seg] ?? "/" + segs.slice(0, i + 1).join("/"),
-    label: LABELS[seg] ?? humanize(decodeURIComponent(seg)),
-    last: i === segs.length - 1,
+  const visible = segs
+    .map((seg, i) => ({
+      href: "/" + segs.slice(0, i + 1).join("/"),
+      seg,
+      label: LABELS[seg] ?? humanize(decodeURIComponent(seg)),
+    }))
+    .filter((c) => !isOpaqueId(c.seg));
+  // Recomputed after filtering: dropping a trailing id promotes its parent to
+  // last, and the last crumb must render as text rather than a link to a URL
+  // that may not resolve on its own (e.g. /q).
+  const crumbs = visible.map((c, i) => ({
+    ...c,
+    last: i === visible.length - 1,
   }));
 
   return (
@@ -49,7 +74,7 @@ export function Breadcrumbs() {
         href="/dashboard"
         className="inline-flex items-center gap-1 hover:text-[var(--mm-text)]"
       >
-        <Icon icon="game-icons:castle" width={15} /> Guild Hall
+        <Icon icon="game-icons:castle" width={15} /> Dashboard
       </Link>
       {crumbs.map((c) => (
         <span key={c.href + c.label} className="flex items-center gap-1.5">

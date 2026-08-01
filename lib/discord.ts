@@ -13,16 +13,14 @@ import "server-only";
  * logged but never throws, so they can't break the flow that triggers them.
  */
 
-export type DiscordChannel = "news" | "events";
+export type DiscordChannel = "events";
 
 const CHANNEL_ENV: Record<DiscordChannel, string> = {
-  news: "DISCORD_WEBHOOK_NEWS",
   events: "DISCORD_WEBHOOK_EVENTS",
 };
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "";
 
-const GOLD = 0xE18D01;
 const GREEN = 0x5cc08c;
 
 type Embed = {
@@ -75,25 +73,6 @@ async function send(
     console.error(`[discord] "${channel}" webhook request failed`, err);
     return false;
   }
-}
-
-/** Announce a freshly published news post. */
-export async function announcePost(p: {
-  title: string;
-  excerpt?: string | null;
-  slug: string;
-}): Promise<boolean> {
-  return send("news", {
-    content: "📜 **New post on Mythical Mecca**",
-    embeds: [
-      {
-        title: p.title,
-        description: p.excerpt || undefined,
-        url: absoluteUrl(`/news/${p.slug}`),
-        color: GOLD,
-      },
-    ],
-  });
 }
 
 /** Announce a freshly scheduled gathering/event. */

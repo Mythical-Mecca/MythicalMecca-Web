@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { Icon } from "./icon";
-import { ParticleField } from "./particle-field";
+import { ParticleField } from "./animations/particle-field";
 
 type Status = "uploading" | "done" | "error";
 type Item = {

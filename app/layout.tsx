@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
-import { Cinzel, EB_Garamond, JetBrains_Mono } from "next/font/google";
+import { Alegreya_Sans_SC, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const display = Cinzel({
+// Display: a small-caps humanist SANS — keeps the carved-inscription fantasy
+// character Cinzel gave us, but far more readable at every size.
+const display = Alegreya_Sans_SC({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["500", "600", "700", "900"],
+  weight: ["500", "700", "800"],
 });
 
-const sans = EB_Garamond({
+// Body/secondary: neutral, highly readable workhorse sans.
+const sans = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
 });
@@ -21,7 +24,7 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Mythical Mecca — the Adventurers' Guild",
   description:
-    "A homebase for the geek collective. Gather, quest, and earn your renown.",
+    "A homebase for the geek collective. Gather, quest, and find your people.",
 };
 
 export default function RootLayout({

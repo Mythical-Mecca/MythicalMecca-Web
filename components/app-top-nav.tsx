@@ -1,115 +1,127 @@
-import Link from "next/link";
 import { signOut } from "@/lib/auth";
 import { roleAtLeast, type Role } from "@/lib/rbac";
-import { Icon } from "@/components/icon";
-import { NavMenu, type NavMenuItem } from "@/components/nav-menu";
+import {
+  NavMenu,
+  type NavMenuItem,
+  type NavMenuSection,
+} from "@/components/nav-menu";
 import { Brand } from "@/components/brand";
 
-const NAV: NavMenuItem[] = [
-  {
+async function signOutAction() {
+  "use server";
+  await signOut({ redirectTo: "/" });
+}
+
+/**
+ * News, guilds, lists, the arcade and LFG are cut from the launch scope — their
+ * code and tables are gone (LFG lives in Discord for now). Old URLs redirect to
+ * a live section via next.config.ts.
+ */
+const ITEMS = {
+  dashboard: {
     href: "/dashboard",
-    title: "Guild Hall",
+    title: "Dashboard",
     desc: "Your home base & standing",
     icon: "game-icons:castle",
     color: "#4aa8ff",
   },
-  {
+  profile: {
+    href: "/profile",
+    title: "Profile",
+    desc: "Your hero & achievements",
+    icon: "game-icons:visored-helm",
+    color: "#4aa8ff",
+  },
+  events: {
     href: "/events",
     title: "Events",
-    desc: "Feasts, gatherings & quests",
+    desc: "Feasts, gatherings & tournaments",
     icon: "game-icons:campfire",
     color: "#5cc08c",
   },
-  {
-    href: "/hunts",
+  quests: {
+    href: "/quests",
     title: "Quests",
     desc: "Scavenger trails & leaderboards",
-    icon: "game-icons:crossed-swords",
-    color: "#9a6cff",
+    icon: "game-icons:treasure-map",
+    color: "#5cc08c",
   },
-  {
-    href: "/arcade",
-    title: "Training Yard",
-    desc: "Trials of skill",
-    icon: "mdi:target",
-    color: "#48c8d6",
-  },
-  {
-    href: "/armory",
+  partners: {
+    href: "/partners",
     title: "Partners",
-    desc: "The Armory — makers & merchants",
+    desc: "Makers, merchants & artists",
     icon: "game-icons:anvil",
+    color: "#5cc08c",
+  },
+  partnerHub: {
+    href: "/partner-hub",
+    title: "Partner Hub",
+    desc: "Manage your shop & gallery",
+    icon: "mdi:storefront-outline",
     color: "#E18D01",
   },
-  {
-    href: "/profile",
-    title: "Character",
-    desc: "Your hero & achievements",
-    icon: "game-icons:visored-helm",
-    color: "#e0b0ff",
+  apply: {
+    href: "/apply",
+    title: "Apply for a stall",
+    desc: "Become a Mythical Mecca partner",
+    icon: "game-icons:shop",
+    color: "#E18D01",
   },
-];
+  admin: {
+    href: "/admin",
+    title: "Admin",
+    desc: "Site management",
+    icon: "game-icons:tower-flag",
+    color: "#FFB13D",
+  },
+} satisfies Record<string, NavMenuItem>;
 
-const FORGE_ITEM: NavMenuItem = {
-  href: "/forge",
-  title: "Forge",
-  desc: "Vendor workshop",
-  icon: "game-icons:anvil",
-  color: "#E18D01",
-};
-
-const KEEP_ITEM: NavMenuItem = {
-  href: "/command",
-  title: "The Keep",
-  desc: "Command & control",
-  icon: "game-icons:tower-flag",
-  color: "#FFB13D",
-};
-
-export function AppTopNav({
-  role,
-  liveEvent,
-}: {
-  role: Role;
-  liveEvent: { slug: string; title: string } | null;
-}) {
-  const items: NavMenuItem[] = [
-    ...NAV,
-    ...(roleAtLeast(role, "vendor") ? [FORGE_ITEM] : []),
-    ...(roleAtLeast(role, "admin") ? [KEEP_ITEM] : []),
+function buildSections(role: Role): NavMenuSection[] {
+  const isPartner = roleAtLeast(role, "partner");
+  return [
+    {
+      title: "Home base",
+      subtitle: "Your standing & story",
+      icon: "game-icons:castle",
+      color: "#4aa8ff",
+      items: [ITEMS.dashboard, ITEMS.profile],
+    },
+    {
+      title: "The hall",
+      subtitle: "Gather, play & explore",
+      icon: "game-icons:campfire",
+      color: "#5cc08c",
+      items: [ITEMS.events, ITEMS.quests, ITEMS.partners],
+    },
+    {
+      title: "Marketplace",
+      subtitle: "Makers & merchants",
+      icon: "game-icons:anvil",
+      color: "#E18D01",
+      items: isPartner ? [ITEMS.partnerHub] : [ITEMS.apply],
+    },
+    {
+      title: "Manage",
+      subtitle: "Command & control",
+      icon: "game-icons:tower-flag",
+      color: "#FFB13D",
+      items: roleAtLeast(role, "admin") ? [ITEMS.admin] : [],
+    },
   ];
+}
+
+export function AppTopNav({ role }: { role: Role }) {
+  const sections = buildSections(role);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_62%,transparent)] backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_45%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_88%,transparent)]">
       <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3.5">
-        <div className="flex min-w-0 items-center gap-4">
-          <Brand href="/dashboard" className="shrink-0" />
-          {liveEvent && (
-            <Link
-              href={`/events/${liveEvent.slug}`}
-              className="hidden min-w-0 items-center gap-2 rounded-full border border-[var(--mm-live)] px-3 py-1 text-xs text-[var(--mm-live)] sm:inline-flex"
-            >
-              <span className="mm-dot-live shrink-0" />{" "}
-              <span className="truncate">{liveEvent.title}</span>
-            </Link>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden text-xs uppercase tracking-widest text-[var(--mm-text-dim)] sm:inline">
-            {role}
-          </span>
-          <NavMenu items={items} />
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/" });
-            }}
-          >
-            <button className="mm-btn mm-btn-ghost text-sm">
-              <Icon icon="mdi:logout-variant" width={16} /> Sign out
-            </button>
-          </form>
-        </div>
+        <Brand href="/dashboard" className="shrink-0" />
+        <NavMenu
+          sections={sections}
+          signOutAction={signOutAction}
+          trigger={{ icon: "mdi:menu" }}
+        />
       </nav>
     </header>
   );

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { users, vendorApplications } from "@/lib/db/schema";
+import { users, partnerApplications, reviews } from "@/lib/db/schema";
 import { and, desc, eq } from "drizzle-orm";
 import { auth, signIn } from "@/lib/auth";
 import { logActivity } from "@/lib/logging";
@@ -69,6 +69,7 @@ export type ApplicationFormState = { error?: string };
 
 const detailsSchema = z.object({
   businessName: z.string().max(160).optional(),
+  categoryId: z.string().uuid().optional(),
   description: z.string().min(10).max(2000),
 });
 
@@ -90,6 +91,7 @@ export async function startApplication(
   }
   const parsed = detailsSchema.safeParse({
     businessName: formData.get("businessName") || undefined,
+    categoryId: formData.get("categoryId") || undefined,
     description: formData.get("description"),
   });
   if (!parsed.success) {
@@ -98,18 +100,19 @@ export async function startApplication(
 
   try {
     const [draft] = await db
-      .select({ id: vendorApplications.id })
-      .from(vendorApplications)
+      .select({ id: partnerApplications.id })
+      .from(partnerApplications)
       .where(
         and(
-          eq(vendorApplications.userId, session.user.id),
-          eq(vendorApplications.status, "draft")
+          eq(partnerApplications.userId, session.user.id),
+          eq(partnerApplications.status, "draft")
         )
       )
       .limit(1);
 
     const values = {
       businessName: parsed.data.businessName ?? null,
+      categoryId: parsed.data.categoryId ?? null,
       pitch: parsed.data.description,
       socials: Object.keys(socials).length ? socials : null,
       updatedAt: new Date(),
@@ -117,11 +120,11 @@ export async function startApplication(
 
     if (draft) {
       await db
-        .update(vendorApplications)
+        .update(partnerApplications)
         .set(values)
-        .where(eq(vendorApplications.id, draft.id));
+        .where(eq(partnerApplications.id, draft.id));
     } else {
-      await db.insert(vendorApplications).values({
+      await db.insert(partnerApplications).values({
         userId: session.user.id,
         status: "draft",
         images: [],
@@ -132,8 +135,8 @@ export async function startApplication(
     return { error: "Could not save your details. Please try again." };
   }
 
-  await logActivity({ actorId: session.user.id, action: "vendor_application.draft" });
-  redirect("/vendor-application?step=2");
+  await logActivity({ actorId: session.user.id, action: "partner_application.draft" });
+  redirect("/apply?step=2");
 }
 
 const imagesSchema = z.object({
@@ -155,31 +158,81 @@ export async function submitDraftApplication(
   if (process.env.DATABASE_URL) {
     try {
       const [draft] = await db
-        .select({ id: vendorApplications.id })
-        .from(vendorApplications)
+        .select({ id: partnerApplications.id })
+        .from(partnerApplications)
         .where(
           and(
-            eq(vendorApplications.userId, session.user.id),
-            eq(vendorApplications.status, "draft")
+            eq(partnerApplications.userId, session.user.id),
+            eq(partnerApplications.status, "draft")
           )
         )
-        .orderBy(desc(vendorApplications.createdAt))
+        .orderBy(desc(partnerApplications.createdAt))
         .limit(1);
       if (!draft) {
         return { error: "No draft found — please start the application again." };
       }
       await db
-        .update(vendorApplications)
+        .update(partnerApplications)
         .set({
           images: parsed.data.images,
           status: "pending",
           updatedAt: new Date(),
         })
-        .where(eq(vendorApplications.id, draft.id));
+        .where(eq(partnerApplications.id, draft.id));
     } catch {
       return { error: "Could not submit your application. Please try again." };
     }
   }
-  await logActivity({ actorId: session.user.id, action: "vendor_application.submit" });
-  redirect("/vendor-application?sent=1");
+  await logActivity({ actorId: session.user.id, action: "partner_application.submit" });
+  redirect("/apply?sent=1");
+}
+
+// ---------------------------------------------------------------------------
+// Partner reviews. Logged-in only; submitted as `pending` for admin approval.
+// `isAnonymous` only hides the name publicly.
+// ---------------------------------------------------------------------------
+const reviewSchema = z.object({
+  targetType: z.literal("partner"),
+  targetId: z.string().optional(),
+  rating: z.coerce.number().int().min(1).max(5),
+  body: z.string().min(4).max(2000),
+});
+
+export async function submitReview(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
+  const redirectTo = `/partners/${String(formData.get("partnerSlug") ?? "")}`;
+
+  const parsed = reviewSchema.safeParse({
+    targetType: formData.get("targetType"),
+    targetId: formData.get("targetId") || undefined,
+    rating: formData.get("rating"),
+    body: formData.get("body"),
+  });
+  if (!parsed.success) redirect(`${redirectTo}?review=error`);
+
+  if (process.env.DATABASE_URL) {
+    try {
+      await db.insert(reviews).values({
+        targetType: parsed.data.targetType,
+        targetId: parsed.data.targetId ?? null,
+        userId: session.user.id,
+        rating: parsed.data.rating,
+        body: parsed.data.body,
+        isAnonymous: formData.get("isAnonymous") != null,
+        status: "pending",
+      });
+    } catch {
+      redirect(`${redirectTo}?review=error`);
+    }
+  }
+  await logActivity({
+    actorId: session.user.id,
+    action: "review.submit",
+    entityType: parsed.data.targetType,
+    entityId: parsed.data.targetId ?? undefined,
+  });
+  revalidatePath(redirectTo);
+  redirect(`${redirectTo}?review=thanks`);
 }

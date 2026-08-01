@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { users, vendorApplications, accounts } from "@/lib/db/schema";
+import { users, partnerApplications, accounts } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { toMediaSrc } from "@/lib/media";
 
@@ -26,9 +26,9 @@ export async function getMyApplication(
   try {
     const rows = await db
       .select()
-      .from(vendorApplications)
-      .where(eq(vendorApplications.userId, userId))
-      .orderBy(desc(vendorApplications.createdAt))
+      .from(partnerApplications)
+      .where(eq(partnerApplications.userId, userId))
+      .orderBy(desc(partnerApplications.createdAt))
       .limit(1);
     const r = rows[0];
     if (!r) return null;
@@ -49,8 +49,6 @@ export async function getMyApplication(
 
 export interface MyProfile {
   name: string | null;
-  xp: number;
-  rank: string | null;
   avatarUrl: string | null;
   bannerUrl: string | null;
 }
@@ -81,8 +79,6 @@ export async function getMyProfile(userId: string): Promise<MyProfile | null> {
     if (!r) return null;
     return {
       name: r.name,
-      xp: r.xp,
-      rank: r.rank,
       avatarUrl: toMediaSrc(r.avatarUrl),
       bannerUrl: toMediaSrc(r.bannerUrl),
     };

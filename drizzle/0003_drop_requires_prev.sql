@@ -1,0 +1,1 @@
+ALTER TABLE "hunt_steps" DROP COLUMN "requires_prev";

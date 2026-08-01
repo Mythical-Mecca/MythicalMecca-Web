@@ -1,190 +1,95 @@
 # Data model
 
-Postgres via Drizzle. Naming: `snake_case` columns, `id` = `uuid` default `gen_random_uuid()`,
-timestamps `created_at` / `updated_at` (tz). Soft-delete via `deleted_at` where useful.
+Postgres via Drizzle. Naming: `snake_case` columns, `id` = `uuid` default
+`gen_random_uuid()`, timestamps `created_at` / `updated_at` (tz). Soft-delete via
+`deleted_at` where useful.
 
-## Enums
+> **Source of truth is the code, not this file.**
+> [`lib/db/schema.ts`](../lib/db/schema.ts) defines the schema;
+> [`drizzle/0000_baseline.sql`](../drizzle/0000_baseline.sql) is the generated DDL
+> and always matches the live database. This page is a map of *what exists and
+> why* — go to those two for column-level detail. An earlier version of this file
+> duplicated every column and rotted badly (it still described `badges`, `games`,
+> `posts` and a `vendor` role long after they were gone), so keep it descriptive.
 
-```
-role          : recruit | member | vendor | admin   (stored: member|vendor|admin; recruit = no row)
-app_status    : pending | approved | rejected
-post_status   : draft | published | archived
-event_status  : draft | published | live | ended | cancelled
-division       : tabletop | arcade | otaku | maker
-file_entity   : avatar | post | event | vendor_gallery | hunt_proof | misc
-step_type     : qr_scan | riddle | crossword | cipher | geo_checkpoint | photo_proof | trivia_gate | unlock_code
-log_level     : debug | info | warn | error | fatal
-```
+## Migrations
 
-## Identity & roles
+History was squashed on 2026-07-30 into a single `0000_baseline`; see
+[`db-archive/pre-squash-2026-07-30/README.md`](../db-archive/pre-squash-2026-07-30/README.md)
+for why. Normal workflow now works:
 
-```
-users(
-  id, email unique, name, image, google_sub unique,
-  role(default 'member'), division, sync_rate int default 0, xp int default 0,
-  rank text, created_at, updated_at, last_seen_at
-)
--- Auth.js adapter tables: accounts, sessions, verification_tokens
+```bash
+pnpm db:generate
 ```
 
-## Vendors
+`drizzle-kit check` validates the folder; `pnpm db:migrate` applies. Note
+`db:generate` exits non-zero when there's nothing to do, despite printing
+"No schema changes" — don't wire it into CI as a pass/fail gate without
+allowing for that.
+
+## Enums (11)
+
+Every one is referenced by a live column.
 
 ```
-vendor_applications(
-  id, user_id -> users, status(app_status, default 'pending'),
-  business_name, pitch, socials jsonb, payload jsonb,
-  reviewed_by -> users (null), review_note, created_at, updated_at
-)
-
-vendors(
-  id, user_id -> users unique, slug unique, business_name, tagline, bio,
-  logo_file_id -> files, socials jsonb, division, active bool default true,
-  created_at, updated_at
-)
-
-vendor_gallery_items(
-  id, vendor_id -> vendors, file_id -> files, title, caption, sort int,
-  external_url, created_at
-)
+role              : member | partner | admin        -- user.role ("recruit" = no row)
+app_status        : draft | pending | approved | rejected
+event_status      : draft | published | live | ended | cancelled | pending | rejected
+event_origin      : hosted | partner | external | community
+chat_scope        : event                           -- discriminator; only events chat today
+file_entity       : avatar | event | partner_gallery | hunt_proof | misc
+gallery_kind      : art | product
+hunt_mode         : in_person | remote | hybrid
+step_type         : qr_scan | riddle | crossword | cipher | geo_checkpoint
+                    | photo_proof | trivia_gate | unlock_code
+review_target     : site | partner
+log_level         : debug | info | warn | error | fatal
 ```
 
-## Content
+Changing an enum's values is awkward in Postgres — you cannot drop a value in
+place. Rename the type, recreate it without the value, re-point the column with
+`USING col::text::newtype`, then drop the old type.
 
-```
-posts(
-  id, author_id -> users, slug unique, title, excerpt, body_md,
-  cover_file_id -> files, division, status(post_status), published_at,
-  created_at, updated_at
-)
+## Tables (24)
 
-events(
-  id, slug unique, title, summary, body_md, cover_file_id -> files,
-  division, status(event_status), location, lat, lng,
-  starts_at, ends_at, capacity int, created_by -> users,
-  created_at, updated_at
-)
+**Identity** — `user`, `account`, `session`, `verificationToken`
+Auth.js adapter tables plus Mythical Mecca columns on `user` (role, avatar).
 
-event_comments(
-  id, event_id -> events, user_id -> users, body, created_at, deleted_at
-)
+**Events** — `events`, `event_comments`, `event_reviews`, `event_interests`,
+`event_gallery_items`
+`events.origin` drives how an event renders: `hosted` (ours), `partner`
+(endorsed, links to `partners`), `external` (link-out, no RSVP), `community`
+(member-submitted, moderated via `status` = `pending` → `published`/`rejected`).
 
-event_reviews(
-  id, event_id -> events, user_id -> users, rating(1-5), body,
-  created_at, updated_at,
-  -- app rule: insert only when now() >= events.starts_at
-  unique(event_id, user_id)
-)
+**Partners** — `partners`, `partner_categories`, `partner_applications`,
+`partner_gallery_items`
+The category carries the display toggles (`show_products`, `show_art`, …), so a
+partner's page shape follows from its category.
 
-collab_submissions(
-  id, name, email, org, message, payload jsonb, handled bool default false,
-  created_at
-)
-```
+**Quests** — `scavenger_hunts`, `hunt_steps`, `hunt_progress`
+`hunt_steps.config` is type-specific JSON:
 
-## Files (central registry)
-
-```
-files(
-  id, owner_id -> users, blob_url, obscured_key unique,
-  original_name, mime, size_bytes, entity_type(file_entity), entity_id,
-  width, height, created_at, deleted_at
-)
-```
-
-## Scavenger hunts
-
-```
-scavenger_hunts(
-  id, event_id -> events (nullable: standalone/remote ok), slug unique,
-  title, description, mode('in_person'|'remote'|'hybrid'),
-  starts_at, ends_at, active bool, created_by -> users, created_at, updated_at
-)
-
-hunt_steps(
-  id, hunt_id -> scavenger_hunts, sort int, type(step_type),
-  title, prompt, points int default 10,
-  config jsonb,        -- type-specific (answer, qr token, lat/lng/radius, choices...)
-  requires_prev bool default true,   -- sequential vs free order
-  created_at, updated_at
-)
-
-hunt_progress(
-  id, hunt_id -> scavenger_hunts, step_id -> hunt_steps, user_id -> users,
-  completed_at, payload jsonb,        -- submitted answer / proof file id / geo fix
-  points_awarded int,
-  unique(step_id, user_id)
-)
-```
-
-`config` examples by `type`:
-- `qr_scan`   → `{ "uplink": "<signed-token>" }`
-- `riddle`    → `{ "answer": "norm", "fuzzy": true }`
-- `geo_checkpoint` → `{ "lat":..., "lng":..., "radius_m": 50 }`
+- `qr_scan` → `{ "uplink": "<signed-token>" }`
+- `riddle` → `{ "answer": "norm", "fuzzy": true }`
+- `geo_checkpoint` → `{ "lat":…, "lng":…, "radius_m": 50 }`
 - `trivia_gate` → `{ "choices": [...], "correct": 2, "time_limit_s": 30 }`
 - `photo_proof` → `{ "auto_approve": false }`
 - `unlock_code` → `{ "code": "ALPHA-7" }`
 
-## Gamification
+**Content & misc** — `gallery_items` (homepage), `files` (central blob registry
+with obscured keys), `chat_messages`, `reviews` (site + partner testimonials,
+approvable), `collab_submissions` (contact form)
 
-```
-squadrons(            -- one per division, plus seasons
-  id, division unique, name, emblem_file_id -> files
-)
+**Logging** — `activity_log`, `error_log`, `page_hits`
 
-seasons(
-  id, name, starts_at, ends_at, active bool
-)
+## Removed features
 
-squadron_scores(
-  id, season_id -> seasons, division, points int default 0,
-  updated_at, unique(season_id, division)
-)
+Cut for launch on 2026-07-30, all folded into the baseline: news/`posts`,
+guilds (`guilds`, `guild_members`, `guild_events`), community lists (`lists`,
+`list_entries`, `list_entry_votes`, `list_comments`, `list_suggestions`), and
+the arcade (`games`, `game_scores`). Gamification (`badges`, `user_badges`,
+`squadrons`, xp/sync_rate) went earlier. LFG (`lfg_posts`, `lfg_members`) was
+dropped in `0001_drop_lfg` — it runs in Discord for now.
 
-badges(
-  id, code unique, name, description, icon, tier('bronze'|'silver'|'gold'|'legendary'),
-  criteria jsonb
-)
-
-user_badges(
-  id, user_id -> users, badge_id -> badges, awarded_at, unique(user_id, badge_id)
-)
-
-xp_ledger(            -- append-only, source of truth for users.xp
-  id, user_id -> users, delta int, reason, ref_type, ref_id, created_at
-)
-```
-
-## Arcade
-
-```
-games(
-  id, slug unique, title, description, active bool, division
-)
-
-game_scores(
-  id, game_id -> games, user_id -> users, score int, meta jsonb, created_at
-)
--- leaderboards = top scores per game (and per season)
-```
-
-## Logging
-
-```
-activity_log(
-  id, actor_id -> users (null for anon), action, entity_type, entity_id,
-  metadata jsonb, ip, user_agent, request_id, created_at
-)
-
-error_log(
-  id, level(log_level), message, stack, route, actor_id -> users (null),
-  metadata jsonb, request_id, created_at
-)
-
-page_hits(
-  id, path, actor_id -> users (null), referrer, session_id, ip, user_agent, created_at
-)
-```
-
-Indexes to add: `activity_log(created_at)`, `activity_log(actor_id)`,
-`page_hits(path, created_at)`, `hunt_progress(hunt_id, user_id)`,
-`game_scores(game_id, score desc)`, `events(starts_at, ends_at)`.
+Restoring any of them means recovering the schema block from git history and
+writing a fresh migration — there is no down path.

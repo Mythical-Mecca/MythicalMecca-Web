@@ -1,49 +1,61 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { AuroraField } from "./aurora-field";
-import { ParticleField } from "./particle-field";
+import { SECTIONS } from "@/lib/sections";
+import { AuroraField } from "./animations/aurora-field";
+import { ParticleField } from "./animations/particle-field";
 
-const QUEST = "/quest-road.svg";
-const GAMER = "/gamer-scene.svg";
+const DASHBOARD_BG = "/MMLandingPageBackground.webp";
+const DEFAULT_BG = "/MythicMechaBackground.webp";
 
-// Same overlay treatment everywhere, different scene per section.
-function sceneFor(path: string): string | null {
-  if (path === "/" || path.startsWith("/news")) return null;
-  if (
-    path.startsWith("/hunt") ||
-    path.startsWith("/events") ||
-    path.startsWith("/profile") ||
-    path.startsWith("/vendor-application")
-  ) {
-    return QUEST;
-  }
-  return GAMER; // dashboard, arcade, armory, etc.
+/**
+ * Route → full-page background image, keyed off the section registry.
+ */
+function bgForPath(path: string): string {
+  if (path.startsWith("/dashboard")) return DASHBOARD_BG;
+  if (path.startsWith("/events")) return SECTIONS.events.bg;
+  if (path.startsWith("/quests")) return SECTIONS.quests.bg;
+  if (path.startsWith("/partners")) return SECTIONS.partners.bg;
+  return DEFAULT_BG; // profile, apply, etc.
 }
+
+/**
+ * Full-page fixed background for every logged-in page: the section's image,
+ * a legibility overlay, and a subtle drifting aurora + embers on top. The
+ * image is picked from the route so each section carries its own scene behind
+ * the (semi-transparent) content.
+ *
+ * This is the only animation that never pauses — it's fixed and full-viewport,
+ * so it is always "on screen" and the off-screen guard can never kick in. It
+ * therefore runs at a deliberately low budget: 20fps (it's a slow drift behind
+ * 35% opacity — nobody can tell), a 1x backing store regardless of display
+ * density, and a reduced ember count to bound the O(n²) link pass. Feature
+ * placements like the homepage hero keep the richer defaults.
+ */
+const AMBIENT = { fps: 20, maxDpr: 1 } as const;
 
 export function AppBackdrop() {
   const path = usePathname();
-  const scene = sceneFor(path);
-  if (!scene) return null;
+  const bg = bgForPath(path);
 
   return (
     <div aria-hidden className="fixed inset-0 -z-10">
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('${scene}')` }}
+        style={{ backgroundImage: `url('${bg}')` }}
       />
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(to bottom, rgba(8,11,22,0.68), rgba(8,11,22,0.84))",
+            "linear-gradient(to bottom, rgba(11,15,28,0.74) 0%, rgba(11,15,28,0.7) 35%, rgba(11,15,28,0.82) 100%)",
         }}
       />
-      <div className="pointer-events-none absolute inset-0 opacity-70">
-        <AuroraField />
+      <div className="pointer-events-none absolute inset-0 opacity-35">
+        <AuroraField {...AMBIENT} />
       </div>
-      <div className="pointer-events-none absolute inset-0 opacity-55">
-        <ParticleField />
+      <div className="pointer-events-none absolute inset-0 opacity-35">
+        <ParticleField {...AMBIENT} maxPoints={34} />
       </div>
     </div>
   );

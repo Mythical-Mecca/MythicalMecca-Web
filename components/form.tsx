@@ -6,6 +6,11 @@ export const inputCls =
 export const textareaCls =
   "w-full rounded-2xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_60%,transparent)] px-4 py-3 text-sm text-[var(--mm-text)] outline-none transition placeholder:text-[var(--mm-text-dim)] focus:border-[var(--mm-violet)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--mm-violet)_35%,transparent)]";
 
+// Pill-shaped single-line input (chat, comments, inline forms). Prefix with a
+// width utility at the call site, e.g. `w-full ${inputPill}` or `flex-1 …`.
+export const inputPill =
+  "rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm text-[var(--mm-text)] outline-none transition placeholder:text-[var(--mm-text-dim)] focus:border-[var(--mm-violet)]";
+
 /** Label shell: icon + title + optional hint + description, then the control. */
 export function Field({
   label,
@@ -112,32 +117,8 @@ export function CheckboxField({
   );
 }
 
-export function SelectField({
-  label,
-  icon,
-  description,
-  hint,
-  className,
-  options,
-  placeholder,
-  ...rest
-}: BaseField & {
-  options: { value: string; label: string }[];
-  placeholder?: string;
-} & React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <Field label={label} icon={icon} description={description} hint={hint} className={className}>
-      <select {...rest} className={inputCls}>
-        {placeholder && <option value="">{placeholder}</option>}
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </Field>
-  );
-}
+// Choosing from a list is handled by `PickerField` (components/picker-field.tsx),
+// not a native <select> — see the note there for why.
 
 export function FormCard({
   title,

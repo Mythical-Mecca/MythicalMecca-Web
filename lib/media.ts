@@ -12,6 +12,25 @@
  */
 const BLOB_HOST_SUFFIX = ".blob.vercel-storage.com";
 
+/**
+ * True only for a URL in our own Blob store.
+ *
+ * Anywhere a client hands back "here's the file I uploaded", that string is
+ * attacker-controlled and has to be checked before it's treated as evidence
+ * that an upload happened at all.
+ */
+export function isStoredMediaUrl(input: string | null | undefined): boolean {
+  if (!input) return false;
+  try {
+    const url = new URL(input);
+    return (
+      url.protocol === "https:" && url.hostname.endsWith(BLOB_HOST_SUFFIX)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function toMediaSrc(input: string): string;
 export function toMediaSrc(input: null): null;
 export function toMediaSrc(input: undefined): undefined;

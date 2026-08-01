@@ -5,57 +5,36 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1781451773834,
-      "tag": "0000_panoramic_archangel",
+      "when": 1785399559770,
+      "tag": "0000_baseline",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1781453046701,
-      "tag": "0001_neat_forgotten_one",
+      "when": 1785402978009,
+      "tag": "0001_drop_lfg",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "7",
-      "when": 1781453248385,
-      "tag": "0002_soft_veda",
+      "when": 1785535481105,
+      "tag": "0002_quest_stations",
       "breakpoints": true
     },
     {
       "idx": 3,
       "version": "7",
-      "when": 1781453702038,
-      "tag": "0003_cold_prowler",
+      "when": 1785535496052,
+      "tag": "0003_drop_requires_prev",
       "breakpoints": true
     },
     {
       "idx": 4,
       "version": "7",
-      "when": 1781454160524,
-      "tag": "0004_petite_medusa",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1781514585742,
-      "tag": "0005_zippy_wallflower",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1781525635277,
-      "tag": "0006_gray_chronomancer",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1781530168323,
-      "tag": "0007_sweet_vector",
+      "when": 1785538422435,
+      "tag": "0004_claim_rate_limited",
       "breakpoints": true
     }
   ]

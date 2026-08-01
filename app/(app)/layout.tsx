@@ -1,8 +1,9 @@
 import { requireRole } from "@/lib/guard";
-import { getLiveEvent } from "@/lib/content";
 import { AppTopNav } from "@/components/app-top-nav";
 import { AppBackdrop } from "@/components/app-backdrop";
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { QuickLaunch } from "@/components/quick-launch";
+import { PageNav } from "@/components/page-nav";
+import { FocusRoute } from "@/components/focus-route";
 
 export default async function AppLayout({
   children,
@@ -10,20 +11,19 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await requireRole("member");
-  const liveEvent = await getLiveEvent();
 
   return (
     <div className="flex min-h-full flex-col">
       <AppBackdrop />
-      <AppTopNav
-        role={session.user.role}
-        liveEvent={
-          liveEvent ? { slug: liveEvent.slug, title: liveEvent.title } : null
-        }
-      />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
-        <Breadcrumbs />
-        <div className="mt-5">{children}</div>
+      <AppTopNav role={session.user.role} />
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-6">
+        <FocusRoute>
+          <QuickLaunch />
+          <div className="mt-6 empty:hidden">
+            <PageNav />
+          </div>
+        </FocusRoute>
+        <div className="mt-6">{children}</div>
       </main>
     </div>
   );

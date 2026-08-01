@@ -1,15 +1,31 @@
 import Link from "next/link";
 import { Icon } from "@/components/icon";
 import { auth } from "@/lib/auth";
-import { getLiveEvent } from "@/lib/content";
 import { AppTopNav } from "@/components/app-top-nav";
-import { AppBackdrop } from "@/components/app-backdrop";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { BackToDashboard } from "@/components/back-to-dashboard";
 import { Brand } from "@/components/brand";
+import { DevLoginTrigger } from "@/components/dev-login-trigger";
+
+// The public site is a single page — these are in-page anchors, not routes.
+const HOME_SECTIONS = [
+  { href: "/#about", label: "About" },
+  { href: "/#events", label: "Events" },
+  { href: "/#gallery", label: "Gallery" },
+  { href: "/#partners", label: "Partners" },
+];
 
 const Footer = () => (
   <footer className="flex flex-col items-center gap-3 border-t border-[var(--mm-border)] px-6 py-8 text-center text-xs text-[var(--mm-text-dim)]">
+    <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+      {HOME_SECTIONS.map((s) => (
+        <a key={s.href} href={s.href} className="hover:text-[var(--mm-text)]">
+          {s.label}
+        </a>
+      ))}
+      <Link href="/collab" className="hover:text-[var(--mm-text)]">
+        Contact
+      </Link>
+    </nav>
     <a
       href="https://discord.gg/NKWMAtq2B"
       target="_blank"
@@ -30,25 +46,15 @@ export default async function PublicLayout({
   const session = await auth();
 
   // Logged-in visitors get the full app shell so public pages stay connected.
+  // No <AppBackdrop> here — the public pages carry their own per-section
+  // imagery, so a fixed full-page backdrop would double up behind them.
   if (session?.user) {
-    const liveEvent = await getLiveEvent();
     return (
       <div className="flex min-h-dvh flex-col">
-        <AppBackdrop />
-        <AppTopNav
-          role={session.user.role}
-          liveEvent={
-            liveEvent
-              ? { slug: liveEvent.slug, title: liveEvent.title }
-              : null
-          }
-        />
+        <AppTopNav role={session.user.role} />
         <main className="flex-1">
-          <div className="mx-auto max-w-6xl space-y-3 px-6 pt-6">
-            <BackToDashboard />
-            <div className="empty:hidden">
-              <Breadcrumbs />
-            </div>
+          <div className="mx-auto max-w-6xl px-6 empty:hidden [&:not(:empty)]:pt-6">
+            <Breadcrumbs />
           </div>
           {children}
         </main>
@@ -59,26 +65,37 @@ export default async function PublicLayout({
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_55%,transparent)] backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_90%,transparent)]">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Brand href="/" className="text-lg" />
-          <div className="hidden items-center gap-7 text-sm text-[var(--mm-text-dim)] md:flex">
-            <Link href="/news" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">
-              <Icon icon="game-icons:scroll-unfurled" width={16} /> News
-            </Link>
-            <Link href="/events" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">
-              <Icon icon="game-icons:campfire" width={16} /> Events
-            </Link>
-            <Link href="/armory" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">
-              <Icon icon="game-icons:anvil" width={16} /> Partners
-            </Link>
-            <Link href="/collab" className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]">
-              <Icon icon="game-icons:raven" width={16} /> Contact
+          {process.env.NODE_ENV === "development" ? (
+            // Dev easter egg: 5 quick clicks on the logo signs in as the
+            // test account (localhost-only; enforced server-side in auth).
+            <DevLoginTrigger>
+              <Brand href="/" className="text-lg" />
+            </DevLoginTrigger>
+          ) : (
+            <Brand href="/" className="text-lg" />
+          )}
+          <div className="flex items-center gap-1">
+            <nav className="mr-2 hidden items-center gap-1 md:flex">
+              {HOME_SECTIONS.map((s) => (
+                <a
+                  key={s.href}
+                  href={s.href}
+                  className="rounded-lg px-3 py-1.5 text-sm text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+                >
+                  {s.label}
+                </a>
+              ))}
+            </nav>
+            <Link
+              href="/login"
+              className="mm-btn mm-btn-primary text-sm max-sm:px-3"
+            >
+              <Icon icon="mdi:account" width={16} />
+              <span className="max-sm:hidden">Sign in</span>
             </Link>
           </div>
-          <Link href="/login" className="mm-btn mm-btn-primary text-sm">
-            <Icon icon="mdi:login-variant" width={16} /> Sign in
-          </Link>
         </nav>
       </header>
       <main className="flex-1">{children}</main>

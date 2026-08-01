@@ -37,7 +37,9 @@ export async function proxy(req: NextRequest) {
 
   if (!token) {
     const url = new URL("/login", req.url);
-    url.searchParams.set("from", pathname);
+    // Keep the query string: a scanned tag carries its station code there, and
+    // signing in at the booth must not cost the player that code.
+    url.searchParams.set("from", pathname + req.nextUrl.search);
     return withSecurityHeaders(NextResponse.redirect(url));
   }
 
@@ -53,12 +55,14 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/command/:path*",
-    "/forge/:path*",
+    "/admin/:path*",
+    "/partner-hub/:path*",
     "/dashboard/:path*",
     "/profile/:path*",
-    "/hunts/:path*",
-    "/hunt/:path*",
-    "/arcade/:path*",
+    "/apply/:path*",
+    "/community/:path*",
+    "/events/:path*",
+    "/quests/:path*",
+    "/q/:path*",
   ],
 };

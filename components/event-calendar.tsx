@@ -22,12 +22,23 @@ function dayKey(y: number, m: number, d: number) {
   return `${y}-${m}-${d}`;
 }
 
+/** The little gold event chip inside a day cell. */
+const pillClass =
+  "truncate rounded-md bg-[color-mix(in_srgb,var(--mm-gold)_18%,transparent)] px-1.5 py-0.5 text-[10px] leading-tight text-[var(--mm-gold)]";
+
 export function EventCalendar({
   events,
   todayIso,
+  linkEvents = true,
 }: {
   events: CalEvent[];
   todayIso: string;
+  /**
+   * Event pills link to the event page by default. The public homepage renders
+   * the calendar read-only — those pages are members-only, so a link there
+   * would just bounce a visitor to /login.
+   */
+  linkEvents?: boolean;
 }) {
   const today = useMemo(() => new Date(todayIso), [todayIso]);
   const [cursor, setCursor] = useState(() => ({
@@ -195,16 +206,22 @@ export function EventCalendar({
               </span>
 
               <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
-                {dayEvents.slice(0, 2).map((e) => (
-                  <Link
-                    key={e.slug}
-                    href={`/events/${e.slug}`}
-                    title={e.title}
-                    className="truncate rounded-md bg-[color-mix(in_srgb,var(--mm-gold)_18%,transparent)] px-1.5 py-0.5 text-[10px] leading-tight text-[var(--mm-gold)] transition hover:bg-[color-mix(in_srgb,var(--mm-gold)_32%,transparent)]"
-                  >
-                    {e.title}
-                  </Link>
-                ))}
+                {dayEvents.slice(0, 2).map((e) =>
+                  linkEvents ? (
+                    <Link
+                      key={e.slug}
+                      href={`/events/${e.slug}`}
+                      title={e.title}
+                      className={`${pillClass} transition hover:bg-[color-mix(in_srgb,var(--mm-gold)_32%,transparent)]`}
+                    >
+                      {e.title}
+                    </Link>
+                  ) : (
+                    <span key={e.slug} title={e.title} className={pillClass}>
+                      {e.title}
+                    </span>
+                  )
+                )}
                 {dayEvents.length > 2 && (
                   <span className="px-1 text-[10px] text-[var(--mm-text-dim)]">
                     +{dayEvents.length - 2} more

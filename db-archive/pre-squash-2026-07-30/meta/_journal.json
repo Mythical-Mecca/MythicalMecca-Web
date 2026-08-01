@@ -1,0 +1,125 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1781451773834,
+      "tag": "0000_panoramic_archangel",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781453046701,
+      "tag": "0001_neat_forgotten_one",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781453248385,
+      "tag": "0002_soft_veda",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781453702038,
+      "tag": "0003_cold_prowler",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781454160524,
+      "tag": "0004_petite_medusa",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781514585742,
+      "tag": "0005_zippy_wallflower",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781525635277,
+      "tag": "0006_gray_chronomancer",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781530168323,
+      "tag": "0007_sweet_vector",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781600000000,
+      "tag": "0008_partners_categories_reviews",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783000000000,
+      "tag": "0009_event_origins",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783000100000,
+      "tag": "0010_lfg",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1783000200000,
+      "tag": "0011_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1783000300000,
+      "tag": "0012_guilds",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1783000400000,
+      "tag": "0013_lists",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1783000500000,
+      "tag": "0014_drop_gamification",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1784000000000,
+      "tag": "0015_lfg_optional_seats",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1784000001000,
+      "tag": "0016_drop_parked_features",
+      "breakpoints": true
+    }
+  ]
+}

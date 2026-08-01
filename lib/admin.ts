@@ -1,16 +1,16 @@
 import "server-only";
 import { db } from "@/lib/db";
 import {
-  posts,
   events,
-  vendorApplications,
+  partners,
+  partnerApplications,
   activityLog,
   errorLog,
   pageHits,
   users,
   galleryItems,
 } from "@/lib/db/schema";
-import { desc, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { sampleEvents } from "@/lib/content";
 import { toMediaSrc } from "@/lib/media";
 
@@ -28,13 +28,6 @@ function sampleAdminEvents(): AdminEvent[] {
   }));
 }
 
-export interface AdminPost {
-  id: string;
-  title: string;
-  slug: string;
-  status: string;
-  createdAt: string;
-}
 export interface AdminEvent {
   id: string;
   title: string;
@@ -61,22 +54,6 @@ export interface LogRow {
   createdAt: string;
 }
 
-export async function listPosts(): Promise<AdminPost[]> {
-  if (!useDb) return [];
-  try {
-    const rows = await db.select().from(posts).orderBy(desc(posts.createdAt));
-    return rows.map((r) => ({
-      id: r.id,
-      title: r.title,
-      slug: r.slug,
-      status: r.status,
-      createdAt: r.createdAt.toISOString().slice(0, 10),
-    }));
-  } catch {
-    return [];
-  }
-}
-
 export async function listEvents(): Promise<AdminEvent[]> {
   if (!useDb) return sampleAdminEvents();
   try {
@@ -92,6 +69,55 @@ export async function listEvents(): Promise<AdminEvent[]> {
     }));
   } catch {
     return sampleAdminEvents();
+  }
+}
+
+export interface CommunityEventSubmission {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string;
+  bodyMd: string;
+  location: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  status: string;
+  submitterName: string;
+  reviewNote: string | null;
+  createdAt: string;
+}
+
+/** Community-submitted events for the moderation queue. */
+export async function listCommunityEventSubmissions(
+  status?: "pending" | "published" | "rejected"
+): Promise<CommunityEventSubmission[]> {
+  if (!useDb) return [];
+  try {
+    const where = status
+      ? and(eq(events.origin, "community"), eq(events.status, status))
+      : eq(events.origin, "community");
+    const rows = await db
+      .select({ e: events, submitterName: users.name })
+      .from(events)
+      .leftJoin(users, eq(events.createdBy, users.id))
+      .where(where)
+      .orderBy(desc(events.createdAt));
+    return rows.map(({ e, submitterName }) => ({
+      id: e.id,
+      title: e.title,
+      slug: e.slug,
+      summary: e.summary ?? "",
+      bodyMd: e.bodyMd ?? "",
+      location: e.location,
+      startsAt: e.startsAt ? e.startsAt.toISOString() : null,
+      endsAt: e.endsAt ? e.endsAt.toISOString() : null,
+      status: e.status,
+      submitterName: submitterName ?? "Unknown adventurer",
+      reviewNote: e.reviewNote,
+      createdAt: e.createdAt.toISOString().slice(0, 10),
+    }));
+  } catch {
+    return [];
   }
 }
 
@@ -123,9 +149,9 @@ export async function listApplications(): Promise<AdminApplication[]> {
   try {
     const rows = await db
       .select()
-      .from(vendorApplications)
-      .where(ne(vendorApplications.status, "draft"))
-      .orderBy(desc(vendorApplications.createdAt));
+      .from(partnerApplications)
+      .where(ne(partnerApplications.status, "draft"))
+      .orderBy(desc(partnerApplications.createdAt));
     return rows.map((r) => ({
       id: r.id,
       businessName: r.businessName,
@@ -200,16 +226,26 @@ export async function recentHits(limit = 50): Promise<LogRow[]> {
 
 export interface AdminCounts {
   pilots: number;
-  posts: number;
+  partners: number;
   activeOps: number;
   errors24h: number;
 }
 
+const ZERO_COUNTS: AdminCounts = {
+  pilots: 0,
+  partners: 0,
+  activeOps: 0,
+  errors24h: 0,
+};
+
 export async function getCounts(): Promise<AdminCounts> {
-  if (!useDb) return { pilots: 0, posts: 0, activeOps: 0, errors24h: 0 };
+  if (!useDb) return ZERO_COUNTS;
   try {
     const [u] = await db.select({ n: sql<number>`count(*)` }).from(users);
-    const [p] = await db.select({ n: sql<number>`count(*)` }).from(posts);
+    const [pa] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(partners)
+      .where(eq(partners.active, true));
     const [e] = await db
       .select({ n: sql<number>`count(*)` })
       .from(events)
@@ -220,11 +256,11 @@ export async function getCounts(): Promise<AdminCounts> {
       .where(sql`${errorLog.createdAt} > now() - interval '24 hours'`);
     return {
       pilots: Number(u?.n ?? 0),
-      posts: Number(p?.n ?? 0),
+      partners: Number(pa?.n ?? 0),
       activeOps: Number(e?.n ?? 0),
       errors24h: Number(er?.n ?? 0),
     };
   } catch {
-    return { pilots: 0, posts: 0, activeOps: 0, errors24h: 0 };
+    return ZERO_COUNTS;
   }
 }

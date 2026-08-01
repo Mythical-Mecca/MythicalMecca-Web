@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Icon } from "@/components/icon";
 
 export function EventActions({
   slug,
@@ -9,6 +10,7 @@ export function EventActions({
   endsAt,
   summary,
   location,
+  showCalendar = true,
 }: {
   slug: string;
   title: string;
@@ -16,6 +18,8 @@ export function EventActions({
   endsAt: string;
   summary: string;
   location: string | null;
+  /** Hide the "add to calendar" buttons (e.g. while the event is live). */
+  showCalendar?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -46,21 +50,26 @@ export function EventActions({
 
   return (
     <div className="flex flex-wrap gap-3">
-      <a
-        href={googleUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mm-btn mm-btn-ghost text-sm"
-      >
-        Add to Google
-      </a>
-      <a
-        href={`/api/events/${slug}/ics`}
-        className="mm-btn mm-btn-ghost text-sm"
-      >
-        Download .ics
-      </a>
+      {showCalendar && (
+        <>
+          <a
+            href={googleUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mm-btn mm-btn-ghost text-sm"
+          >
+            <Icon icon="mdi:calendar" width={15} /> Add to Google
+          </a>
+          <a
+            href={`/api/events/${slug}/ics`}
+            className="mm-btn mm-btn-ghost text-sm"
+          >
+            <Icon icon="mdi:download" width={15} /> Download .ics
+          </a>
+        </>
+      )}
       <button onClick={share} className="mm-btn mm-btn-primary text-sm">
+        <Icon icon={copied ? "mdi:check" : "mdi:share-variant"} width={15} />
         {copied ? "Link copied!" : "Share"}
       </button>
     </div>

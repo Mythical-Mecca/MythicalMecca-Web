@@ -17,7 +17,7 @@ import type { AdapterAccountType } from "next-auth/adapters";
 // ---------------------------------------------------------------------------
 // Enums
 // ---------------------------------------------------------------------------
-export const roleEnum = pgEnum("role", ["member", "vendor", "admin"]);
+export const roleEnum = pgEnum("role", ["member", "partner", "admin"]);
 export const logLevelEnum = pgEnum("log_level", [
   "debug",
   "info",
@@ -41,9 +41,6 @@ export const users = pgTable("user", {
   avatarUrl: text("avatar_url"),
   bannerUrl: text("banner_url"),
   role: roleEnum("role").notNull().default("member"),
-  xp: integer("xp").notNull().default(0),
-  syncRate: integer("sync_rate").notNull().default(0),
-  rank: text("rank"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -161,16 +158,10 @@ export const pageHits = pgTable(
 // ---------------------------------------------------------------------------
 export const fileEntityEnum = pgEnum("file_entity", [
   "avatar",
-  "post",
   "event",
-  "vendor_gallery",
+  "partner_gallery",
   "hunt_proof",
   "misc",
-]);
-export const postStatusEnum = pgEnum("post_status", [
-  "draft",
-  "published",
-  "archived",
 ]);
 export const eventStatusEnum = pgEnum("event_status", [
   "draft",
@@ -178,6 +169,15 @@ export const eventStatusEnum = pgEnum("event_status", [
   "live",
   "ended",
   "cancelled",
+  // Append-only: community submissions awaiting / failing moderation.
+  "pending",
+  "rejected",
+]);
+export const eventOriginEnum = pgEnum("event_origin", [
+  "hosted", // official Mythical Mecca event
+  "partner", // hosted by a partner, endorsed by us
+  "external", // reposted from elsewhere — link-out, no RSVP
+  "community", // member-submitted, moderated
 ]);
 export const appStatusEnum = pgEnum("app_status", [
   "draft",
@@ -185,6 +185,7 @@ export const appStatusEnum = pgEnum("app_status", [
   "approved",
   "rejected",
 ]);
+export const galleryKindEnum = pgEnum("gallery_kind", ["art", "product"]);
 
 // ---------------------------------------------------------------------------
 // Files — central registry (uploader UI lands in Phase 2)
@@ -210,35 +211,6 @@ export const files = pgTable("files", {
 });
 
 // ---------------------------------------------------------------------------
-// Posts & news
-// ---------------------------------------------------------------------------
-export const posts = pgTable(
-  "posts",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    authorId: text("author_id").references(() => users.id, {
-      onDelete: "set null",
-    }),
-    slug: text("slug").notNull().unique(),
-    title: text("title").notNull(),
-    excerpt: text("excerpt"),
-    bodyMd: text("body_md").notNull(),
-    coverFileId: uuid("cover_file_id").references(() => files.id, {
-      onDelete: "set null",
-    }),
-    status: postStatusEnum("status").notNull().default("draft"),
-    publishedAt: timestamp("published_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => [index("posts_status_published_idx").on(t.status, t.publishedAt)]
-);
-
-// ---------------------------------------------------------------------------
 // Events
 // ---------------------------------------------------------------------------
 export const events = pgTable(
@@ -259,6 +231,19 @@ export const events = pgTable(
     startsAt: timestamp("starts_at", { withTimezone: true }),
     endsAt: timestamp("ends_at", { withTimezone: true }),
     capacity: integer("capacity"),
+    origin: eventOriginEnum("origin").notNull().default("hosted"),
+    // origin=partner: shows on the partner's public page
+    partnerId: uuid("partner_id").references(() => partners.id, {
+      onDelete: "set null",
+    }),
+    // origin=external: repost metadata — no RSVP, just a link-out
+    sourceName: text("source_name"),
+    externalUrl: text("external_url"),
+    // origin=community moderation (mirrors reviews)
+    reviewedBy: text("reviewed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reviewNote: text("review_note"),
     createdBy: text("created_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -269,7 +254,60 @@ export const events = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("events_starts_ends_idx").on(t.startsAt, t.endsAt)]
+  (t) => [
+    index("events_starts_ends_idx").on(t.startsAt, t.endsAt),
+    index("events_origin_status_idx").on(t.origin, t.status),
+    index("events_partner_idx").on(t.partnerId),
+  ]
+);
+
+// ---------------------------------------------------------------------------
+// Chat — scoped by (scopeType, scopeId). Only events are chattable today; the
+// enum stays a discriminator so another scope can be added without a new table.
+// scopeId has no FK on purpose; clean up orphans if a delete action ever lands.
+// ---------------------------------------------------------------------------
+export const chatScopeEnum = pgEnum("chat_scope", ["event"]);
+
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    scopeType: chatScopeEnum("scope_type").notNull(),
+    scopeId: uuid("scope_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    // admin soft delete
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletedBy: text("deleted_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+  },
+  (t) => [
+    index("chat_messages_scope_idx").on(t.scopeType, t.scopeId, t.createdAt),
+  ]
+);
+
+// "Interested" marks for external events (count only; unique = idempotent)
+export const eventInterests = pgTable(
+  "event_interests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("event_interests_unique").on(t.eventId, t.userId)]
 );
 
 // ---------------------------------------------------------------------------
@@ -289,13 +327,49 @@ export const collabSubmissions = pgTable("collab_submissions", {
 });
 
 // ---------------------------------------------------------------------------
-// Vendors — The Armory (approval flow in Phase 3; seeded for the gallery now)
+// Partner categories — admin-managed types (Vendors, Artists, Collaborators)
+// with per-category settings that control how partners are created/displayed.
 // ---------------------------------------------------------------------------
-export const vendors = pgTable("vendors", {
+export const partnerCategories = pgTable("partner_categories", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon"),
+  color: text("color"),
+  sort: integer("sort").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  // creation / management model
+  requiresApplication: boolean("requires_application").notNull().default(true),
+  allowSelfManage: boolean("allow_self_manage").notNull().default(true),
+  allowAdminManage: boolean("allow_admin_manage").notNull().default(true),
+  // display toggles for the public partner page
+  showProducts: boolean("show_products").notNull().default(false),
+  showArt: boolean("show_art").notNull().default(true),
+  showReviews: boolean("show_reviews").notNull().default(true),
+  showSocials: boolean("show_socials").notNull().default(true),
+  showGallery: boolean("show_gallery").notNull().default(true),
+  hasPremiumOption: boolean("has_premium_option").notNull().default(false),
+  featuredOnHome: boolean("featured_on_home").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// Partners — The Armory (vendors, artists, collaborators)
+// ---------------------------------------------------------------------------
+export const partners = pgTable("partners", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id")
     .references(() => users.id, { onDelete: "set null" })
     .unique(),
+  categoryId: uuid("category_id").references(() => partnerCategories.id, {
+    onDelete: "set null",
+  }),
   slug: text("slug").notNull().unique(),
   businessName: text("business_name").notNull(),
   tagline: text("tagline"),
@@ -304,6 +378,7 @@ export const vendors = pgTable("vendors", {
     onDelete: "set null",
   }),
   socials: jsonb("socials"),
+  isPremium: boolean("is_premium").notNull().default(false),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -354,11 +429,14 @@ export const eventReviews = pgTable(
   (t) => [uniqueIndex("event_reviews_unique").on(t.eventId, t.userId)]
 );
 
-export const vendorApplications = pgTable("vendor_applications", {
+export const partnerApplications = pgTable("partner_applications", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  categoryId: uuid("category_id").references(() => partnerCategories.id, {
+    onDelete: "set null",
+  }),
   status: appStatusEnum("status").notNull().default("pending"),
   businessName: text("business_name"),
   pitch: text("pitch").notNull(),
@@ -377,12 +455,13 @@ export const vendorApplications = pgTable("vendor_applications", {
     .defaultNow(),
 });
 
-export const vendorGalleryItems = pgTable("vendor_gallery_items", {
+export const partnerGalleryItems = pgTable("partner_gallery_items", {
   id: uuid("id").primaryKey().defaultRandom(),
-  vendorId: uuid("vendor_id")
+  partnerId: uuid("partner_id")
     .notNull()
-    .references(() => vendors.id, { onDelete: "cascade" }),
+    .references(() => partners.id, { onDelete: "cascade" }),
   fileId: uuid("file_id").references(() => files.id, { onDelete: "set null" }),
+  kind: galleryKindEnum("kind").notNull().default("art"),
   imageUrl: text("image_url"),
   title: text("title"),
   caption: text("caption"),
@@ -449,13 +528,34 @@ export const huntModeEnum = pgEnum("hunt_mode", [
   "remote",
   "hybrid",
 ]);
-export const badgeTierEnum = pgEnum("badge_tier", [
-  "bronze",
-  "silver",
-  "gold",
-  "legendary",
+
+// How an objective proves the adventurer is physically at the destination.
+// The printed/NFC tag only ever *identifies* an objective — it never grants
+// completion — so the mode can be switched mid-event without reprinting.
+//   live_code  — vendor keeps a station page open; a code rolls every N seconds
+//   sealed_tag — NFC tag that emits a fresh MAC per tap (NTAG 424 DNA class)
+//   open_tag   — plain static tag; shareable by design, geofenced only
+export const claimModeEnum = pgEnum("claim_mode", [
+  "live_code",
+  "sealed_tag",
+  "open_tag",
 ]);
 
+// Whether the adventurer is told where they're going, or has to work it out.
+export const revealModeEnum = pgEnum("reveal_mode", ["direct", "clue"]);
+
+// Every claim attempt is logged, whatever the outcome — this is what makes
+// sharing visible on the admin monitor even in `open_tag` mode.
+export const claimOutcomeEnum = pgEnum("claim_outcome", [
+  "ok",
+  "duplicate",
+  "bad_code",
+  "out_of_range",
+  "not_open",
+  "unknown_step",
+  // Too many wrong codes in a short window — see tooManyBadAttempts().
+  "rate_limited",
+]);
 export const scavengerHunts = pgTable("scavenger_hunts", {
   id: uuid("id").primaryKey().defaultRandom(),
   eventId: uuid("event_id").references(() => events.id, {
@@ -492,7 +592,18 @@ export const huntSteps = pgTable(
     prompt: text("prompt"),
     points: integer("points").notNull().default(10),
     config: jsonb("config"),
-    requiresPrev: boolean("requires_prev").notNull().default(true),
+    // The destination. A quest is primarily a route between partners, so most
+    // objectives point at one; free-form points of interest leave it null and
+    // use `title` + `locationHint` instead.
+    partnerId: uuid("partner_id").references(() => partners.id, {
+      onDelete: "set null",
+    }),
+    /** Where to find it on the floor — "Hall B, stand 14". */
+    locationHint: text("location_hint"),
+    revealMode: revealModeEnum("reveal_mode").notNull().default("direct"),
+    claimMode: claimModeEnum("claim_mode").notNull().default("live_code"),
+    /** Geofence for `open_tag`, in metres. Null falls back to the event radius. */
+    claimRadiusM: integer("claim_radius_m"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -501,6 +612,51 @@ export const huntSteps = pgTable(
       .defaultNow(),
   },
   (t) => [index("hunt_steps_hunt_idx").on(t.huntId, t.sort)]
+);
+
+/**
+ * One row per objective that a vendor staffs. Holds the rotating-code secret.
+ * Separate from the step so the key can be rotated (or the station handed to a
+ * different device) without touching quest content.
+ */
+export const huntStations = pgTable("hunt_stations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  stepId: uuid("step_id")
+    .notNull()
+    .unique()
+    .references(() => huntSteps.id, { onDelete: "cascade" }),
+  /** base64 secret; codes are HMAC(key, timeWindow). Never sent to the client. */
+  stationKey: text("station_key").notNull(),
+  rotationSeconds: integer("rotation_seconds").notNull().default(60),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const huntClaimAttempts = pgTable(
+  "hunt_claim_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    stepId: uuid("step_id").references(() => huntSteps.id, {
+      onDelete: "cascade",
+    }),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    outcome: claimOutcomeEnum("outcome").notNull(),
+    claimMode: claimModeEnum("claim_mode"),
+    /** Coarse source address, for spotting one device claiming for a crowd. */
+    ip: text("ip"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("hunt_claim_attempts_step_idx").on(t.stepId, t.createdAt),
+    index("hunt_claim_attempts_user_idx").on(t.userId, t.createdAt),
+  ]
 );
 
 export const huntProgress = pgTable(
@@ -529,93 +685,40 @@ export const huntProgress = pgTable(
 );
 
 // ---------------------------------------------------------------------------
-// Gamification — XP, ranks, badges, squadrons
+// Reviews — unified, approvable. Site-wide testimonials (target_type="site")
+// and per-partner reviews (target_type="partner", target_id=partner.id).
+// Always tied to a logged-in user; `is_anonymous` only hides the name publicly.
 // ---------------------------------------------------------------------------
-export const xpLedger = pgTable(
-  "xp_ledger",
+export const reviewTargetEnum = pgEnum("review_target", ["site", "partner"]);
+
+export const reviews = pgTable(
+  "reviews",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    targetType: reviewTargetEnum("target_type").notNull(),
+    // partner id for partner reviews; null for site-wide testimonials
+    targetId: text("target_id"),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    delta: integer("delta").notNull(),
-    reason: text("reason").notNull(),
-    refType: text("ref_type"),
-    refId: text("ref_id"),
+    rating: integer("rating").notNull(),
+    body: text("body"),
+    isAnonymous: boolean("is_anonymous").notNull().default(false),
+    status: appStatusEnum("status").notNull().default("pending"),
+    featured: boolean("featured").notNull().default(false),
+    reviewedBy: text("reviewed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reviewNote: text("review_note"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-  },
-  (t) => [index("xp_ledger_user_idx").on(t.userId)]
-);
-
-export const badges = pgTable("badges", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  code: text("code").notNull().unique(),
-  name: text("name").notNull(),
-  description: text("description"),
-  icon: text("icon"),
-  tier: badgeTierEnum("tier").notNull().default("bronze"),
-  criteria: jsonb("criteria"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
-export const userBadges = pgTable(
-  "user_badges",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    badgeId: uuid("badge_id")
-      .notNull()
-      .references(() => badges.id, { onDelete: "cascade" }),
-    awardedAt: timestamp("awarded_at", { withTimezone: true })
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (t) => [uniqueIndex("user_badges_unique").on(t.userId, t.badgeId)]
-);
-
-export const seasons = pgTable("seasons", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  startsAt: timestamp("starts_at", { withTimezone: true }),
-  endsAt: timestamp("ends_at", { withTimezone: true }),
-  active: boolean("active").notNull().default(true),
-});
-
-// ---------------------------------------------------------------------------
-// Arcade — training simulators
-// ---------------------------------------------------------------------------
-export const games = pgTable("games", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  slug: text("slug").notNull().unique(),
-  title: text("title").notNull(),
-  description: text("description"),
-  active: boolean("active").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
-export const gameScores = pgTable(
-  "game_scores",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    gameId: uuid("game_id")
-      .notNull()
-      .references(() => games.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    score: integer("score").notNull(),
-    meta: jsonb("meta"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => [index("game_scores_game_idx").on(t.gameId, t.score)]
+  (t) => [
+    index("reviews_target_idx").on(t.targetType, t.targetId, t.status),
+    index("reviews_status_idx").on(t.status),
+  ]
 );

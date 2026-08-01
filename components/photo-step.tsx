@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FileUploader } from "./file-uploader";
-import { completeStep } from "@/app/(app)/hunts/actions";
+import { completeStep } from "@/app/(app)/quests/actions";
 
 export function PhotoStep({
   huntSlug,

@@ -5,8 +5,7 @@ import { updateProfile, linkSocial } from "../actions";
 import { ImageUploader } from "@/components/image-uploader";
 import { TextField, FormSection } from "@/components/form";
 import { Icon } from "@/components/icon";
-import { getUserBadges, getUserXp, rankForXp } from "@/lib/gamification";
-import { SyncGauge } from "@/components/sync-gauge";
+import { Flash } from "@/components/flash";
 
 export default async function ProfilePage({
   searchParams,
@@ -15,13 +14,10 @@ export default async function ProfilePage({
 }) {
   const session = await auth();
   const user = session!.user;
-  const [profile, xp, badges, linked] = await Promise.all([
+  const [profile, linked] = await Promise.all([
     getMyProfile(user.id),
-    getUserXp(user.id),
-    getUserBadges(user.id),
     getLinkedAccounts(user.id),
   ]);
-  const rank = rankForXp(xp);
   const { saved, error, linked: justLinked } = await searchParams;
 
   const avatar = profile?.avatarUrl ?? user.image ?? null;
@@ -65,53 +61,9 @@ export default async function ProfilePage({
         </div>
       </section>
 
-      {/* Renown + badges */}
-      <section className="mm-glass flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between">
-        <SyncGauge pct={rank.pct} rank={rank.rank} />
-        <div className="text-sm">
-          <p className="text-[var(--mm-text-dim)]">Renown</p>
-          <p className="font-[family-name:var(--font-display)] text-2xl text-[var(--mm-gold)]">
-            {xp}
-          </p>
-        </div>
-        <div className="flex-1">
-          <p className="mb-2 text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
-            Badges
-          </p>
-          {badges.length === 0 ? (
-            <p className="text-sm text-[var(--mm-text-dim)]">
-              No badges yet — clear a quest to earn your first.
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {badges.map((b) => (
-                <span
-                  key={b.code}
-                  className="rounded-full border border-[var(--mm-gold)] px-3 py-1 text-xs text-[var(--mm-gold)]"
-                >
-                  {b.name}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {saved && (
-        <div className="mm-glass flex items-center gap-2 border-[var(--mm-live)] p-3 text-sm text-[var(--mm-live)]">
-          <Icon icon="mdi:check" width={16} /> Saved.
-        </div>
-      )}
-      {justLinked && (
-        <div className="mm-glass flex items-center gap-2 border-[var(--mm-live)] p-3 text-sm text-[var(--mm-live)]">
-          <Icon icon="mdi:link-variant" width={16} /> Account linked.
-        </div>
-      )}
-      {error && (
-        <div className="mm-glass border-[var(--mm-danger)] p-3 text-sm text-[var(--mm-danger)]">
-          Could not save — check your inputs.
-        </div>
-      )}
+      {saved && <Flash>Saved.</Flash>}
+      {justLinked && <Flash>Account linked.</Flash>}
+      {error && <Flash tone="error">Could not save — check your inputs.</Flash>}
 
       {/* Edit */}
       <form action={updateProfile} className="space-y-7">
@@ -191,14 +143,14 @@ export default async function ProfilePage({
 
       <section className="mm-glass p-6">
         <h2 className="font-[family-name:var(--font-display)] text-lg tracking-wide">
-          Join the Armory
+          Become a partner
         </h2>
         <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
-          Run a shop, studio or craft? Petition to join the Armory and claim
+          Run a shop, studio or craft? Petition to join our partners and claim
           your own stall.
         </p>
         <Link
-          href="/vendor-application"
+          href="/apply"
           className="mm-btn mm-btn-ghost mt-4 text-sm"
         >
           Apply / track application
