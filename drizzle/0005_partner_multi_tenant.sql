@@ -1,3 +1,45 @@
+-- Realign legacy constraint names (hand-written, idempotent) -----------------
+-- The vendor->partner rename used ALTER TABLE ... RENAME, which renames tables
+-- and columns but NOT their constraints. Production therefore still carries
+-- `vendors_*` / `vendor_applications_*` / `vendor_gallery_items_*` names, while
+-- drizzle's snapshot believes they are `partners_*`. Every generated migration
+-- that touches one of them emits a DROP for a name that does not exist and dies
+-- — which is exactly what this migration would have done below.
+--
+-- Renaming them here fixes that permanently, not just for this migration. Runs
+-- as a no-op on a database built from 0000_baseline, which already has the new
+-- names.
+DO $$
+DECLARE m record;
+BEGIN
+  FOR m IN
+    SELECT * FROM (VALUES
+      ('partners',              'vendors_pkey',                                 'partners_pkey'),
+      ('partners',              'vendors_slug_unique',                          'partners_slug_unique'),
+      ('partners',              'vendors_user_id_unique',                       'partners_user_id_unique'),
+      ('partners',              'vendors_user_id_user_id_fk',                   'partners_user_id_user_id_fk'),
+      ('partners',              'vendors_logo_file_id_files_id_fk',             'partners_logo_file_id_files_id_fk'),
+      ('partner_applications',  'vendor_applications_pkey',                     'partner_applications_pkey'),
+      ('partner_applications',  'vendor_applications_user_id_user_id_fk',       'partner_applications_user_id_user_id_fk'),
+      ('partner_applications',  'vendor_applications_reviewed_by_user_id_fk',   'partner_applications_reviewed_by_user_id_fk'),
+      ('partner_gallery_items', 'vendor_gallery_items_pkey',                    'partner_gallery_items_pkey'),
+      ('partner_gallery_items', 'vendor_gallery_items_file_id_files_id_fk',     'partner_gallery_items_file_id_files_id_fk'),
+      ('partner_gallery_items', 'vendor_gallery_items_vendor_id_vendors_id_fk', 'partner_gallery_items_partner_id_partners_id_fk')
+    ) AS t(tbl, old_name, new_name)
+  LOOP
+    IF EXISTS (
+      SELECT 1 FROM pg_constraint
+       WHERE conname = m.old_name AND conrelid = m.tbl::regclass
+    ) AND NOT EXISTS (
+      SELECT 1 FROM pg_constraint
+       WHERE conname = m.new_name AND conrelid = m.tbl::regclass
+    ) THEN
+      EXECUTE format(
+        'ALTER TABLE %I RENAME CONSTRAINT %I TO %I', m.tbl, m.old_name, m.new_name
+      );
+    END IF;
+  END LOOP;
+END $$;--> statement-breakpoint
 CREATE TYPE "public"."offering_kind" AS ENUM('product', 'service');--> statement-breakpoint
 CREATE TYPE "public"."partner_invite_status" AS ENUM('pending', 'accepted', 'revoked');--> statement-breakpoint
 CREATE TYPE "public"."partner_member_role" AS ENUM('owner', 'manager');--> statement-breakpoint
@@ -43,7 +85,9 @@ CREATE TABLE "partner_offerings" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "partners" DROP CONSTRAINT "partners_user_id_unique";--> statement-breakpoint
+-- IF EXISTS: the rename block above guarantees this name, but a database that
+-- somehow carries a third naming lineage should not hard-fail here.
+ALTER TABLE "partners" DROP CONSTRAINT IF EXISTS "partners_user_id_unique";--> statement-breakpoint
 ALTER TABLE "partners" ADD COLUMN "logo_url" text;--> statement-breakpoint
 ALTER TABLE "partners" ADD COLUMN "banner_url" text;--> statement-breakpoint
 ALTER TABLE "partners" ADD COLUMN "shop_url" text;--> statement-breakpoint
