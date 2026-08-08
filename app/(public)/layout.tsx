@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon } from "@/components/icon";
 import { auth } from "@/lib/auth";
+import { countMyPartnerships } from "@/lib/partner-access";
 import { AppTopNav } from "@/components/app-top-nav";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Brand } from "@/components/brand";
@@ -49,9 +50,10 @@ export default async function PublicLayout({
   // No <AppBackdrop> here — the public pages carry their own per-section
   // imagery, so a fixed full-page backdrop would double up behind them.
   if (session?.user) {
+    const hasPartner = (await countMyPartnerships(session.user.id)) > 0;
     return (
       <div className="flex min-h-dvh flex-col">
-        <AppTopNav role={session.user.role} />
+        <AppTopNav role={session.user.role} hasPartner={hasPartner} />
         <main className="flex-1">
           <div className="mx-auto max-w-6xl px-6 empty:hidden [&:not(:empty)]:pt-6">
             <Breadcrumbs />

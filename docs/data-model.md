@@ -27,7 +27,7 @@ pnpm db:generate
 "No schema changes" — don't wire it into CI as a pass/fail gate without
 allowing for that.
 
-## Enums (11)
+## Enums (15)
 
 Every one is referenced by a live column.
 
@@ -44,13 +44,21 @@ step_type         : qr_scan | riddle | crossword | cipher | geo_checkpoint
                     | photo_proof | trivia_gate | unlock_code
 review_target     : site | partner
 log_level         : debug | info | warn | error | fatal
+partner_status       : draft | pending | approved | rejected  -- review lifecycle
+partner_member_role  : owner | manager                        -- access to one page
+partner_invite_status: pending | accepted | revoked
+offering_kind        : product | service
 ```
+
+`partner_status` deliberately duplicates `app_status`'s values rather than
+reusing it: `app_status` is shared by `partner_applications` and `reviews`, so
+widening it later would drag review moderation along.
 
 Changing an enum's values is awkward in Postgres — you cannot drop a value in
 place. Rename the type, recreate it without the value, re-point the column with
 `USING col::text::newtype`, then drop the old type.
 
-## Tables (24)
+## Tables (27)
 
 **Identity** — `user`, `account`, `session`, `verificationToken`
 Auth.js adapter tables plus Mythical Mecca columns on `user` (role, avatar).
@@ -61,10 +69,31 @@ Auth.js adapter tables plus Mythical Mecca columns on `user` (role, avatar).
 (endorsed, links to `partners`), `external` (link-out, no RSVP), `community`
 (member-submitted, moderated via `status` = `pending` → `published`/`rejected`).
 
-**Partners** — `partners`, `partner_categories`, `partner_applications`,
+**Partners** — `partners`, `partner_categories`, `partner_members`,
+`partner_invites`, `partner_offerings`, `partner_applications`,
 `partner_gallery_items`
 The category carries the display toggles (`show_products`, `show_art`, …), so a
-partner's page shape follows from its category.
+partner's page shape follows from its category. `sort` orders the sections on
+the homepage and `featured_on_home` decides which categories appear there.
+
+A user may run several partner pages and a page may be run by several users, so
+access lives in **`partner_members`** (`owner` | `manager`), not on the partner
+row. That table — via [`lib/partner-access.ts`](../lib/partner-access.ts) — is
+the authoritative permission check, *not* `user.role`: the Auth.js `jwt`
+callback only reads the role at sign-in, so a freshly-promoted partner carries a
+stale `member` token until they sign out. Gating on it would lock an invited
+teammate out of the stall they just joined.
+
+`partners.status` (`draft` → `pending` → `approved` / `rejected`) is the review
+lifecycle; `partners.active` is the separate admin kill switch. Public queries
+require **both** `status = 'approved'` and `active`. Existing partners were
+backfilled to `approved` in `0005`. Once approved, a partner's later edits go
+live immediately — there is no draft/published content split.
+
+`partner_invites` stores only a sha256 of the invite token, so lookup is a hash
+index probe; expiry is derived from `expires_at` at read time (no cron sweeps
+it). `partner_offerings` holds products and services with integer minor-unit
+prices plus a currency code.
 
 **Quests** — `scavenger_hunts`, `hunt_steps`, `hunt_progress`
 `hunt_steps.config` is type-specific JSON:

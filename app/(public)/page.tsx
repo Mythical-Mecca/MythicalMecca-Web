@@ -3,7 +3,12 @@ import { ParticleField } from "@/components/animations/particle-field";
 import { BackToDashboard } from "@/components/back-to-dashboard";
 import { Icon } from "@/components/icon";
 import { auth } from "@/lib/auth";
-import { getEventsPage, getGalleryImages, getPartners, isEventLive } from "@/lib/content";
+import {
+  getEventsPage,
+  getGalleryImages,
+  getPartnersByCategory,
+  isEventLive,
+} from "@/lib/content";
 import { EventCalendar } from "@/components/event-calendar";
 import { Badge } from "@/components/badge";
 import { formatDateTime } from "@/lib/format";
@@ -59,13 +64,19 @@ const PILLARS = [
 ];
 
 export default async function HomePage() {
-  const [session, { all: events, live, upcoming: allUpcoming }, gallery, partners] =
-    await Promise.all([
-      auth(),
-      getEventsPage(),
-      getGalleryImages(),
-      getPartners(),
-    ]);
+  const [
+    session,
+    { all: events, live, upcoming: allUpcoming },
+    gallery,
+    partnerGroups,
+  ] = await Promise.all([
+    auth(),
+    getEventsPage(),
+    getGalleryImages(),
+    // Grouped under admin-controlled category headings, ordered by category
+    // `sort`, and limited to categories flagged "featured on home".
+    getPartnersByCategory({ featuredOnly: true }),
+  ]);
   const loggedIn = !!session?.user;
 
   // Signed-out visitors can't reach any app route, so every "read more"
@@ -77,7 +88,7 @@ export default async function HomePage() {
   const upcoming = (live ? [live, ...allUpcoming] : allUpcoming).slice(0, 5);
   const nextGathering = upcoming[0];
   const galleryTiles = gallery.slice(0, 8);
-  const featuredPartners = partners.slice(0, 6);
+  const hasPartners = partnerGroups.some((g) => g.partners.length > 0);
   const nowIso = new Date().toISOString();
   const calEvents = events.map((e) => ({
     slug: e.slug,
@@ -372,7 +383,7 @@ export default async function HomePage() {
             setting out their wares.
           </p>
 
-          {featuredPartners.length === 0 ? (
+          {!hasPartners ? (
             <div className="mm-glass mt-8 p-8 text-center text-[var(--mm-text-dim)]">
               The first stalls are still being set up. Want one?{" "}
               <Link href="/apply" className="text-[var(--mm-gold)] underline">
@@ -381,37 +392,66 @@ export default async function HomePage() {
               .
             </div>
           ) : (
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {featuredPartners.map((p) => (
-                <Link
-                  key={p.slug}
-                  href={loggedIn ? `/partners/${p.slug}` : "/login"}
-                  className="mm-glass group flex flex-col p-6 transition hover:border-[var(--mm-violet)]"
-                >
-                  <div className="flex items-center justify-between gap-2">
+            <div className="mt-10 space-y-12">
+              {partnerGroups.map((group) => (
+                <div key={group.slug}>
+                  <div className="flex items-baseline gap-2.5">
                     <Icon
-                      icon="game-icons:anvil"
-                      width={28}
-                      className="text-[var(--mm-gold)]"
+                      icon={group.icon ?? "game-icons:anvil"}
+                      width={22}
+                      style={{ color: group.color ?? "var(--mm-gold)" }}
                     />
-                    {p.isPremium && (
-                      <Badge color="var(--mm-gold)" icon="mdi:crown">
-                        Premium
-                      </Badge>
-                    )}
-                  </div>
-                  <h3 className="mt-4 font-[family-name:var(--font-display)] text-lg group-hover:text-[var(--mm-gold)]">
-                    {p.businessName}
-                  </h3>
-                  {p.categoryName && (
-                    <span className="mt-1.5 inline-block w-fit">
-                      <Badge color="var(--mm-violet)">{p.categoryName}</Badge>
+                    <h3 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
+                      {group.name}
+                    </h3>
+                    <span className="text-sm text-[var(--mm-text-dim)]">
+                      ({group.partners.length})
                     </span>
+                  </div>
+                  {group.description && (
+                    <p className="mt-1.5 max-w-2xl text-sm text-[var(--mm-text-dim)]">
+                      {group.description}
+                    </p>
                   )}
-                  <p className="mt-2 flex-1 text-sm text-[var(--mm-text-dim)]">
-                    {p.tagline}
-                  </p>
-                </Link>
+
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {group.partners.map((p) => (
+                      <Link
+                        key={p.slug}
+                        href={`/partners/${p.slug}`}
+                        className="mm-glass group flex flex-col p-6 transition hover:border-[var(--mm-violet)]"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          {p.logoUrl ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={p.logoUrl}
+                              alt=""
+                              className="h-10 w-10 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <Icon
+                              icon={group.icon ?? "game-icons:anvil"}
+                              width={28}
+                              style={{ color: group.color ?? "var(--mm-gold)" }}
+                            />
+                          )}
+                          {p.isPremium && (
+                            <Badge color="var(--mm-gold)" icon="mdi:crown">
+                              Premium
+                            </Badge>
+                          )}
+                        </div>
+                        <h4 className="mt-4 font-[family-name:var(--font-display)] text-lg group-hover:text-[var(--mm-gold)]">
+                          {p.businessName}
+                        </h4>
+                        <p className="mt-2 flex-1 text-sm text-[var(--mm-text-dim)]">
+                          {p.tagline}
+                        </p>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}

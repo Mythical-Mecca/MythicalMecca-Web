@@ -5,11 +5,14 @@ import {
   partners,
   partnerCategories,
   partnerGalleryItems,
+  partnerOfferings,
   galleryItems,
   eventGalleryItems,
 } from "@/lib/db/schema";
 import { desc, eq, asc, and, inArray, sql } from "drizzle-orm";
 import { toMediaSrc } from "@/lib/media";
+import { parseSocials, type SocialLink } from "@/lib/socials";
+import { formatPrice } from "@/lib/format";
 
 export type EventOrigin = "hosted" | "partner" | "external" | "community";
 
@@ -43,6 +46,17 @@ export interface PartnerGalleryView {
   imageUrl?: string;
 }
 
+export interface PartnerOfferingView {
+  id: string;
+  kind: "product" | "service";
+  name: string;
+  description: string | null;
+  /** Pre-formatted; null means "price on request". */
+  price: string | null;
+  imageUrl?: string;
+  externalUrl?: string;
+}
+
 export interface PartnerView {
   id: string;
   slug: string;
@@ -50,6 +64,10 @@ export interface PartnerView {
   tagline: string;
   bio: string;
   isPremium: boolean;
+  logoUrl?: string;
+  bannerUrl?: string;
+  shopUrl?: string;
+  offerings: PartnerOfferingView[];
   categorySlug: string | null;
   categoryName: string | null;
   // display toggles resolved from the partner's category
@@ -58,7 +76,7 @@ export interface PartnerView {
   showReviews: boolean;
   showSocials: boolean;
   showGallery: boolean;
-  socials: { label: string; url: string }[];
+  socials: SocialLink[];
   gallery: PartnerGalleryView[];
 }
 
@@ -134,6 +152,7 @@ const partnerDefaults = {
   showReviews: true,
   showSocials: true,
   showGallery: true,
+  offerings: [] as PartnerOfferingView[],
 };
 
 export const samplePartners: PartnerView[] = [
@@ -147,10 +166,27 @@ export const samplePartners: PartnerView[] = [
     categorySlug: "vendors",
     categoryName: "Vendors",
     ...partnerDefaults,
-    socials: [
+    shopUrl: "https://example.com",
+    offerings: [
+      {
+        id: "sample-offer-squad",
+        kind: "service" as const,
+        name: "Squad commission",
+        description: "Five miniatures, tabletop-plus standard.",
+        price: formatPrice(450000, "ZAR"),
+      },
+      {
+        id: "sample-offer-terrain",
+        kind: "product" as const,
+        name: "Modular terrain tile",
+        description: "2x2 ruined city board section.",
+        price: formatPrice(89900, "ZAR"),
+      },
+    ],
+    socials: parseSocials([
       { label: "Instagram", url: "https://instagram.com" },
       { label: "Etsy", url: "https://etsy.com" },
-    ],
+    ]),
     gallery: [
       { title: "Mech squad", caption: "32mm scale, NMM gold", kind: "art" },
       { title: "Ruined city board", caption: "Modular 2x2 terrain", kind: "product" },
@@ -166,7 +202,7 @@ export const samplePartners: PartnerView[] = [
     categorySlug: "vendors",
     categoryName: "Vendors",
     ...partnerDefaults,
-    socials: [{ label: "Shop", url: "https://example.com" }],
+    socials: parseSocials([{ label: "Shop", url: "https://example.com" }]),
     gallery: [
       { title: "Glitch tee", caption: "Limited run", kind: "product" },
       { title: "Boss-key pin set", caption: "Hard enamel, 4-pack", kind: "product" },
@@ -183,10 +219,10 @@ export const samplePartners: PartnerView[] = [
     categoryName: "Artists",
     ...partnerDefaults,
     showProducts: false,
-    socials: [
+    socials: parseSocials([
       { label: "ArtStation", url: "https://artstation.com" },
       { label: "X", url: "https://x.com" },
-    ],
+    ]),
     gallery: [
       { title: "Pilot portrait", caption: "A3 giclée", kind: "art" },
       { title: "Squadron poster", caption: "Limited print", kind: "art" },
@@ -391,6 +427,73 @@ export function isEventEnded(e: EventView): boolean {
   return Date.now() > new Date(e.endsAt).getTime();
 }
 
+/**
+ * Only approved-and-active partners are public. `status` is the review
+ * lifecycle and `active` is the admin kill switch — both must pass, and
+ * approved+inactive is a deliberate, valid state.
+ */
+const publicPartner = and(
+  eq(partners.active, true),
+  eq(partners.status, "approved")
+);
+
+function groupByPartner<T extends { partnerId: string }>(rows: T[]): Map<string, T[]> {
+  const out = new Map<string, T[]>();
+  for (const r of rows) {
+    const list = out.get(r.partnerId);
+    if (list) list.push(r);
+    else out.set(r.partnerId, [r]);
+  }
+  return out;
+}
+
+/**
+ * Row → public view. The display toggles come from the partner's category and
+ * default to "shown" when a partner has no category yet.
+ */
+function toPartnerView(
+  p: typeof partners.$inferSelect,
+  c: typeof partnerCategories.$inferSelect | null,
+  items: (typeof partnerGalleryItems.$inferSelect)[],
+  offerings: (typeof partnerOfferings.$inferSelect)[] = []
+): PartnerView {
+  return {
+    id: p.id,
+    slug: p.slug,
+    businessName: p.businessName,
+    tagline: p.tagline ?? "",
+    bio: p.bio ?? "",
+    isPremium: p.isPremium,
+    logoUrl: toMediaSrc(p.logoUrl) ?? undefined,
+    bannerUrl: toMediaSrc(p.bannerUrl) ?? undefined,
+    shopUrl: p.shopUrl ?? undefined,
+    offerings: offerings.map((o) => ({
+      id: o.id,
+      kind: o.kind,
+      name: o.name,
+      description: o.description,
+      price: formatPrice(o.priceCents, o.currency),
+      imageUrl: toMediaSrc(o.imageUrl) ?? undefined,
+      externalUrl: o.externalUrl ?? undefined,
+    })),
+    categorySlug: c?.slug ?? null,
+    categoryName: c?.name ?? null,
+    showProducts: c?.showProducts ?? true,
+    showArt: c?.showArt ?? true,
+    showReviews: c?.showReviews ?? true,
+    showSocials: c?.showSocials ?? true,
+    showGallery: c?.showGallery ?? true,
+    socials: parseSocials(p.socials),
+    gallery: items.map((i) => ({
+      title: i.title ?? "",
+      caption: i.caption ?? "",
+      kind: i.kind,
+      externalUrl: i.externalUrl ?? undefined,
+      imageUrl: toMediaSrc(i.imageUrl) ?? undefined,
+    })),
+  };
+}
+
 export async function getPartners(): Promise<PartnerView[]> {
   if (!useDb) return samplePartners;
   try {
@@ -399,48 +502,231 @@ export async function getPartners(): Promise<PartnerView[]> {
       .select({ p: partners, c: partnerCategories })
       .from(partners)
       .leftJoin(partnerCategories, eq(partners.categoryId, partnerCategories.id))
-      .where(eq(partners.active, true))
+      .where(publicPartner)
       .orderBy(desc(partners.isPremium), asc(partners.businessName));
-    const out: PartnerView[] = [];
-    for (const { p, c } of prows) {
-      const items = await db
+    if (prows.length === 0) return [];
+
+    // Two batched queries, not one pair per partner.
+    const ids = prows.map((r) => r.p.id);
+    const [items, offers] = await Promise.all([
+      db
         .select()
         .from(partnerGalleryItems)
-        .where(eq(partnerGalleryItems.partnerId, p.id))
-        .orderBy(partnerGalleryItems.sort);
-      out.push({
-        id: p.id,
-        slug: p.slug,
-        businessName: p.businessName,
-        tagline: p.tagline ?? "",
-        bio: p.bio ?? "",
-        isPremium: p.isPremium,
-        categorySlug: c?.slug ?? null,
-        categoryName: c?.name ?? null,
-        showProducts: c?.showProducts ?? true,
-        showArt: c?.showArt ?? true,
-        showReviews: c?.showReviews ?? true,
-        showSocials: c?.showSocials ?? true,
-        showGallery: c?.showGallery ?? true,
-        socials: (p.socials as { label: string; url: string }[]) ?? [],
-        gallery: items.map((i) => ({
-          title: i.title ?? "",
-          caption: i.caption ?? "",
-          kind: i.kind,
-          externalUrl: i.externalUrl ?? undefined,
-          imageUrl: toMediaSrc(i.imageUrl) ?? undefined,
-        })),
-      });
-    }
-    return out;
+        .where(inArray(partnerGalleryItems.partnerId, ids))
+        .orderBy(asc(partnerGalleryItems.sort)),
+      db
+        .select()
+        .from(partnerOfferings)
+        .where(
+          and(
+            inArray(partnerOfferings.partnerId, ids),
+            eq(partnerOfferings.active, true)
+          )
+        )
+        .orderBy(asc(partnerOfferings.sort)),
+    ]);
+    const galleryBy = groupByPartner(items);
+    const offersBy = groupByPartner(offers);
+
+    return prows.map(({ p, c }) =>
+      toPartnerView(p, c, galleryBy.get(p.id) ?? [], offersBy.get(p.id) ?? [])
+    );
   } catch {
     return samplePartners;
   }
 }
 
-export async function getPartner(slug: string): Promise<PartnerView | null> {
-  const all = await getPartners();
-  return all.find((p) => p.slug === slug) ?? null;
+export interface PartnerCategoryGroup {
+  slug: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  sort: number;
+  partners: PartnerView[];
+}
+
+/**
+ * Public partners grouped under their category, ordered by the admin-controlled
+ * `sort`. Three queries regardless of how many partners there are.
+ *
+ * `featuredOnly` honours `partner_categories.featured_on_home` — the flag the
+ * admin screen has always written but nothing ever read. It also restricts the
+ * result to categorised partners, which is what the homepage wants.
+ *
+ * The full listing uses a LEFT join instead, so a partner with no category (the
+ * admin create form allows it) still appears, under a trailing "Other" group,
+ * rather than silently vanishing from the public directory.
+ */
+export async function getPartnersByCategory(opts?: {
+  featuredOnly?: boolean;
+}): Promise<PartnerCategoryGroup[]> {
+  const all = useDb ? null : samplePartners;
+  // No-DB fallback: synthesise groups from the sample data.
+  if (all) return groupSamplePartners(all);
+
+  const featuredOnly = opts?.featuredOnly ?? false;
+  try {
+    const base = db
+      .select({ p: partners, c: partnerCategories })
+      .from(partners);
+    const rows = await (featuredOnly
+      ? base.innerJoin(
+          partnerCategories,
+          eq(partners.categoryId, partnerCategories.id)
+        )
+      : base.leftJoin(
+          partnerCategories,
+          eq(partners.categoryId, partnerCategories.id)
+        )
+    )
+      .where(
+        featuredOnly
+          ? and(publicPartner, eq(partnerCategories.featuredOnHome, true))
+          : publicPartner
+      )
+      .orderBy(
+        // NULLS LAST keeps uncategorised partners in the trailing group.
+        sql`${partnerCategories.sort} asc nulls last`,
+        asc(partnerCategories.name),
+        desc(partners.isPremium),
+        asc(partners.businessName)
+      );
+    if (rows.length === 0) return [];
+
+    const ids = rows.map((r) => r.p.id);
+    const [items, offers] = await Promise.all([
+      db
+        .select()
+        .from(partnerGalleryItems)
+        .where(inArray(partnerGalleryItems.partnerId, ids))
+        .orderBy(asc(partnerGalleryItems.sort)),
+      db
+        .select()
+        .from(partnerOfferings)
+        .where(
+          and(
+            inArray(partnerOfferings.partnerId, ids),
+            eq(partnerOfferings.active, true)
+          )
+        )
+        .orderBy(asc(partnerOfferings.sort)),
+    ]);
+    const galleryBy = groupByPartner(items);
+    const offersBy = groupByPartner(offers);
+
+    // Insertion order follows the ORDER BY, so groups come out sorted.
+    const groups = new Map<string, PartnerCategoryGroup>();
+    for (const { p, c } of rows) {
+      const key = c?.id ?? "__uncategorised__";
+      let g = groups.get(key);
+      if (!g) {
+        g = c
+          ? {
+              slug: c.slug,
+              name: c.name,
+              description: c.description,
+              icon: c.icon,
+              color: c.color,
+              sort: c.sort,
+              partners: [],
+            }
+          : {
+              slug: "other",
+              name: "Other",
+              description: null,
+              icon: null,
+              color: null,
+              sort: Number.MAX_SAFE_INTEGER,
+              partners: [],
+            };
+        groups.set(key, g);
+      }
+      g.partners.push(
+        toPartnerView(p, c, galleryBy.get(p.id) ?? [], offersBy.get(p.id) ?? [])
+      );
+    }
+    return [...groups.values()];
+  } catch {
+    return groupSamplePartners(samplePartners);
+  }
+}
+
+/**
+ * Mirrors the grouping above for the no-database path. `featuredOnly` is not
+ * modelled here — the sample categories carry no featured flag, so the fallback
+ * always shows everything rather than silently rendering an empty homepage.
+ */
+function groupSamplePartners(list: PartnerView[]): PartnerCategoryGroup[] {
+  const groups = new Map<string, PartnerCategoryGroup>();
+  for (const p of list) {
+    if (!p.categorySlug || !p.categoryName) continue;
+    let g = groups.get(p.categorySlug);
+    if (!g) {
+      g = {
+        slug: p.categorySlug,
+        name: p.categoryName,
+        description: null,
+        icon: null,
+        color: null,
+        sort: 0,
+        partners: [],
+      };
+      groups.set(p.categorySlug, g);
+    }
+    g.partners.push(p);
+  }
+  return [...groups.values()];
+}
+
+/**
+ * One partner by slug — a single indexed lookup plus one gallery query, rather
+ * than loading every partner and filtering in JS.
+ *
+ * `includeUnpublished` bypasses the status/active filter so an owner can preview
+ * a draft before submitting it. Callers MUST prove access first (see
+ * getMembership in lib/partner-access.ts) — this flag is not an authorization
+ * check, only a query switch.
+ */
+export async function getPartner(
+  slug: string,
+  opts?: { includeUnpublished?: boolean }
+): Promise<PartnerView | null> {
+  if (!useDb) return samplePartners.find((p) => p.slug === slug) ?? null;
+  try {
+    const [row] = await db
+      .select({ p: partners, c: partnerCategories })
+      .from(partners)
+      .leftJoin(partnerCategories, eq(partners.categoryId, partnerCategories.id))
+      .where(
+        opts?.includeUnpublished
+          ? eq(partners.slug, slug)
+          : and(eq(partners.slug, slug), publicPartner)
+      )
+      .limit(1);
+    if (!row) return null;
+
+    const [items, offers] = await Promise.all([
+      db
+        .select()
+        .from(partnerGalleryItems)
+        .where(eq(partnerGalleryItems.partnerId, row.p.id))
+        .orderBy(asc(partnerGalleryItems.sort)),
+      db
+        .select()
+        .from(partnerOfferings)
+        .where(
+          and(
+            eq(partnerOfferings.partnerId, row.p.id),
+            eq(partnerOfferings.active, true)
+          )
+        )
+        .orderBy(asc(partnerOfferings.sort)),
+    ]);
+    return toPartnerView(row.p, row.c, items, offers);
+  } catch {
+    return samplePartners.find((p) => p.slug === slug) ?? null;
+  }
 }
 
 // ---------------------------------------------------------------------------

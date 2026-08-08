@@ -25,7 +25,7 @@ export default async function NewPartnerPage({
     <div className="max-w-2xl space-y-8">
       <PageHeader
         title="Add partner"
-        sub="Create a new vendor, artist or collaborator."
+        sub="Create a partner page in any category."
         icon="mdi:account-plus-outline"
         accent={ACCENT}
       />

@@ -144,10 +144,10 @@ export default async function DashboardPage() {
 								{partner.tagline || "Manage your shop profile and gallery."}
 							</p>
 							<div className="mt-3 flex gap-2">
-								<Link href="/partner-hub" className="mm-btn mm-btn-primary text-xs">
+								<Link href={`/partner-hub/${partner.id}`} className="mm-btn mm-btn-primary text-xs">
 									<Icon icon="mdi:storefront-outline" width={14} /> Manage
 								</Link>
-								<Link href="/partner-hub/gallery" className="mm-btn mm-btn-ghost text-xs">
+								<Link href={`/partner-hub/${partner.id}/gallery`} className="mm-btn mm-btn-ghost text-xs">
 									Gallery
 								</Link>
 							</div>

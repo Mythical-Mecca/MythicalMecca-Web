@@ -227,11 +227,14 @@ export async function recentHits(limit = 50): Promise<LogRow[]> {
 export interface AdminCounts {
   pilots: number;
   partners: number;
+  /** Self-serve stalls waiting in the review queue. */
+  partnersPending: number;
   activeOps: number;
   errors24h: number;
 }
 
 const ZERO_COUNTS: AdminCounts = {
+  partnersPending: 0,
   pilots: 0,
   partners: 0,
   activeOps: 0,
@@ -246,6 +249,10 @@ export async function getCounts(): Promise<AdminCounts> {
       .select({ n: sql<number>`count(*)` })
       .from(partners)
       .where(eq(partners.active, true));
+    const [pp] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(partners)
+      .where(eq(partners.status, "pending"));
     const [e] = await db
       .select({ n: sql<number>`count(*)` })
       .from(events)
@@ -257,6 +264,7 @@ export async function getCounts(): Promise<AdminCounts> {
     return {
       pilots: Number(u?.n ?? 0),
       partners: Number(pa?.n ?? 0),
+      partnersPending: Number(pp?.n ?? 0),
       activeOps: Number(e?.n ?? 0),
       errors24h: Number(er?.n ?? 0),
     };

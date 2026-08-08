@@ -13,6 +13,10 @@ export default async function LoginPage({
   const session = await auth();
   if (session?.user) redirect("/dashboard");
   const { from } = await searchParams;
+  // A bare startsWith("/") also admits "//evil.com", which browsers read as a
+  // protocol-relative absolute URL.
+  const safeFrom =
+    from && from.startsWith("/") && !from.startsWith("//") ? from : null;
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6">
@@ -54,7 +58,7 @@ export default async function LoginPage({
             action={async () => {
               "use server";
               await signIn("discord", {
-                redirectTo: from && from.startsWith("/") ? from : "/dashboard",
+                redirectTo: safeFrom ?? "/dashboard",
               });
             }}
           >
@@ -71,7 +75,7 @@ export default async function LoginPage({
             action={async () => {
               "use server";
               await signIn("google", {
-                redirectTo: from && from.startsWith("/") ? from : "/dashboard",
+                redirectTo: safeFrom ?? "/dashboard",
               });
             }}
           >

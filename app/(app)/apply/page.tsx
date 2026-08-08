@@ -2,6 +2,8 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getMyApplication } from "@/lib/member";
 import { listApplicableCategories } from "@/lib/categories";
+import { countMyPartnerships } from "@/lib/partner-access";
+import { roleAtLeast } from "@/lib/rbac";
 import {
   ApplicationDetailsForm,
   ApplicationImagesForm,
@@ -55,7 +57,10 @@ export default async function PartnerApplicationPage({
   const application = await getMyApplication(user.id);
   const categories = await listApplicableCategories();
   const { sent, step } = await searchParams;
-  const isPartner = user.role === "partner" || user.role === "admin";
+  // Membership, not the JWT role: a token still saying "member" would otherwise
+  // invite an existing partner to apply all over again.
+  const isPartner =
+    (await countMyPartnerships(user.id)) > 0 || roleAtLeast(user.role, "admin");
 
   const draft = application?.status === "draft" ? application : null;
   // Step 1 unless we have a started draft (and aren't explicitly editing details).

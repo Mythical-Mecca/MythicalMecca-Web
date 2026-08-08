@@ -21,7 +21,7 @@ export default async function AdminPartnersPage({
     <div className="space-y-8">
       <PageHeader
         title="Partners"
-        sub="Vendors, artists & collaborators in the armory."
+        sub="Every partner in the armory, across all categories."
         icon="game-icons:anvil"
         accent={ACCENT}
         action={

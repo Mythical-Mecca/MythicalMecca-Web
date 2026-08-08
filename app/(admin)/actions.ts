@@ -9,6 +9,8 @@ import {
   partners,
   partnerCategories,
   partnerApplications,
+  partnerGalleryItems,
+  partnerMembers,
   reviews,
   users,
   galleryItems,
@@ -24,6 +26,8 @@ import { roleAtLeast } from "@/lib/rbac";
 import { slugify } from "@/lib/slug";
 import { logActivity } from "@/lib/logging";
 import { announceEvent } from "@/lib/discord";
+import { parseSocials, toStoredSocials } from "@/lib/socials";
+import { httpUrl } from "@/lib/url";
 
 async function requireAdmin() {
   const session = await auth();
@@ -44,7 +48,9 @@ const eventSchema = z.object({
   origin: z.enum(["hosted", "partner", "external"]).default("hosted"),
   partnerId: z.string().uuid().optional(),
   sourceName: z.string().max(200).optional(),
-  externalUrl: z.string().url().max(500).optional(),
+  // Rendered as an href on the event page. z.string().url() would accept
+  // javascript:, so scheme-check it even though only admins reach this form.
+  externalUrl: httpUrl().optional(),
 });
 
 export type EventFormState = { error?: string };
@@ -135,6 +141,7 @@ export async function approveApplication(formData: FormData) {
   const session = await requireAdmin();
   const id = String(formData.get("id"));
   const note = String(formData.get("note") ?? "");
+  let newSlug: string | null = null;
 
   if (process.env.DATABASE_URL) {
     try {
@@ -153,21 +160,59 @@ export async function approveApplication(formData: FormData) {
             updatedAt: new Date(),
           })
           .where(eq(partnerApplications.id, id));
+        // Promote only from `member` — an admin who applied must stay an admin.
         await db
           .update(users)
           .set({ role: "partner" })
-          .where(eq(users.id, app.userId));
+          .where(and(eq(users.id, app.userId), eq(users.role, "member")));
+
         const storeName = app.businessName || "New stall";
-        await db
+        const slug = `${slugify(storeName)}-${Date.now().toString(36)}`;
+        // Approving an application publishes immediately — unlike a self-serve
+        // page, this content has just been reviewed.
+        const [created] = await db
           .insert(partners)
           .values({
-            userId: app.userId,
             categoryId: app.categoryId,
-            slug: `${slugify(storeName)}-${Date.now().toString(36)}`,
+            slug,
             businessName: storeName,
             tagline: app.pitch.slice(0, 140),
+            // The wizard already collects the keyed shape the public page reads.
+            socials: toStoredSocials(parseSocials(app.socials)),
+            status: "approved",
+            reviewedBy: session.user.id,
           })
-          .onConflictDoNothing();
+          .returning({ id: partners.id });
+
+        if (created) {
+          newSlug = slug;
+          // The applicant owns the page they just had approved.
+          await db
+            .insert(partnerMembers)
+            .values({
+              partnerId: created.id,
+              userId: app.userId,
+              role: "owner",
+              invitedBy: session.user.id,
+            })
+            .onConflictDoNothing();
+
+          // Carry the application's images across as the opening gallery.
+          const images = Array.isArray(app.images)
+            ? (app.images as unknown[]).filter(
+                (u): u is string => typeof u === "string" && !!u
+              )
+            : [];
+          if (images.length) {
+            await db.insert(partnerGalleryItems).values(
+              images.map((url, i) => ({
+                partnerId: created.id,
+                imageUrl: url,
+                sort: i,
+              }))
+            );
+          }
+        }
       }
     } catch {
       redirect("/admin/partners/applications?error=1");
@@ -181,6 +226,8 @@ export async function approveApplication(formData: FormData) {
   revalidatePath("/admin/partners/applications");
   revalidatePath("/admin/partners");
   revalidatePath("/partners");
+  revalidatePath("/");
+  if (newSlug) revalidatePath(`/partners/${newSlug}`);
   redirect("/admin/partners/applications?done=1");
 }
 
@@ -392,7 +439,11 @@ export async function createPartner(formData: FormData) {
         bio: parsed.data.bio,
         isPremium: bool(formData, "isPremium"),
         active: true,
-        socials: parsed.data.socials ? { raw: parsed.data.socials } : null,
+        // An admin creating a partner IS the review — the column default is
+        // `draft`, which would otherwise hide it from the public site.
+        status: "approved",
+        reviewedBy: session.user.id,
+        socials: toStoredSocials(parseSocials({ raw: parsed.data.socials })),
       });
     } catch {
       redirect("/admin/partners/new?error=1");
@@ -402,6 +453,97 @@ export async function createPartner(formData: FormData) {
   revalidatePath("/admin/partners");
   revalidatePath("/partners");
   redirect("/admin/partners?saved=1");
+}
+
+/**
+ * Every surface a partner appears on. The homepage and the detail page were
+ * previously missed, so both went stale after an admin edit.
+ */
+function revalidatePartnerPaths(id: string, slug: string | null) {
+  revalidatePath("/");
+  revalidatePath("/partners");
+  if (slug) revalidatePath(`/partners/${slug}`);
+  revalidatePath("/admin/partners");
+  revalidatePath(`/admin/partners/${id}`);
+  revalidatePath("/partner-hub");
+  revalidatePath(`/partner-hub/${id}`);
+}
+
+/**
+ * Approve a self-serve stall. Once live, later edits publish immediately —
+ * `active` remains the kill switch if a partner goes off the rails.
+ */
+export async function approvePartner(formData: FormData) {
+  const session = await requireAdmin();
+  const id = String(formData.get("id"));
+  let slug: string | null = null;
+
+  if (process.env.DATABASE_URL) {
+    try {
+      const [row] = await db
+        .update(partners)
+        .set({
+          status: "approved",
+          reviewedBy: session.user.id,
+          reviewNote: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(partners.id, id))
+        .returning({ slug: partners.slug });
+      slug = row?.slug ?? null;
+    } catch {
+      redirect("/admin/partners/queue?error=1");
+    }
+  }
+  await logActivity({
+    actorId: session.user.id,
+    action: "partner.approve",
+    entityType: "partner",
+    entityId: id,
+  });
+  revalidatePath("/admin/partners/queue");
+  revalidatePath("/admin/partners");
+  revalidatePath("/partner-hub");
+  revalidatePath(`/partner-hub/${id}`);
+  revalidatePath("/partners");
+  revalidatePath("/");
+  if (slug) revalidatePath(`/partners/${slug}`);
+  redirect("/admin/partners/queue?done=1");
+}
+
+/** Send a stall back for changes. The note is the owner's only feedback. */
+export async function rejectPartner(formData: FormData) {
+  const session = await requireAdmin();
+  const id = String(formData.get("id"));
+  const note = String(formData.get("note") ?? "").trim();
+  if (!note) redirect(`/admin/partners/queue?error=note`);
+
+  if (process.env.DATABASE_URL) {
+    try {
+      await db
+        .update(partners)
+        .set({
+          status: "rejected",
+          reviewedBy: session.user.id,
+          reviewNote: note,
+          updatedAt: new Date(),
+        })
+        .where(eq(partners.id, id));
+    } catch {
+      redirect("/admin/partners/queue?error=1");
+    }
+  }
+  await logActivity({
+    actorId: session.user.id,
+    action: "partner.reject",
+    entityType: "partner",
+    entityId: id,
+  });
+  revalidatePath("/admin/partners/queue");
+  revalidatePath("/admin/partners");
+  revalidatePath("/partner-hub");
+  revalidatePath(`/partner-hub/${id}`);
+  redirect("/admin/partners/queue?done=1");
 }
 
 export async function updatePartner(formData: FormData) {
@@ -416,9 +558,10 @@ export async function updatePartner(formData: FormData) {
   });
   if (!parsed.success) redirect(`/admin/partners/${id}?error=1`);
 
+  let updatedSlug: string | null = null;
   if (process.env.DATABASE_URL) {
     try {
-      await db
+      const [row] = await db
         .update(partners)
         .set({
           businessName: parsed.data.businessName,
@@ -427,10 +570,12 @@ export async function updatePartner(formData: FormData) {
           bio: parsed.data.bio ?? null,
           isPremium: bool(formData, "isPremium"),
           active: bool(formData, "active"),
-          socials: parsed.data.socials ? { raw: parsed.data.socials } : null,
+          socials: toStoredSocials(parseSocials({ raw: parsed.data.socials })),
           updatedAt: new Date(),
         })
-        .where(eq(partners.id, id));
+        .where(eq(partners.id, id))
+        .returning({ slug: partners.slug });
+      updatedSlug = row?.slug ?? null;
     } catch {
       redirect(`/admin/partners/${id}?error=1`);
     }
@@ -440,9 +585,7 @@ export async function updatePartner(formData: FormData) {
     action: "partner.update",
     entityId: id,
   });
-  revalidatePath("/admin/partners");
-  revalidatePath(`/admin/partners/${id}`);
-  revalidatePath("/partners");
+  revalidatePartnerPaths(id, updatedSlug);
   redirect("/admin/partners?saved=1");
 }
 
@@ -450,12 +593,15 @@ export async function setPartnerPremium(formData: FormData) {
   const session = await requireAdmin();
   const id = String(formData.get("id"));
   const premium = String(formData.get("premium")) === "1";
+  let slug: string | null = null;
   if (process.env.DATABASE_URL) {
     try {
-      await db
+      const [row] = await db
         .update(partners)
         .set({ isPremium: premium, updatedAt: new Date() })
-        .where(eq(partners.id, id));
+        .where(eq(partners.id, id))
+        .returning({ slug: partners.slug });
+      slug = row?.slug ?? null;
     } catch {
       redirect("/admin/partners?error=1");
     }
@@ -466,8 +612,7 @@ export async function setPartnerPremium(formData: FormData) {
     entityId: id,
     metadata: { premium },
   });
-  revalidatePath("/admin/partners");
-  revalidatePath("/partners");
+  revalidatePartnerPaths(id, slug);
   redirect("/admin/partners?saved=1");
 }
 
@@ -475,12 +620,15 @@ export async function setPartnerActive(formData: FormData) {
   const session = await requireAdmin();
   const id = String(formData.get("id"));
   const active = String(formData.get("active")) === "1";
+  let slug: string | null = null;
   if (process.env.DATABASE_URL) {
     try {
-      await db
+      const [row] = await db
         .update(partners)
         .set({ active, updatedAt: new Date() })
-        .where(eq(partners.id, id));
+        .where(eq(partners.id, id))
+        .returning({ slug: partners.slug });
+      slug = row?.slug ?? null;
     } catch {
       redirect("/admin/partners?error=1");
     }
@@ -491,8 +639,7 @@ export async function setPartnerActive(formData: FormData) {
     entityId: id,
     metadata: { active },
   });
-  revalidatePath("/admin/partners");
-  revalidatePath("/partners");
+  revalidatePartnerPaths(id, slug);
   redirect("/admin/partners?saved=1");
 }
 

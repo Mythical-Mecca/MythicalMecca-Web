@@ -26,6 +26,11 @@ const nextConfig: NextConfig = {
       { source: "/armory/:path*", destination: "/partners/:path*", permanent: false },
       // partners (briefly lived under /community)
       { source: "/community/partners/:path*", destination: "/partners/:path*", permanent: false },
+      // The hub used to manage a single stall at a flat path. It is now scoped
+      // per stall (/partner-hub/:partnerId/…), which these bookmarks can't know
+      // — send them to the picker rather than guess a stall.
+      { source: "/partner-hub/profile", destination: "/partner-hub", permanent: false },
+      { source: "/partner-hub/gallery", destination: "/partner-hub", permanent: false },
       // events (was /news-and-events, with events nested a level deeper)
       { source: "/news-and-events", destination: "/events", permanent: false },
       { source: "/news-and-events/events/:path*", destination: "/events/:path*", permanent: false },

@@ -137,6 +137,17 @@ export async function listApplicableCategories(): Promise<PartnerCategory[]> {
   return (await listActiveCategories()).filter((c) => c.requiresApplication);
 }
 
+/**
+ * Categories an existing partner may open another stall in.
+ *
+ * `requiresApplication` is deliberately ignored: it gates first-time entry to
+ * the programme, which this user has already cleared. `allowSelfManage` is the
+ * flag that says a partner may run their own page in this category.
+ */
+export async function listSelfManageCategories(): Promise<PartnerCategory[]> {
+  return (await listActiveCategories()).filter((c) => c.allowSelfManage);
+}
+
 export async function getCategoryById(
   id: string
 ): Promise<PartnerCategory | null> {

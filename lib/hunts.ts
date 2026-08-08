@@ -8,6 +8,7 @@ import {
   huntClaimAttempts,
   events,
   partners,
+  partnerMembers,
   users,
 } from "@/lib/db/schema";
 import { and, asc, desc, eq, gte, isNull, or, sql } from "drizzle-orm";
@@ -772,15 +773,18 @@ export interface MyStation {
   claimMode: ClaimMode;
   open: boolean;
   checkIns: number;
+  /** Which stall this station belongs to — a user may staff several. */
+  partnerId: string;
+  partnerName: string;
 }
 
 /**
- * Every objective this partner staffs. Surfaced on the partner hub so that on
- * event day the station is one tap away rather than buried behind a link an
- * admin sent last week.
+ * Every objective this user staffs, across every partner page they manage.
+ * Surfaced on the partner hub so that on event day the station is one tap away
+ * rather than buried behind a link an admin sent last week.
  */
 export async function stationsForPartner(userId: string): Promise<MyStation[]> {
-  if (!useDb) return [];
+  if (!useDb || !userId) return [];
   try {
     const rows = await db
       .select({
@@ -792,12 +796,21 @@ export async function stationsForPartner(userId: string): Promise<MyStation[]> {
         active: scavengerHunts.active,
         startsAt: scavengerHunts.startsAt,
         endsAt: scavengerHunts.endsAt,
+        partnerId: partners.id,
+        partnerName: partners.businessName,
         checkIns: sql<number>`(select count(*) from ${huntProgress} where ${huntProgress.stepId} = ${huntSteps.id})`,
       })
       .from(huntSteps)
       .innerJoin(partners, eq(huntSteps.partnerId, partners.id))
+      // Access comes from membership, not the legacy partners.user_id column.
+      .innerJoin(
+        partnerMembers,
+        and(
+          eq(partnerMembers.partnerId, partners.id),
+          eq(partnerMembers.userId, userId)
+        )
+      )
       .innerJoin(scavengerHunts, eq(huntSteps.huntId, scavengerHunts.id))
-      .where(eq(partners.userId, userId))
       .orderBy(desc(scavengerHunts.createdAt), asc(huntSteps.sort));
 
     return rows.map((r) => ({
@@ -812,6 +825,8 @@ export async function stationsForPartner(userId: string): Promise<MyStation[]> {
         endsAt: r.endsAt,
       }),
       checkIns: Number(r.checkIns ?? 0),
+      partnerId: r.partnerId,
+      partnerName: r.partnerName,
     }));
   } catch {
     return [];
