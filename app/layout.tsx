@@ -22,7 +22,14 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mythical Mecca — the Adventurers' Guild",
+  // A template, so every page declares only its own name and the suffix stays
+  // consistent. 25 of the 34 routes used to inherit this default verbatim, so
+  // the browser tab, the history entry and any bookmark all read "Mythical
+  // Mecca — the Adventurers' Guild" no matter where you were.
+  title: {
+    default: "Mythical Mecca — the Adventurers' Guild",
+    template: "%s — Mythical Mecca",
+  },
   description:
     "A homebase for the geek collective. Gather, quest, and find your people.",
 };

@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/guard";
+import { ACCENT } from "@/lib/accents";
 import { DashboardShell, type NavItem } from "@/components/dashboard-shell";
 import { FactoryScene } from "@/components/animations/factory-scene";
 import { AuroraField } from "@/components/animations/aurora-field";
@@ -7,13 +8,13 @@ import { ParticleField } from "@/components/animations/particle-field";
 // Posts (news), groups and lists are parked for launch alongside their member
 // -facing sections — the pages live on in `app/(admin)/admin/_*`.
 const NAV: NavItem[] = [
-  { href: "/admin", label: "Overview", sub: "Dashboard", icon: "mdi:view-dashboard-outline", color: "#4aa8ff" },
-  { href: "/admin/events", label: "Events", sub: "Schedule & moderation", icon: "game-icons:campfire", color: "#5cc08c" },
-  { href: "/admin/gallery", label: "Gallery", sub: "Homepage photos", icon: "mdi:image-multiple", color: "#e0b0ff" },
-  { href: "/admin/partners", label: "Partners", sub: "Partners & applications", icon: "game-icons:anvil", color: "#9a6cff" },
-  { href: "/admin/quests", label: "Quests", sub: "Venue trails & tags", icon: "game-icons:treasure-map", color: "#E18D01" },
-  { href: "/admin/reviews", label: "Reviews", sub: "Approve testimonials", icon: "mdi:star-outline", color: "#5cc08c" },
-  { href: "/admin/telemetry", label: "Logs", sub: "Activity & errors", icon: "game-icons:book-cover", color: "#48c8d6" },
+  { href: "/admin", label: "Overview", sub: "Dashboard", icon: "mdi:view-dashboard-outline", color: ACCENT.dashboard },
+  { href: "/admin/events", label: "Events", sub: "Schedule & moderation", icon: "game-icons:campfire", color: ACCENT.events },
+  { href: "/admin/gallery", label: "Gallery", sub: "Homepage photos", icon: "mdi:image-multiple", color: ACCENT.gallery },
+  { href: "/admin/partners", label: "Partners", sub: "Partners & applications", icon: "game-icons:anvil", color: ACCENT.partners },
+  { href: "/admin/quests", label: "Quests", sub: "Venue trails & tags", icon: "game-icons:treasure-map", color: ACCENT.quests },
+  { href: "/admin/reviews", label: "Reviews", sub: "Approve testimonials", icon: "mdi:star-outline", color: ACCENT.reviews },
+  { href: "/admin/telemetry", label: "Logs", sub: "Activity & errors", icon: "game-icons:book-cover", color: ACCENT.logs },
 ];
 
 export default async function AdminLayout({

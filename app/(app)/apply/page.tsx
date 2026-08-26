@@ -1,3 +1,4 @@
+import { PageHeading } from "@/components/page-heading";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getMyApplication } from "@/lib/member";
@@ -6,8 +7,10 @@ import {
   ApplicationDetailsForm,
   ApplicationImagesForm,
 } from "@/components/partner-application-wizard";
-import { PageHeader } from "@/components/form";
+
 import { Icon } from "@/components/icon";
+
+export const metadata = { title: "Partner application" };
 
 const STATUS: Record<string, { color: string; icon: string; label: string }> = {
   pending: { color: "var(--mm-gold)", icon: "mdi:clock-outline", label: "Pending" },
@@ -69,9 +72,10 @@ export default async function PartnerApplicationPage({
 
   return (
     <div className="max-w-3xl space-y-8">
-      <PageHeader
+      <PageHeading
+        size="md"
         title="Partner application"
-        sub="Apply for a stall in the Armory — show us what you make."
+        subtitle="Apply for a stall in the Armory — show us what you make."
         icon="game-icons:shop"
         accent="#9a6cff"
       />

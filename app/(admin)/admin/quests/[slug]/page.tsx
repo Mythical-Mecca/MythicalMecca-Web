@@ -1,3 +1,4 @@
+import { PageHeading } from "@/components/page-heading";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -8,19 +9,27 @@ import {
 } from "@/lib/admin-quests";
 import { listEvents } from "@/lib/admin";
 import { getPartners } from "@/lib/content";
-import { setQuestActive, updateQuest, deleteQuest } from "@/app/(admin)/actions";
-import { ObjectiveList } from "@/components/objective-list";
-import { ObjectiveForm } from "@/components/objective-form";
-import {
-  PageHeader,
-  FormCard,
-  TextField,
-  TextareaField,
-} from "@/components/form";
-import { PickerField } from "@/components/picker-field";
+import { setQuestActive, deleteQuest } from "@/app/(admin)/actions";
+import { ObjectiveTimeline } from "@/components/objective-timeline";
+import { QuestSettingsForm } from "@/components/quest-settings-form";
+import { FormCard } from "@/components/form";
+import { formatDate } from "@/lib/format";
+import { tagHostWarning } from "@/lib/app-url";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
 import { Flash } from "@/components/flash";
+import { BackLink } from "@/components/back-link";
+import { forwardReturn, parseReturn } from "@/lib/return-to";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const quest = await getQuestAdmin(slug);
+  return { title: `${quest?.title ?? "Quest"} · Admin` };
+}
 
 const ACCENT = "#9a6cff";
 
@@ -47,22 +56,39 @@ export default async function AdminQuestEditorPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ saved?: string; error?: string }>;
+  searchParams: Promise<{
+    saved?: string;
+    error?: string;
+    from?: string;
+    fromLabel?: string;
+  }>;
 }) {
   const { slug } = await params;
-  const [quest, events, partners, { saved, error }] = await Promise.all([
+  const [quest, events, partners, sp] = await Promise.all([
     getQuestAdmin(slug),
     listEvents(),
     getPartners(),
     searchParams,
   ]);
   if (!quest) notFound();
+  const { saved, error } = sp;
+  // Where the reader came from: the event that owns this quest, the quest
+  // list, or the print sheet. Falls back to the list when nobody said.
+  const backTo = parseReturn(sp, {
+    href: "/admin/quests",
+    label: "All quests",
+  });
 
   const [feed, flags, guesses] = await Promise.all([
     questClaimFeed(quest.id),
     sharingFlags(quest.id),
     guessFlags(quest.id),
   ]);
+
+  // The tag URLs are shown and copied from this page, so the warning belongs
+  // here too — not only on the print sheet, which you might never open.
+  const firstTag = quest.objectiveList.find((o) => o.type === "qr_scan");
+  const tagWarning = firstTag ? await tagHostWarning(firstTag.tagUrl) : null;
 
   const partnerOptions = partners.map((p) => ({
     id: p.id,
@@ -71,18 +97,19 @@ export default async function AdminQuestEditorPage({
 
   return (
     <div className="space-y-8">
-      <PageHeader
+      <PageHeading
+        size="md"
         title={quest.title}
-        sub={`${quest.objectives} objectives · ${quest.players} adventurers`}
+        subtitle={`${quest.objectives} objectives · ${quest.players} adventurers`}
         icon="game-icons:treasure-map"
         accent={ACCENT}
-        action={
-          <div className="flex items-center gap-2">
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
             <Link href={`/quests/${quest.slug}`} className="mm-btn mm-btn-ghost">
               <Icon icon="mdi:eye-outline" width={16} /> View
             </Link>
             <Link
-              href={`/admin/quests/${quest.slug}/tags`}
+              href={forwardReturn(`/admin/quests/${quest.slug}/tags`, sp)}
               className="mm-btn mm-btn-ghost"
             >
               <Icon icon="mdi:printer-outline" width={16} /> Tags
@@ -110,15 +137,27 @@ export default async function AdminQuestEditorPage({
         }
       />
 
-      <Link
-        href="/admin/quests"
-        className="inline-flex items-center gap-1 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
-      >
-        <Icon icon="mdi:chevron-left" width={16} /> All quests
-      </Link>
+      <BackLink to={backTo} />
 
       {saved && <Flash>Saved.</Flash>}
-      {error && <Flash tone="error">Could not save — check the fields.</Flash>}
+      {/* Only the whole-record actions land here now — going live, deleting,
+          reordering, rotating a station key. Form validation reports itself on
+          the offending field instead of redirecting to a page-level line that
+          named neither the field nor the reason. */}
+      {error && (
+        <Flash tone="error">That didn&apos;t work — please try again.</Flash>
+      )}
+
+      {tagWarning && (
+        <div className="mm-glass border-[var(--mm-gold)] p-4 text-sm">
+          <Icon
+            icon="mdi:alert-outline"
+            width={16}
+            className="mr-1.5 inline text-[var(--mm-gold)]"
+          />
+          {tagWarning}
+        </div>
+      )}
 
       {!quest.active && (
         // Being offline is the single most confusing state in the builder: the
@@ -195,15 +234,16 @@ export default async function AdminQuestEditorPage({
       )}
 
       <section>
-        <h2 className="mb-3 flex items-center gap-2 font-[family-name:var(--font-display)] text-lg">
+        <h2 className="mb-1 flex items-center gap-2 font-[family-name:var(--font-display)] text-lg">
           <Icon icon="mdi:flag-outline" width={20} style={{ color: ACCENT }} />
           The trail
         </h2>
         <p className="mb-4 text-sm text-[var(--mm-text-dim)]">
-          Objectives can be tackled in any order — this list is the order they
-          read in.
+          Objectives can be tackled in any order — this is the order they read
+          in. Use a <Icon icon="mdi:plus" width={13} className="inline" /> between
+          two of them to drop a new objective straight into that position.
         </p>
-        <ObjectiveList
+        <ObjectiveTimeline
           questSlug={quest.slug}
           objectives={quest.objectiveList}
           partners={partnerOptions}
@@ -211,77 +251,20 @@ export default async function AdminQuestEditorPage({
         />
       </section>
 
-      <FormCard title="Add an objective" icon="mdi:plus" accent={ACCENT}>
-        <ObjectiveForm
-          questSlug={quest.slug}
-          partners={partnerOptions}
-          eventHasCoords={quest.eventHasCoords}
-        />
-      </FormCard>
-
       <FormCard title="Quest settings" icon="mdi:cog-outline" accent={ACCENT}>
-        <form action={updateQuest} className="space-y-4">
-          <input type="hidden" name="slug" value={quest.slug} />
-          <TextField
-            label="Title"
-            name="title"
-            required
-            defaultValue={quest.title}
-            icon="mdi:format-title"
-          />
-          <TextareaField
-            label="Description"
-            name="description"
-            rows={3}
-            defaultValue={quest.description}
-            icon="mdi:text"
-          />
-          <PickerField
-            label="Attached event"
-            name="eventId"
-            icon="game-icons:campfire"
-            placeholder="Not tied to an event"
-            defaultValue={
-              events.find((e) => e.slug === quest.eventSlug)?.id ?? ""
-            }
-            description="The event's coordinates are what venue checks measure against."
-            options={events.map((e) => ({
-              value: e.id,
-              label: e.title,
-              hint: e.startsAt
-                ? new Date(e.startsAt).toLocaleDateString(undefined, {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })
-                : undefined,
-              icon: "game-icons:campfire",
-            }))}
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <TextField
-              label="Opens"
-              name="startsAt"
-              type="datetime-local"
-              defaultValue={toLocalInput(quest.startsAt)}
-              icon="mdi:clock-start"
-              hint="optional"
-            />
-            <TextField
-              label="Closes"
-              name="endsAt"
-              type="datetime-local"
-              defaultValue={toLocalInput(quest.endsAt)}
-              icon="mdi:clock-end"
-              hint="optional"
-            />
-          </div>
-          <p className="text-xs text-[var(--mm-text-dim)]">
-            Outside these times the quest is closed even while it&apos;s live.
-            Leave both empty to rely on the live switch alone.
-          </p>
-          <button className="mm-btn mm-btn-primary">Save settings</button>
-        </form>
+        <QuestSettingsForm
+          slug={quest.slug}
+          title={quest.title}
+          description={quest.description}
+          eventId={events.find((e) => e.slug === quest.eventSlug)?.id ?? ""}
+          startsAtLocal={toLocalInput(quest.startsAt)}
+          endsAtLocal={toLocalInput(quest.endsAt)}
+          events={events.map((e) => ({
+            id: e.id,
+            title: e.title,
+            when: e.startsAt ? formatDate(e.startsAt) : "",
+          }))}
+        />
       </FormCard>
 
       <section>
@@ -294,7 +277,7 @@ export default async function AdminQuestEditorPage({
             Nothing yet — attempts show up here the moment people start scanning.
           </p>
         ) : (
-          <div className="mm-glass divide-y divide-[var(--mm-border)]">
+          <div className="mm-glass divide-y divide-[var(--mm-divider)]">
             {feed.map((row, i) => (
               <div
                 key={i}

@@ -9,8 +9,15 @@ import {
   pageHits,
   users,
   galleryItems,
+  scavengerHunts,
+  eventGalleryItems,
+  eventComments,
+  eventReviews,
+  eventInterests,
+  chatMessages,
 } from "@/lib/db/schema";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { sampleEvents } from "@/lib/content";
 import { toMediaSrc } from "@/lib/media";
 
@@ -72,6 +79,112 @@ export async function listEvents(): Promise<AdminEvent[]> {
   }
 }
 
+/**
+ * Every editable column of every event, for the admin table.
+ *
+ * Kept separate from `listEvents`, which is the lightweight shape the quest
+ * builder uses as an event picker and has no business growing twenty fields.
+ */
+export interface AdminEventRow {
+  id: string;
+  title: string;
+  slug: string;
+  status: string;
+  origin: string;
+  summary: string | null;
+  bodyMd: string | null;
+  location: string | null;
+  lat: number | null;
+  lng: number | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  capacity: number | null;
+  partnerId: string | null;
+  partnerName: string | null;
+  sourceName: string | null;
+  externalUrl: string | null;
+  reviewNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** Quests attached to this event — usually none or one. */
+  quests: { slug: string; title: string }[];
+}
+
+export async function listEventRows(): Promise<AdminEventRow[]> {
+  if (!useDb) {
+    return sampleAdminEvents().map((e) => ({
+      ...e,
+      origin: "hosted",
+      summary: null,
+      bodyMd: null,
+      lat: null,
+      lng: null,
+      capacity: null,
+      partnerId: null,
+      partnerName: null,
+      sourceName: null,
+      externalUrl: null,
+      reviewNote: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      quests: [],
+    }));
+  }
+  try {
+    const [rows, quests] = await Promise.all([
+      db
+        .select({ e: events, partnerName: partners.businessName })
+        .from(events)
+        .leftJoin(partners, eq(events.partnerId, partners.id))
+        .orderBy(desc(events.createdAt)),
+      // One query for every event's quests, rather than a join that would
+      // duplicate an event row per quest.
+      db
+        .select({
+          eventId: scavengerHunts.eventId,
+          slug: scavengerHunts.slug,
+          title: scavengerHunts.title,
+        })
+        .from(scavengerHunts)
+        .orderBy(scavengerHunts.createdAt),
+    ]);
+
+    const questsByEvent = new Map<string, { slug: string; title: string }[]>();
+    for (const q of quests) {
+      if (!q.eventId) continue;
+      const list = questsByEvent.get(q.eventId) ?? [];
+      list.push({ slug: q.slug, title: q.title });
+      questsByEvent.set(q.eventId, list);
+    }
+
+    return rows.map(({ e, partnerName }) => ({
+      id: e.id,
+      title: e.title,
+      slug: e.slug,
+      status: e.status,
+      origin: e.origin,
+      summary: e.summary,
+      bodyMd: e.bodyMd,
+      location: e.location,
+      lat: e.lat,
+      lng: e.lng,
+      startsAt: e.startsAt ? e.startsAt.toISOString() : null,
+      endsAt: e.endsAt ? e.endsAt.toISOString() : null,
+      capacity: e.capacity,
+      partnerId: e.partnerId,
+      partnerName,
+      sourceName: e.sourceName,
+      externalUrl: e.externalUrl,
+      reviewNote: e.reviewNote,
+      createdAt: e.createdAt.toISOString(),
+      updatedAt: e.updatedAt.toISOString(),
+      quests: questsByEvent.get(e.id) ?? [],
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export interface CommunityEventSubmission {
   id: string;
   title: string;
@@ -125,6 +238,13 @@ export interface AdminGalleryItem {
   id: string;
   imageUrl: string;
   caption: string | null;
+  published: boolean;
+  sort: number;
+  /** Every open of the photo in the public viewer. */
+  views: number;
+  /** Distinct viewers — see lib/gallery.ts for what counts as one. */
+  uniqueViews: number;
+  createdAt: string;
 }
 
 export async function listGallery(): Promise<AdminGalleryItem[]> {
@@ -138,6 +258,11 @@ export async function listGallery(): Promise<AdminGalleryItem[]> {
       id: r.id,
       imageUrl: toMediaSrc(r.imageUrl),
       caption: r.caption,
+      published: r.published,
+      sort: r.sort,
+      views: r.views,
+      uniqueViews: r.uniqueViews,
+      createdAt: r.createdAt.toISOString(),
     }));
   } catch {
     return [];
@@ -262,5 +387,187 @@ export async function getCounts(): Promise<AdminCounts> {
     };
   } catch {
     return ZERO_COUNTS;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// One event, everything about it — the per-event management page
+// ---------------------------------------------------------------------------
+
+export interface AdminGalleryImage {
+  id: string;
+  imageUrl: string;
+  caption: string | null;
+  sort: number;
+}
+
+export interface AdminEventPerson {
+  id: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+  deleted: boolean;
+}
+
+export interface AdminEventReview {
+  id: string;
+  authorName: string;
+  rating: number;
+  body: string | null;
+  createdAt: string;
+}
+
+export interface AdminEventDetail extends AdminEventRow {
+  submitterName: string | null;
+  reviewerName: string | null;
+  gallery: AdminGalleryImage[];
+  interested: number;
+  comments: AdminEventPerson[];
+  chat: AdminEventPerson[];
+  reviews: AdminEventReview[];
+  /** Mean rating, or null when nobody has reviewed yet. */
+  ratingAvg: number | null;
+}
+
+/**
+ * Everything the management page shows, in one pass.
+ *
+ * Deliberately eager: the page renders all of it behind tabs, and eight small
+ * indexed lookups on one event cost less than the round trips of fetching them
+ * tab by tab.
+ */
+export async function getEventAdmin(
+  id: string
+): Promise<AdminEventDetail | null> {
+  if (!useDb) return null;
+  try {
+    const [row] = await db
+      .select({ e: events, partnerName: partners.businessName })
+      .from(events)
+      .leftJoin(partners, eq(events.partnerId, partners.id))
+      .where(eq(events.id, id))
+      .limit(1);
+    if (!row) return null;
+    const e = row.e;
+
+    const submitter = alias(users, "submitter");
+    const reviewer = alias(users, "reviewer");
+
+    const [
+      people,
+      gallery,
+      quests,
+      interestRows,
+      commentRows,
+      chatRows,
+      reviewRows,
+    ] = await Promise.all([
+      db
+        .select({
+          submitterName: submitter.name,
+          reviewerName: reviewer.name,
+        })
+        .from(events)
+        .leftJoin(submitter, eq(events.createdBy, submitter.id))
+        .leftJoin(reviewer, eq(events.reviewedBy, reviewer.id))
+        .where(eq(events.id, id))
+        .limit(1),
+      db
+        .select()
+        .from(eventGalleryItems)
+        .where(eq(eventGalleryItems.eventId, id))
+        .orderBy(eventGalleryItems.sort, eventGalleryItems.createdAt),
+      db
+        .select({ slug: scavengerHunts.slug, title: scavengerHunts.title })
+        .from(scavengerHunts)
+        .where(eq(scavengerHunts.eventId, id))
+        .orderBy(scavengerHunts.createdAt),
+      db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(eventInterests)
+        .where(eq(eventInterests.eventId, id)),
+      db
+        .select({ c: eventComments, authorName: users.name })
+        .from(eventComments)
+        .leftJoin(users, eq(eventComments.userId, users.id))
+        .where(eq(eventComments.eventId, id))
+        .orderBy(desc(eventComments.createdAt)),
+      db
+        .select({ m: chatMessages, authorName: users.name })
+        .from(chatMessages)
+        .leftJoin(users, eq(chatMessages.userId, users.id))
+        .where(
+          and(eq(chatMessages.scopeType, "event"), eq(chatMessages.scopeId, id))
+        )
+        .orderBy(desc(chatMessages.createdAt)),
+      db
+        .select({ r: eventReviews, authorName: users.name })
+        .from(eventReviews)
+        .leftJoin(users, eq(eventReviews.userId, users.id))
+        .where(eq(eventReviews.eventId, id))
+        .orderBy(desc(eventReviews.createdAt)),
+    ]);
+
+    const ratings = reviewRows.map((x) => x.r.rating);
+    const unknown = "Unknown adventurer";
+
+    return {
+      id: e.id,
+      title: e.title,
+      slug: e.slug,
+      status: e.status,
+      origin: e.origin,
+      summary: e.summary,
+      bodyMd: e.bodyMd,
+      location: e.location,
+      lat: e.lat,
+      lng: e.lng,
+      startsAt: e.startsAt ? e.startsAt.toISOString() : null,
+      endsAt: e.endsAt ? e.endsAt.toISOString() : null,
+      capacity: e.capacity,
+      partnerId: e.partnerId,
+      partnerName: row.partnerName,
+      sourceName: e.sourceName,
+      externalUrl: e.externalUrl,
+      reviewNote: e.reviewNote,
+      createdAt: e.createdAt.toISOString(),
+      updatedAt: e.updatedAt.toISOString(),
+      quests,
+      submitterName: people[0]?.submitterName ?? null,
+      reviewerName: people[0]?.reviewerName ?? null,
+      gallery: gallery.map((g) => ({
+        id: g.id,
+        imageUrl: toMediaSrc(g.imageUrl),
+        caption: g.caption,
+        sort: g.sort,
+      })),
+      interested: interestRows[0]?.n ?? 0,
+      comments: commentRows.map(({ c, authorName }) => ({
+        id: c.id,
+        authorName: authorName ?? unknown,
+        body: c.body,
+        createdAt: c.createdAt.toISOString(),
+        deleted: c.deletedAt !== null,
+      })),
+      chat: chatRows.map(({ m, authorName }) => ({
+        id: m.id,
+        authorName: authorName ?? unknown,
+        body: m.body,
+        createdAt: m.createdAt.toISOString(),
+        deleted: m.deletedAt !== null,
+      })),
+      reviews: reviewRows.map(({ r, authorName }) => ({
+        id: r.id,
+        authorName: authorName ?? unknown,
+        rating: r.rating,
+        body: r.body,
+        createdAt: r.createdAt.toISOString(),
+      })),
+      ratingAvg: ratings.length
+        ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+        : null,
+    };
+  } catch {
+    return null;
   }
 }

@@ -1,8 +1,12 @@
-import { listEvents } from "@/lib/admin";
+import { PageHeading } from "@/components/page-heading";
+import { listEventRows } from "@/lib/admin";
 import { getPartners } from "@/lib/content";
-import { EventsBoard } from "@/components/events-board";
+import { EventsTable } from "@/components/events-table";
 import { EventAdminTabs } from "@/components/event-admin-tabs";
+
 import { Flash } from "@/components/flash";
+
+export const metadata = { title: "Events · Admin" };
 
 export default async function AdminEventsPage({
   searchParams,
@@ -10,7 +14,7 @@ export default async function AdminEventsPage({
   searchParams: Promise<{ created?: string }>;
 }) {
   const [events, partners, { created }] = await Promise.all([
-    listEvents(),
+    listEventRows(),
     getPartners(),
     searchParams,
   ]);
@@ -18,21 +22,20 @@ export default async function AdminEventsPage({
   return (
     <div className="space-y-6">
       <EventAdminTabs active="/admin/events" />
+
+      <PageHeading
+        size="md"
+        title="Events"
+        subtitle="Every event, every field — edit in place."
+        icon="game-icons:campfire"
+        accent="#5cc08c"
+      />
+
       {created && <Flash>Event scheduled.</Flash>}
 
-      <EventsBoard
-        events={events.map((e) => ({
-          slug: e.slug,
-          title: e.title,
-          location: e.location,
-          startsAt: e.startsAt,
-          endsAt: e.endsAt,
-          status: e.status,
-        }))}
-        partners={partners.map((p) => ({
-          id: p.id,
-          name: p.businessName,
-        }))}
+      <EventsTable
+        events={events}
+        partners={partners.map((p) => ({ id: p.id, name: p.businessName }))}
       />
     </div>
   );

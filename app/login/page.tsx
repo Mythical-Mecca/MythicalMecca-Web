@@ -5,6 +5,8 @@ import { AuroraField } from "@/components/animations/aurora-field";
 import { Icon } from "@/components/icon";
 import { LogoMark } from "@/components/brand";
 
+export const metadata = { title: "Sign in" };
+
 export default async function LoginPage({
   searchParams,
 }: {

@@ -1,42 +1,33 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getQuestAdmin } from "@/lib/admin-quests";
 import { qrDataUrl } from "@/lib/qrcode";
 import { Icon } from "@/components/icon";
+import { tagHostWarning } from "@/lib/app-url";
+import { forwardReturn } from "@/lib/return-to";
 
-export const metadata = { title: "Quest tags — Mythical Mecca" };
+export const metadata = { title: "Quest tags · Admin" };
 
-/**
- * Tags are built from NEXT_PUBLIC_APP_URL, which is right: a printed tag has to
- * point at the public site, not at whatever machine printed it. But that also
- * means a stale value prints a sheet of dead QR codes, and you'd only find out
- * on the day. Cheap to check, expensive to miss.
- */
-async function appUrlWarning(sampleUrl: string): Promise<string | null> {
-  try {
-    const h = await headers();
-    const host = h.get("host");
-    if (!host) return null;
-    const tagHost = new URL(sampleUrl).host;
-    if (tagHost === host) return null;
-    return `These tags point at ${tagHost}, but you're browsing ${host}. They'll only work if ${tagHost} is the live site — otherwise fix NEXT_PUBLIC_APP_URL before printing.`;
-  } catch {
-    return null;
-  }
+/** Filename-safe label so downloaded PNGs are identifiable without opening. */
+function slugifyForFile(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "tag"
+  );
 }
 
-/**
- * The print sheet. One card per destination objective, each carrying the QR
- * that encodes that objective's tag URL — the same URL you'd write to an NFC
- * tag. Printing is safe: the tag identifies an objective and grants nothing.
- */
 export default async function QuestTagsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ from?: string; fromLabel?: string }>;
 }) {
   const { slug } = await params;
+  const sp = await searchParams;
   const quest = await getQuestAdmin(slug);
   if (!quest) notFound();
 
@@ -47,7 +38,7 @@ export default async function QuestTagsPage({
       qr: await qrDataUrl(o.tagUrl),
     }))
   );
-  const warning = cards[0] ? await appUrlWarning(cards[0].tagUrl) : null;
+  const warning = cards[0] ? await tagHostWarning(cards[0].tagUrl) : null;
 
   return (
     <div className="space-y-6">
@@ -63,8 +54,8 @@ export default async function QuestTagsPage({
       )}
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
-          href={`/admin/quests/${quest.slug}`}
-          className="inline-flex items-center gap-1 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
+          href={forwardReturn(`/admin/quests/${quest.slug}`, sp)}
+          className="inline-flex min-h-11 items-center gap-1 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
         >
           <Icon icon="mdi:chevron-left" width={16} /> Back to {quest.title}
         </Link>
@@ -84,6 +75,7 @@ export default async function QuestTagsPage({
           {cards.map((o) => (
             <div
               key={o.id}
+              id={`tag-${o.id}`}
               className="mm-glass break-inside-avoid p-5 text-center print:border print:border-black"
             >
               <p className="text-xs uppercase tracking-widest text-[var(--mm-gold)]">
@@ -97,18 +89,44 @@ export default async function QuestTagsPage({
                   {o.locationHint}
                 </p>
               )}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={o.qr}
-                alt={`Tag for ${o.title}`}
-                width={220}
-                height={220}
-                className="mx-auto mt-4 rounded-xl"
-              />
+              {/* White plate, and the rounding is on the wrapper — a rounded
+                  <img> clips the QR's finder patterns and hurts read rate. */}
+              <div className="mx-auto mt-4 w-fit overflow-hidden rounded-xl bg-white p-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={o.qr}
+                  alt={`Tag for ${o.title}`}
+                  width={220}
+                  height={220}
+                  className="block"
+                />
+              </div>
               <p className="mt-3 text-sm font-medium">Scan to check in</p>
               <code className="mt-2 block break-all text-[10px] text-[var(--mm-text-dim)]">
                 {o.tagUrl}
               </code>
+
+              <div className="mt-3 flex flex-wrap justify-center gap-2 print:hidden">
+                {/* A plain anchor with `download` saves the data URL straight
+                    to disk — no JavaScript needed. */}
+                <a
+                  href={o.qr}
+                  download={`${quest.slug}-${slugifyForFile(
+                    o.partnerName ?? o.title
+                  )}.png`}
+                  className="mm-btn mm-btn-ghost text-xs"
+                >
+                  <Icon icon="mdi:download" width={14} /> Download PNG
+                </a>
+                {o.claimMode === "live_code" && (
+                  <Link
+                    href={`/partner-hub/station/${o.id}`}
+                    className="mm-btn mm-btn-ghost text-xs"
+                  >
+                    <Icon icon="mdi:monitor-dashboard" width={14} /> Station
+                  </Link>
+                )}
+              </div>
             </div>
           ))}
         </div>

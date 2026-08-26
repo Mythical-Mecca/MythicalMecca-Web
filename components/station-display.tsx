@@ -339,7 +339,7 @@ export function StationDisplay({
               {total}
             </span>
           </h2>
-          <ul className="mm-glass divide-y divide-[var(--mm-border)]">
+          <ul className="mm-glass divide-y divide-[var(--mm-divider)]">
             {recent.map((r, i) => (
               <li
                 key={i}

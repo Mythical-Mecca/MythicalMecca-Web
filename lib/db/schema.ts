@@ -486,6 +486,11 @@ export const galleryItems = pgTable(
     }),
     published: boolean("published").notNull().default(true),
     sort: integer("sort").notNull().default(0),
+    // Running totals kept by recordGalleryView: every open counts towards
+    // views, and a viewer only ever adds one to uniqueViews — galleryItemViews
+    // below is what decides whether this viewer has been counted already.
+    views: integer("views").notNull().default(0),
+    uniqueViews: integer("unique_views").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -508,6 +513,35 @@ export const eventGalleryItems = pgTable(
       .defaultNow(),
   },
   (t) => [index("event_gallery_event_idx").on(t.eventId, t.sort)]
+);
+
+/**
+ * One row per (photo, viewer) pair — the ledger behind `unique_views`.
+ *
+ * A viewer is a signed-in user where we have one, and otherwise the anonymous
+ * id we drop in a long-lived cookie (see lib/gallery.ts). Storing the first
+ * view rather than every view keeps this table bounded by audience size rather
+ * than by traffic, and the unique index is what makes "count this viewer once"
+ * a database guarantee instead of a race between two clicks.
+ */
+export const galleryItemViews = pgTable(
+  "gallery_item_views",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    itemId: uuid("item_id")
+      .notNull()
+      .references(() => galleryItems.id, { onDelete: "cascade" }),
+    viewerKey: text("viewer_key").notNull(),
+    userId: text("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("gallery_item_views_viewer_idx").on(t.itemId, t.viewerKey),
+  ]
 );
 
 // ---------------------------------------------------------------------------

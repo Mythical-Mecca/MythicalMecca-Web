@@ -138,7 +138,7 @@ export function ChatBox({
             maxLength={maxLength}
             placeholder={placeholder}
             disabled={disabled}
-            className="w-full rounded-full border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_70%,transparent)] py-2.5 pl-4 pr-12 text-sm text-[var(--mm-text)] outline-none transition placeholder:text-[var(--mm-text-dim)] focus:border-[var(--mm-violet)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--mm-violet)_30%,transparent)] disabled:opacity-50"
+            className="w-full rounded-full border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_70%,transparent)] py-2.5 pl-4 pr-12 text-sm text-[var(--mm-text)] transition placeholder:text-[var(--mm-text-dim)] focus:border-[var(--mm-violet)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--mm-violet)_30%,transparent)] disabled:opacity-50"
           />
           <button
             type="button"

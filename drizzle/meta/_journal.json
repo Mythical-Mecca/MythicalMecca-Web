@@ -36,6 +36,20 @@
       "when": 1785538422435,
       "tag": "0004_claim_rate_limited",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787657445867,
+      "tag": "0005_worried_lady_ursula",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787657445868,
+      "tag": "0006_partners_missing_columns",
+      "breakpoints": true
     }
   ]
 }

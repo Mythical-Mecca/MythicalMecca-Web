@@ -1,16 +1,12 @@
+import { PageHeading } from "@/components/page-heading";
 import { listCategories, type PartnerCategory } from "@/lib/categories";
 import { createCategory, updateCategory } from "../../../actions";
-import {
-  TextField,
-  TextareaField,
-  CheckboxField,
-  FormCard,
-  FormSection,
-  PageHeader,
-} from "@/components/form";
+import { TextField, TextareaField, CheckboxField, FormCard, FormSection } from "@/components/form";
 import { PartnerTabs } from "@/components/partner-tabs";
 import { Icon } from "@/components/icon";
 import { Flash } from "@/components/flash";
+
+export const metadata = { title: "Partner categories · Admin" };
 
 const ACCENT = "#E18D01";
 
@@ -119,9 +115,10 @@ export default async function AdminCategoriesPage({
 
   return (
     <div className="max-w-3xl space-y-8">
-      <PageHeader
+      <PageHeading
+        size="md"
         title="Categories"
-        sub="Partner categories & their settings."
+        subtitle="Partner categories & their settings."
         icon="mdi:shape-outline"
         accent={ACCENT}
       />

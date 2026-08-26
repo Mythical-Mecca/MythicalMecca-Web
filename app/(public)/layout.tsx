@@ -16,13 +16,17 @@ const HOME_SECTIONS = [
 
 const Footer = () => (
   <footer className="flex flex-col items-center gap-3 border-t border-[var(--mm-border)] px-6 py-8 text-center text-xs text-[var(--mm-text-dim)]">
-    <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+    <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
       {HOME_SECTIONS.map((s) => (
-        <a key={s.href} href={s.href} className="hover:text-[var(--mm-text)]">
+        <a
+          key={s.href}
+          href={s.href}
+          className="inline-flex min-h-6 items-center hover:text-[var(--mm-text)]"
+        >
           {s.label}
         </a>
       ))}
-      <Link href="/collab" className="hover:text-[var(--mm-text)]">
+      <Link href="/collab" className="inline-flex min-h-6 items-center hover:text-[var(--mm-text)]">
         Contact
       </Link>
     </nav>
@@ -30,7 +34,7 @@ const Footer = () => (
       href="https://discord.gg/NKWMAtq2B"
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 hover:text-[var(--mm-text)]"
+      className="inline-flex min-h-6 items-center gap-1.5 hover:text-[var(--mm-text)]"
     >
       <Icon icon="mdi:discord" width={16} /> Join our Discord
     </a>
@@ -51,8 +55,11 @@ export default async function PublicLayout({
   if (session?.user) {
     return (
       <div className="flex min-h-dvh flex-col">
+        <a href="#main-content" className="mm-skip">
+          Skip to content
+        </a>
         <AppTopNav role={session.user.role} />
-        <main className="flex-1">
+        <main id="main-content" tabIndex={-1} className="flex-1">
           <div className="mx-auto max-w-6xl px-6 empty:hidden [&:not(:empty)]:pt-6">
             <Breadcrumbs />
           </div>
@@ -65,8 +72,14 @@ export default async function PublicLayout({
 
   return (
     <div className="flex min-h-dvh flex-col">
+      <a href="#main-content" className="mm-skip">
+        Skip to content
+      </a>
       <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_90%,transparent)]">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <nav
+          aria-label="Primary"
+          className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4"
+        >
           {process.env.NODE_ENV === "development" ? (
             // Dev easter egg: 5 quick clicks on the logo signs in as the
             // test account (localhost-only; enforced server-side in auth).
@@ -77,12 +90,12 @@ export default async function PublicLayout({
             <Brand href="/" className="text-lg" />
           )}
           <div className="flex items-center gap-1">
-            <nav className="mr-2 hidden items-center gap-1 md:flex">
+            <nav aria-label="Page sections" className="mr-2 hidden items-center gap-1 md:flex">
               {HOME_SECTIONS.map((s) => (
                 <a
                   key={s.href}
                   href={s.href}
-                  className="rounded-lg px-3 py-1.5 text-sm text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+                  className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
                 >
                   {s.label}
                 </a>
@@ -98,7 +111,9 @@ export default async function PublicLayout({
           </div>
         </nav>
       </header>
-      <main className="flex-1">{children}</main>
+      <main id="main-content" tabIndex={-1} className="flex-1">
+        {children}
+      </main>
       <Footer />
     </div>
   );

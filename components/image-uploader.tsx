@@ -145,6 +145,9 @@ export function ImageUploader({
           <input
             ref={inputRef}
             type="file"
+            // `hidden` keeps it out of the tab order — the visible drop zone is
+            // the control — but it is still the thing a file picker announces.
+            aria-label="Choose images to upload"
             accept="image/*"
             multiple={!single}
             hidden

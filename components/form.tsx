@@ -1,23 +1,42 @@
 import { Icon } from "@/components/icon";
 
 export const inputCls =
-  "w-full rounded-xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_60%,transparent)] px-4 py-2.5 text-sm text-[var(--mm-text)] outline-none transition placeholder:text-[var(--mm-text-dim)] focus:border-[var(--mm-violet)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--mm-violet)_35%,transparent)]";
+  "w-full rounded-xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_60%,transparent)] px-4 py-2.5 text-sm text-[var(--mm-text)] transition placeholder:text-[var(--mm-text-dim)] focus:border-[var(--mm-violet)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--mm-violet)_35%,transparent)]";
 
 export const textareaCls =
-  "w-full rounded-2xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_60%,transparent)] px-4 py-3 text-sm text-[var(--mm-text)] outline-none transition placeholder:text-[var(--mm-text-dim)] focus:border-[var(--mm-violet)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--mm-violet)_35%,transparent)]";
+  "w-full rounded-2xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_60%,transparent)] px-4 py-3 text-sm text-[var(--mm-text)] transition placeholder:text-[var(--mm-text-dim)] focus:border-[var(--mm-violet)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--mm-violet)_35%,transparent)]";
+
+/** Applied on top of the input classes when a field is carrying an error. */
+export const invalidCls =
+  "!border-[var(--mm-danger)] focus:!ring-[color-mix(in_srgb,var(--mm-danger)_35%,transparent)]";
 
 // Pill-shaped single-line input (chat, comments, inline forms). Prefix with a
 // width utility at the call site, e.g. `w-full ${inputPill}` or `flex-1 …`.
 export const inputPill =
-  "rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm text-[var(--mm-text)] outline-none transition placeholder:text-[var(--mm-text-dim)] focus:border-[var(--mm-violet)]";
+  "rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm text-[var(--mm-text)] transition placeholder:text-[var(--mm-text-dim)] focus:border-[var(--mm-violet)]";
 
-/** Label shell: icon + title + optional hint + description, then the control. */
+/**
+ * Turn a label into a stable id, so a control and its error message can be
+ * wired together without a hook (this file is a server component).
+ */
+function slugId(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/** Label shell: icon + title + optional hint, the control, then description and error. */
 export function Field({
   label,
   hint,
   icon,
   description,
   className,
+  error,
+  errorId,
+  descriptionId,
+  required,
   children,
 }: {
   label: string;
@@ -25,6 +44,13 @@ export function Field({
   icon?: string;
   description?: string;
   className?: string;
+  /** Validation message. Renders below the control and marks it invalid. */
+  error?: string | null;
+  /** Id given to the error text, so the control can point at it. */
+  errorId?: string;
+  /** Id given to the description, so the control can point at it. */
+  descriptionId?: string;
+  required?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -32,18 +58,50 @@ export function Field({
       <span className="flex items-center gap-2 text-sm font-medium text-[var(--mm-text)]">
         {icon && <Icon icon={icon} width={16} className="text-[var(--mm-gold)]" />}
         {label}
+        {required && (
+          <span
+            aria-hidden
+            title="Required"
+            className="text-[var(--mm-gold)]"
+          >
+            *
+          </span>
+        )}
         {hint && (
           <span className="ml-auto text-xs font-normal text-[var(--mm-text-dim)]">
             {hint}
           </span>
         )}
       </span>
+      <span className="mt-2 block">{children}</span>
+      {/* Help text sits under the control, not between the label and it.
+          Above, it pushed the input away from its own label and made the
+          reader scan past a sentence before reaching the thing they came to
+          type in — worst on a long note like the slug warning. Below, the
+          label-then-control pairing stays tight and the note reads as a
+          footnote to the field. */}
       {description && (
-        <span className="mt-0.5 block text-xs text-[var(--mm-text-dim)]">
+        <span
+          id={descriptionId}
+          className="mt-1.5 block text-xs text-[var(--mm-text-dim)]"
+        >
           {description}
         </span>
       )}
-      <span className="mt-2 block">{children}</span>
+      {/* The form system had no error slot at all and `aria-invalid` appeared
+          nowhere in the codebase, so a rejected field could only be described
+          in prose somewhere else on the page. role="alert" so it is announced
+          when it appears after a failed submit. */}
+      {error && (
+        <span
+          id={errorId}
+          role="alert"
+          className="mt-1.5 flex items-center gap-1.5 text-xs text-[var(--mm-danger)]"
+        >
+          <Icon icon="mdi:alert-circle-outline" width={13} className="shrink-0" />
+          {error}
+        </span>
+      )}
     </label>
   );
 }
@@ -54,6 +112,8 @@ type BaseField = {
   description?: string;
   hint?: string;
   className?: string;
+  /** Validation message for this field. */
+  error?: string | null;
 };
 
 export function TextField({
@@ -62,11 +122,36 @@ export function TextField({
   description,
   hint,
   className,
+  error,
   ...rest
 }: BaseField & React.InputHTMLAttributes<HTMLInputElement>) {
+  const base = rest.id ?? rest.name ?? slugId(label);
+  const errorId = `${base}-error`;
+  const descriptionId = `${base}-description`;
+  // The description now follows the control, so it no longer gets read on the
+  // way in — it has to be pointed at explicitly.
+  const describedBy =
+    [error ? errorId : null, description ? descriptionId : null]
+      .filter(Boolean)
+      .join(" ") || rest["aria-describedby"];
   return (
-    <Field label={label} icon={icon} description={description} hint={hint} className={className}>
-      <input {...rest} className={inputCls} />
+    <Field
+      label={label}
+      icon={icon}
+      description={description}
+      descriptionId={descriptionId}
+      hint={hint}
+      className={className}
+      error={error}
+      errorId={errorId}
+      required={rest.required}
+    >
+      <input
+        {...rest}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+        className={`${inputCls} ${error ? invalidCls : ""}`}
+      />
     </Field>
   );
 }
@@ -77,11 +162,34 @@ export function TextareaField({
   description,
   hint,
   className,
+  error,
   ...rest
 }: BaseField & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const base = rest.id ?? rest.name ?? slugId(label);
+  const errorId = `${base}-error`;
+  const descriptionId = `${base}-description`;
+  const describedBy =
+    [error ? errorId : null, description ? descriptionId : null]
+      .filter(Boolean)
+      .join(" ") || rest["aria-describedby"];
   return (
-    <Field label={label} icon={icon} description={description} hint={hint} className={className}>
-      <textarea {...rest} className={textareaCls} />
+    <Field
+      label={label}
+      icon={icon}
+      description={description}
+      descriptionId={descriptionId}
+      hint={hint}
+      className={className}
+      error={error}
+      errorId={errorId}
+      required={rest.required}
+    >
+      <textarea
+        {...rest}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+        className={`${textareaCls} ${error ? invalidCls : ""}`}
+      />
     </Field>
   );
 }
@@ -100,7 +208,7 @@ export function CheckboxField({
       <input
         type="checkbox"
         {...rest}
-        className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--mm-gold)]"
+        className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--mm-gold)]"
       />
       <span className="min-w-0">
         <span className="flex items-center gap-2 text-sm font-medium text-[var(--mm-text)]">
@@ -152,44 +260,8 @@ export function FormCard({
   );
 }
 
-export function PageHeader({
-  title,
-  sub,
-  icon,
-  accent,
-  action,
-}: {
-  title: string;
-  sub?: string;
-  icon?: string;
-  accent?: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-4">
-      <div className="flex items-center gap-3">
-        {icon && (
-          <span
-            className="grid h-11 w-11 place-items-center rounded-xl"
-            style={{
-              background: `${accent ?? "#E18D01"}22`,
-              color: accent ?? "var(--mm-gold)",
-            }}
-          >
-            <Icon icon={icon} width={24} />
-          </span>
-        )}
-        <div>
-          <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
-            {title}
-          </h1>
-          {sub && <p className="text-sm text-[var(--mm-text-dim)]">{sub}</p>}
-        </div>
-      </div>
-      {action}
-    </div>
-  );
-}
+// The page header lives in components/page-heading.tsx. This file used to
+// carry a second one; see the note there for why they were merged.
 
 /** Form section divider with a title. */
 export function FormSection({

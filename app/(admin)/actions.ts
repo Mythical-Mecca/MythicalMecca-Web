@@ -17,7 +17,7 @@ import {
   huntSteps,
   huntStations,
 } from "@/lib/db/schema";
-import { and, asc, desc, eq, gt, lt } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, lt, sql } from "drizzle-orm";
 import { ensureStation } from "@/lib/hunts";
 import { auth } from "@/lib/auth";
 import { roleAtLeast } from "@/lib/rbac";
@@ -259,6 +259,76 @@ export async function removeGalleryImage(formData: FormData) {
   revalidatePath("/admin/gallery");
   revalidatePath("/");
   redirect("/admin/gallery?saved=1");
+}
+
+// ---------------------------------------------------------------------------
+// Gallery table — inline cell edits
+//
+// Same (id, field, value) contract as the events and quests tables: one cell
+// at a time, a result rather than a redirect. The view counters are not in
+// here on purpose — they are written by the public viewer and read-only to us.
+// ---------------------------------------------------------------------------
+export type GallerySaveResult = { ok: true } | { ok: false; error: string };
+
+const GALLERY_FIELDS = {
+  caption: z
+    .string()
+    .transform((v) => (v.trim() === "" ? null : v.trim()))
+    .refine((v) => v === null || v.length <= 300, { message: "Too long" }),
+  published: z.string().transform((v) => v === "1"),
+  sort: z.coerce
+    .number()
+    .int("Whole numbers only")
+    .min(0, "Can't be negative")
+    .max(999, "Too large"),
+} as const;
+
+type GalleryField = keyof typeof GALLERY_FIELDS;
+
+export async function updateGalleryField(
+  id: string,
+  field: string,
+  value: string
+): Promise<GallerySaveResult> {
+  const session = await adminOrNull();
+  if (!session) return { ok: false, error: "Not authorised." };
+  if (!z.uuid().safeParse(id).success) return { ok: false, error: "Unknown photo." };
+
+  if (!Object.prototype.hasOwnProperty.call(GALLERY_FIELDS, field)) {
+    return { ok: false, error: "That field can't be edited here." };
+  }
+  const key = field as GalleryField;
+  const parsed = GALLERY_FIELDS[key].safeParse(value);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid value." };
+  }
+
+  if (!process.env.DATABASE_URL) {
+    return { ok: false, error: "No database configured." };
+  }
+
+  try {
+    const updated = await db
+      .update(galleryItems)
+      .set({ [key]: parsed.data })
+      .where(eq(galleryItems.id, id))
+      .returning({ id: galleryItems.id });
+    if (updated.length === 0) return { ok: false, error: "Unknown photo." };
+  } catch {
+    return { ok: false, error: "Could not save. Please try again." };
+  }
+
+  await logActivity({
+    actorId: session.user.id,
+    action: "gallery.field_update",
+    entityType: "gallery",
+    entityId: id,
+    metadata: { field: key },
+  });
+
+  revalidatePath("/admin/gallery");
+  revalidatePath("/");
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -636,7 +706,23 @@ export async function createQuest(
   redirect(`/admin/quests/${slug}`);
 }
 
-export async function updateQuest(formData: FormData) {
+export type QuestSettingsState = {
+  ok?: boolean;
+  error?: string;
+  fieldErrors?: Record<string, string>;
+  /** Echoed back on failure — see ObjectiveFormState.values. */
+  values?: Record<string, string>;
+};
+
+/**
+ * Save a quest's settings. Answers the submit rather than redirecting, so a
+ * rejected value can be reported on the field that caused it — see
+ * components/quest-settings-form.tsx.
+ */
+export async function updateQuest(
+  _prev: QuestSettingsState,
+  formData: FormData
+): Promise<QuestSettingsState> {
   const session = await requireAdmin();
   const slug = String(formData.get("slug"));
   const parsed = questSchema.safeParse({
@@ -646,7 +732,26 @@ export async function updateQuest(formData: FormData) {
     startsAt: formData.get("startsAt") || undefined,
     endsAt: formData.get("endsAt") || undefined,
   });
-  if (!parsed.success) redirect(`/admin/quests/${slug}?error=1`);
+  const values = {
+    title: String(formData.get("title") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    startsAt: String(formData.get("startsAt") ?? ""),
+    endsAt: String(formData.get("endsAt") ?? ""),
+  };
+  if (!parsed.success) {
+    return { fieldErrors: fieldErrorsFrom(parsed.error.issues), values };
+  }
+
+  // A window that closes before it opens is two valid dates and one invalid
+  // quest, so it can't be caught field by field.
+  const opens = parsed.data.startsAt ? new Date(parsed.data.startsAt) : null;
+  const closes = parsed.data.endsAt ? new Date(parsed.data.endsAt) : null;
+  if (opens && closes && closes.getTime() < opens.getTime()) {
+    return {
+      fieldErrors: { endsAt: "Closing time is before the opening time." },
+      values,
+    };
+  }
 
   if (process.env.DATABASE_URL) {
     try {
@@ -656,22 +761,25 @@ export async function updateQuest(formData: FormData) {
           title: parsed.data.title,
           description: parsed.data.description ?? null,
           eventId: parsed.data.eventId ?? null,
-          startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : null,
-          endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : null,
+          startsAt: opens,
+          endsAt: closes,
           updatedAt: new Date(),
         })
         .where(eq(scavengerHunts.slug, slug));
     } catch {
-      redirect(`/admin/quests/${slug}?error=1`);
+      return {
+        error: "Could not save those settings. Please try again.",
+        values,
+      };
     }
   }
   await logActivity({ actorId: session.user.id, action: "quest.update" });
   revalidatePath(`/admin/quests/${slug}`);
+  revalidatePath("/admin/quests");
   revalidatePath(`/quests/${slug}`);
-  redirect(`/admin/quests/${slug}?saved=1`);
+  return { ok: true };
 }
 
-/** The live switch. Flipping this is how a quest opens and closes on the day. */
 export async function setQuestActive(formData: FormData) {
   const session = await requireAdmin();
   const slug = String(formData.get("slug"));
@@ -715,10 +823,25 @@ export async function deleteQuest(formData: FormData) {
   redirect("/admin/quests?deleted=1");
 }
 
+/**
+ * Messages are written for the person filling the form, not for a log. They
+ * surface on the field itself in the objective dialog, so they have to say what
+ * to do about it — zod's defaults ("Too small: expected string to have >=2
+ * characters") do not.
+ */
 const objectiveSchema = z.object({
-  title: z.string().min(2).max(200),
-  prompt: z.string().max(2000).optional(),
-  points: z.coerce.number().int().min(0).max(1000).default(10),
+  title: z
+    .string()
+    .trim()
+    .min(2, "Give it a title of at least 2 characters.")
+    .max(200, "Keep the title under 200 characters."),
+  prompt: z.string().max(2000, "Keep this under 2000 characters.").optional(),
+  points: z.coerce
+    .number({ error: "Points must be a number." })
+    .int("Points must be a whole number.")
+    .min(0, "Points can't be negative.")
+    .max(1000, "1000 points is the most one objective can be worth.")
+    .default(10),
   type: z.enum([
     "qr_scan",
     "riddle",
@@ -731,11 +854,98 @@ const objectiveSchema = z.object({
   ]),
   revealMode: z.enum(["direct", "clue"]).default("direct"),
   claimMode: z.enum(["live_code", "sealed_tag", "open_tag"]).default("live_code"),
-  partnerId: z.string().uuid().optional(),
-  locationHint: z.string().max(200).optional(),
-  claimRadiusM: z.coerce.number().int().min(10).max(50000).optional(),
-  answer: z.string().max(200).optional(),
+  partnerId: z.string().uuid("Pick a partner from the list.").optional(),
+  locationHint: z
+    .string()
+    .max(200, "Keep the location hint under 200 characters.")
+    .optional(),
+  claimRadiusM: z.coerce
+    .number({ error: "Radius must be a number." })
+    .int("Radius must be a whole number of metres.")
+    .min(10, "10 metres is the smallest usable radius.")
+    .max(50000, "50000 metres is the largest allowed radius.")
+    .optional(),
+  answer: z.string().max(200, "Keep the answer under 200 characters.").optional(),
 });
+
+export type ObjectiveFormState = {
+  /** Set on a successful save — the dialog closes itself on this. */
+  ok?: boolean;
+  /** Something that isn't about one field: a failed write, a missing quest. */
+  error?: string;
+  /** Keyed by form field name, rendered under that input. */
+  fieldErrors?: Record<string, string>;
+  /**
+   * What was submitted, echoed back so a rejected save can re-fill the form.
+   *
+   * React resets an uncontrolled form once its action settles, so without this
+   * a validation failure hands back an empty (or stale) dialog — losing the
+   * work and telling the reader to fix a field that no longer shows what they
+   * typed. Only sent on failure; a success closes the dialog anyway.
+   */
+  values?: Record<string, string>;
+};
+
+/** The text the reader typed, for echoing back on a rejected save. */
+function submittedValues(formData: FormData): Record<string, string> {
+  const keys = [
+    "title",
+    "prompt",
+    "answer",
+    "locationHint",
+    "points",
+    "claimRadiusM",
+  ];
+  const out: Record<string, string> = {};
+  for (const k of keys) {
+    const v = formData.get(k);
+    if (typeof v === "string") out[k] = v;
+  }
+  formData.getAll("choices").forEach((c, i) => {
+    out[`choices.${i}`] = String(c);
+  });
+  return out;
+}
+
+/** First message per field — one per input is all there is room to show. */
+function fieldErrorsFrom(issues: z.core.$ZodIssue[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const issue of issues) {
+    const key = String(issue.path[0] ?? "");
+    if (key && !out[key]) out[key] = issue.message;
+  }
+  return out;
+}
+
+/**
+ * The checks zod can't express, because they depend on the objective's type.
+ * These used to be enforced only by the `required` attribute on the rendered
+ * input, which is a courtesy to save a round trip — never the enforcement.
+ */
+function objectiveTypeErrors(
+  data: z.infer<typeof objectiveSchema>,
+  formData: FormData
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  const needsAnswer = ["riddle", "cipher", "crossword", "unlock_code"];
+  if (needsAnswer.includes(data.type) && !data.answer?.trim()) {
+    out.answer =
+      data.type === "unlock_code"
+        ? "Set the password they have to type in."
+        : "Set the answer this is checked against.";
+  }
+  if (data.type === "trivia_gate") {
+    const choices = formData
+      .getAll("choices")
+      .map(String)
+      .map((c) => c.trim())
+      .filter(Boolean);
+    if (choices.length < 2) {
+      out.choices = "Give the correct answer and at least one decoy.";
+    }
+  }
+  return out;
+}
 
 function objectiveFields(formData: FormData) {
   return {
@@ -780,11 +990,30 @@ function configFor(
   }
 }
 
-export async function addObjective(formData: FormData) {
+/**
+ * Add an objective to a quest.
+ *
+ * Returns its outcome rather than redirecting. It used to `redirect(...?error=1)`
+ * on any failure, which navigated the page — unmounting the dialog the form
+ * lives in, throwing away everything typed, and leaving a page-level
+ * "Could not save — check the fields" behind with no indication of which field
+ * or why. Now the dialog stays put and each message lands on its own input.
+ */
+export async function addObjective(
+  _prev: ObjectiveFormState,
+  formData: FormData
+): Promise<ObjectiveFormState> {
   const session = await requireAdmin();
   const questSlug = String(formData.get("questSlug"));
   const parsed = objectiveSchema.safeParse(objectiveFields(formData));
-  if (!parsed.success) redirect(`/admin/quests/${questSlug}?error=1`);
+  const values = submittedValues(formData);
+  if (!parsed.success) {
+    return { fieldErrors: fieldErrorsFrom(parsed.error.issues), values };
+  }
+  const typeErrors = objectiveTypeErrors(parsed.data, formData);
+  if (Object.keys(typeErrors).length > 0) {
+    return { fieldErrors: typeErrors, values };
+  }
 
   if (process.env.DATABASE_URL) {
     try {
@@ -793,20 +1022,49 @@ export async function addObjective(formData: FormData) {
         .from(scavengerHunts)
         .where(eq(scavengerHunts.slug, questSlug))
         .limit(1);
-      if (!quest) redirect("/admin/quests?error=1");
+      if (!quest) {
+        return { error: "That quest no longer exists.", values };
+      }
 
-      const [last] = await db
+      // Where in the trail this one lands. The timeline offers a "+" between
+      // every pair of objectives, so an insert can arrive for any position —
+      // absent or out of range means append, which is what the plain
+      // "Add objective" button sends.
+      const rawAt = formData.get("atIndex");
+      const atIndex = rawAt === null || rawAt === "" ? null : Number(rawAt);
+
+      const existing = await db
         .select({ sort: huntSteps.sort })
         .from(huntSteps)
         .where(eq(huntSteps.huntId, quest.id))
-        .orderBy(desc(huntSteps.sort))
-        .limit(1);
+        .orderBy(asc(huntSteps.sort));
+
+      let insertSort: number;
+      if (
+        atIndex === null ||
+        Number.isNaN(atIndex) ||
+        atIndex >= existing.length
+      ) {
+        insertSort = (existing[existing.length - 1]?.sort ?? -1) + 1;
+      } else {
+        const at = Math.max(0, atIndex);
+        insertSort = existing[at].sort;
+        // Push everything from that position down one. There is no unique
+        // constraint on (hunt_id, sort), so the momentary collision between
+        // this shift and the insert below is harmless.
+        await db
+          .update(huntSteps)
+          .set({ sort: sql`${huntSteps.sort} + 1` })
+          .where(
+            and(eq(huntSteps.huntId, quest.id), gte(huntSteps.sort, insertSort))
+          );
+      }
 
       const [created] = await db
         .insert(huntSteps)
         .values({
           huntId: quest.id,
-          sort: (last?.sort ?? -1) + 1,
+          sort: insertSort,
           type: parsed.data.type,
           title: parsed.data.title,
           prompt: parsed.data.prompt,
@@ -826,21 +1084,34 @@ export async function addObjective(formData: FormData) {
         await ensureStation(created.id);
       }
     } catch {
-      redirect(`/admin/quests/${questSlug}?error=1`);
+      return {
+        error: "Could not save that objective. Please try again.",
+        values,
+      };
     }
   }
   await logActivity({ actorId: session.user.id, action: "quest.objective.add" });
   revalidatePath(`/admin/quests/${questSlug}`);
   revalidatePath(`/quests/${questSlug}`);
-  redirect(`/admin/quests/${questSlug}?saved=1`);
+  return { ok: true };
 }
 
-export async function updateObjective(formData: FormData) {
+export async function updateObjective(
+  _prev: ObjectiveFormState,
+  formData: FormData
+): Promise<ObjectiveFormState> {
   const session = await requireAdmin();
   const questSlug = String(formData.get("questSlug"));
   const id = String(formData.get("id"));
   const parsed = objectiveSchema.safeParse(objectiveFields(formData));
-  if (!parsed.success) redirect(`/admin/quests/${questSlug}?error=1`);
+  const values = submittedValues(formData);
+  if (!parsed.success) {
+    return { fieldErrors: fieldErrorsFrom(parsed.error.issues), values };
+  }
+  const typeErrors = objectiveTypeErrors(parsed.data, formData);
+  if (Object.keys(typeErrors).length > 0) {
+    return { fieldErrors: typeErrors, values };
+  }
 
   if (process.env.DATABASE_URL) {
     try {
@@ -862,7 +1133,10 @@ export async function updateObjective(formData: FormData) {
         .where(eq(huntSteps.id, id));
       if (parsed.data.claimMode === "live_code") await ensureStation(id);
     } catch {
-      redirect(`/admin/quests/${questSlug}?error=1`);
+      return {
+        error: "Could not save that objective. Please try again.",
+        values,
+      };
     }
   }
   await logActivity({
@@ -872,7 +1146,7 @@ export async function updateObjective(formData: FormData) {
   });
   revalidatePath(`/admin/quests/${questSlug}`);
   revalidatePath(`/quests/${questSlug}`);
-  redirect(`/admin/quests/${questSlug}?saved=1`);
+  return { ok: true };
 }
 
 export async function deleteObjective(formData: FormData) {
@@ -973,4 +1247,153 @@ export async function rotateStationKey(formData: FormData) {
   });
   revalidatePath(`/admin/quests/${questSlug}`);
   redirect(`/admin/quests/${questSlug}?saved=1`);
+}
+
+// ---------------------------------------------------------------------------
+// Quest table — inline cell edits and bulk actions
+//
+// The admin quest list is a `DataTable`, which writes one (id, field, value)
+// triple at a time and expects a result rather than a redirect. Mirrors the
+// event table's contract in actions-events.ts.
+// ---------------------------------------------------------------------------
+
+async function adminOrNull() {
+  const session = await auth();
+  if (!session?.user || !roleAtLeast(session.user.role, "admin")) return null;
+  return session;
+}
+
+export type QuestSaveResult = { ok: true } | { ok: false; error: string };
+
+const optionalQuestStamp = () =>
+  z
+    .string()
+    .transform((v) => (v.trim() === "" ? null : new Date(v)))
+    .refine((d) => d === null || !Number.isNaN(d.getTime()), {
+      message: "Not a valid date",
+    });
+
+/** Only these columns are writable from the table; everything else is a no. */
+const QUEST_FIELDS = {
+  title: z.string().trim().min(2, "Needs at least 2 characters").max(200),
+  description: z
+    .string()
+    .transform((v) => (v.trim() === "" ? null : v.trim()))
+    .refine((v) => v === null || v.length <= 2000, { message: "Too long" }),
+  active: z.string().transform((v) => v === "1"),
+  eventId: z
+    .string()
+    .transform((v) => (v.trim() === "" ? null : v.trim()))
+    .refine((v) => v === null || z.uuid().safeParse(v).success, {
+      message: "Not a valid event",
+    }),
+  startsAt: optionalQuestStamp(),
+  endsAt: optionalQuestStamp(),
+} as const;
+
+type QuestField = keyof typeof QUEST_FIELDS;
+
+export async function updateQuestField(
+  id: string,
+  field: string,
+  value: string
+): Promise<QuestSaveResult> {
+  const session = await adminOrNull();
+  if (!session) return { ok: false, error: "Not authorised." };
+  if (!z.uuid().safeParse(id).success) return { ok: false, error: "Unknown quest." };
+
+  if (!Object.prototype.hasOwnProperty.call(QUEST_FIELDS, field)) {
+    return { ok: false, error: "That field can't be edited here." };
+  }
+  const key = field as QuestField;
+  const parsed = QUEST_FIELDS[key].safeParse(value);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid value." };
+  }
+  const next = parsed.data;
+
+  if (!process.env.DATABASE_URL) {
+    return { ok: false, error: "No database configured." };
+  }
+
+  try {
+    const [current] = await db
+      .select()
+      .from(scavengerHunts)
+      .where(eq(scavengerHunts.id, id))
+      .limit(1);
+    if (!current) return { ok: false, error: "Unknown quest." };
+
+    // The window has to stay a window, whichever end is being moved.
+    if (key === "startsAt" || key === "endsAt") {
+      const starts = key === "startsAt" ? (next as Date | null) : current.startsAt;
+      const ends = key === "endsAt" ? (next as Date | null) : current.endsAt;
+      if (starts && ends && ends.getTime() < starts.getTime()) {
+        return { ok: false, error: "The end has to come after the start." };
+      }
+    }
+
+    // A quest's venue checks measure from its event's coordinates, so pointing
+    // at an event that has since gone is worse than pointing at none.
+    if (key === "eventId" && next !== null) {
+      const [e] = await db
+        .select({ id: events.id })
+        .from(events)
+        .where(eq(events.id, next as string))
+        .limit(1);
+      if (!e) return { ok: false, error: "That event no longer exists." };
+    }
+
+    await db
+      .update(scavengerHunts)
+      .set({ [key]: next, updatedAt: new Date() })
+      .where(eq(scavengerHunts.id, id));
+  } catch {
+    return { ok: false, error: "Could not save. Please try again." };
+  }
+
+  await logActivity({
+    actorId: session.user.id,
+    action: "quest.field_update",
+    entityType: "quest",
+    entityId: id,
+    metadata: { field: key },
+  });
+
+  revalidatePath("/admin/quests");
+  revalidatePath("/quests");
+  return { ok: true };
+}
+
+/** Take a batch of quests live or offline — the table's bulk action. */
+export async function setQuestsActive(
+  ids: string[],
+  active: boolean
+): Promise<QuestSaveResult> {
+  const session = await adminOrNull();
+  if (!session) return { ok: false, error: "Not authorised." };
+
+  const clean = ids.filter((id) => z.uuid().safeParse(id).success);
+  if (clean.length === 0) return { ok: false, error: "Nothing selected." };
+
+  if (process.env.DATABASE_URL) {
+    try {
+      await db
+        .update(scavengerHunts)
+        .set({ active, updatedAt: new Date() })
+        .where(inArray(scavengerHunts.id, clean));
+    } catch {
+      return { ok: false, error: "Could not update those quests." };
+    }
+  }
+
+  await logActivity({
+    actorId: session.user.id,
+    action: "quest.bulk_active",
+    metadata: { count: clean.length, active },
+  });
+
+  revalidatePath("/admin/quests");
+  revalidatePath("/quests");
+  return { ok: true };
 }

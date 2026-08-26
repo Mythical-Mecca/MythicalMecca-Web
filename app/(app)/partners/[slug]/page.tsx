@@ -12,6 +12,16 @@ import { StarRating } from "@/components/star-rating";
 import { ReviewForm } from "@/components/review-form";
 import { formatDateTime } from "@/lib/format";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const partner = await getPartner(slug);
+  return { title: partner?.businessName ?? "Partner" };
+}
+
 export async function generateStaticParams() {
   const partners = await getPartners();
   return partners.map((p) => ({ slug: p.slug }));

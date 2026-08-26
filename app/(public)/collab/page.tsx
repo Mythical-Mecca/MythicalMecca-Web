@@ -5,7 +5,7 @@ import { collabSubmissions } from "@/lib/db/schema";
 import { logActivity } from "@/lib/logging";
 import { inputPill } from "@/components/form";
 
-export const metadata = { title: "Contact — Mythical Mecca" };
+export const metadata = { title: "Contact" };
 
 const schema = z.object({
   name: z.string().min(1).max(120),
@@ -81,7 +81,7 @@ export default async function CollabPage({
             name="message"
             required
             rows={5}
-            className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--mm-violet)]"
+            className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-3 text-sm focus:border-[var(--mm-violet)]"
           />
         </div>
         <button type="submit" className="mm-btn mm-btn-primary">

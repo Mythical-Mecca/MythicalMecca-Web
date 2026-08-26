@@ -1,12 +1,15 @@
+import { PageHeading } from "@/components/page-heading";
 import { auth } from "@/lib/auth";
 import { getMyPartner, listMyGallery } from "@/lib/partner";
 import { addGalleryItem, removeGalleryItem } from "../../actions";
 import { ImageUploader } from "@/components/image-uploader";
-import { TextField, FormCard, PageHeader } from "@/components/form";
+import { TextField, FormCard } from "@/components/form";
 import { PickerField } from "@/components/picker-field";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
 import { Flash } from "@/components/flash";
+
+export const metadata = { title: "Gallery · Partner Hub" };
 
 export default async function ForgeGalleryPage({
   searchParams,
@@ -20,9 +23,10 @@ export default async function ForgeGalleryPage({
 
   return (
     <div className="max-w-3xl space-y-8">
-      <PageHeader
+      <PageHeading
+        size="md"
         title="Gallery"
-        sub="Show off your wares — these appear on your public stall."
+        subtitle="Show off your wares — these appear on your public stall."
         icon="mdi:image-multiple-outline"
         accent="#E18D01"
       />

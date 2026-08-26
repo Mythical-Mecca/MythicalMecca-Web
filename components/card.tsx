@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Icon } from "@/components/icon";
+import { accentText } from "@/lib/accents";
 
 /**
  * The site's unified titled card: a glass panel with an emphasized header band
@@ -57,9 +58,9 @@ export function Card({
         {action && (
           <Link
             href={action.href}
-            className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors hover:brightness-110"
+            className="inline-flex min-h-6 shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors hover:brightness-110"
             style={{
-              color: accent,
+              color: accentText(accent),
               borderColor: `color-mix(in srgb, ${accent} 50%, transparent)`,
               background: `color-mix(in srgb, ${accent} 16%, transparent)`,
             }}

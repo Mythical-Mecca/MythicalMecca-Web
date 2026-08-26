@@ -5,6 +5,7 @@ import { Icon } from "@/components/icon";
 import { auth } from "@/lib/auth";
 import { getEventsPage, getGalleryImages, getPartners, isEventLive } from "@/lib/content";
 import { EventCalendar } from "@/components/event-calendar";
+import { GalleryViewer } from "@/components/gallery-viewer";
 import { Badge } from "@/components/badge";
 import { formatDateTime } from "@/lib/format";
 
@@ -274,6 +275,16 @@ export default async function HomePage() {
                           {e.location ? ` · ${e.location}` : ""}
                         </span>
                       </span>
+                      {/* Signed out, this card goes to /login, not to the
+                          event. The "next gathering" CTA above always said so;
+                          these didn't, so a card headed "Winter Feast" quietly
+                          delivered a sign-in wall. */}
+                      {!loggedIn && (
+                        <span className="flex shrink-0 items-center gap-1 text-[11px] uppercase tracking-widest text-[var(--mm-text-dim)]">
+                          <Icon icon="mdi:lock-outline" width={13} />
+                          Sign in
+                        </span>
+                      )}
                     </Link>
                   ))}
                 </div>
@@ -285,6 +296,7 @@ export default async function HomePage() {
                   events={calEvents}
                   todayIso={nowIso}
                   linkEvents={loggedIn}
+                  headingLevel="h3"
                 />
               </div>
             </>
@@ -298,48 +310,19 @@ export default async function HomePage() {
       </section>
 
       {/* ---------------- Gallery ---------------- */}
-      {galleryTiles.length > 0 && (
-        <section id="gallery" className="scroll-mt-20 bg-[var(--mm-bg)]">
-          <div className="mx-auto max-w-6xl px-6 py-20">
-            <SectionTitle
-              icon="mdi:image-multiple-outline"
-              lead="The"
-              accent="Gallery"
-            />
-            <p className="mt-3 text-[var(--mm-text-dim)]">
-              Moments from the hall — cosplay, minis, fan art and builds.
-            </p>
-            <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
-              {galleryTiles.map((tile, i) => (
-                <div
-                  key={i}
-                  className="group relative h-44 overflow-hidden rounded-2xl border border-[var(--mm-border)]"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={tile.imageUrl}
-                    alt={tile.caption ?? ""}
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  {tile.caption && (
-                    <div
-                      className="absolute inset-x-0 bottom-0 p-3"
-                      style={{
-                        background:
-                          "linear-gradient(to top, rgba(11,15,28,0.9), transparent)",
-                      }}
-                    >
-                      <span className="text-sm font-medium text-[var(--mm-text)]">
-                        {tile.caption}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      <section id="gallery" className="scroll-mt-20 bg-[var(--mm-bg)]">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <SectionTitle
+            icon="mdi:image-multiple-outline"
+            lead="The"
+            accent="Gallery"
+          />
+          <p className="mt-3 text-[var(--mm-text-dim)]">
+            Moments from the hall — cosplay, minis, fan art and builds.
+          </p>
+          <GalleryViewer tiles={galleryTiles} />
+        </div>
+      </section>
 
       {/* ---------------- Partners ---------------- */}
       <section
@@ -361,7 +344,7 @@ export default async function HomePage() {
             right={
               <Link
                 href="/apply"
-                className="inline-flex shrink-0 items-center gap-1.5 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
+                className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
               >
                 Apply for a stall <Icon icon="mdi:arrow-right" width={16} />
               </Link>
@@ -411,6 +394,18 @@ export default async function HomePage() {
                   <p className="mt-2 flex-1 text-sm text-[var(--mm-text-dim)]">
                     {p.tagline}
                   </p>
+                  <span className="mt-3 inline-flex items-center gap-1.5 text-xs text-[var(--mm-gold)]">
+                    {loggedIn ? (
+                      <>
+                        Visit the stall <Icon icon="mdi:arrow-right" width={14} />
+                      </>
+                    ) : (
+                      <>
+                        <Icon icon="mdi:lock-outline" width={13} />
+                        Sign in to view
+                      </>
+                    )}
+                  </span>
                 </Link>
               ))}
             </div>
@@ -448,7 +443,7 @@ export default async function HomePage() {
               href={DISCORD}
               target="_blank"
               rel="noopener noreferrer"
-              className="mm-btn !rounded-xl text-white"
+              className="mm-btn text-white"
               style={{ background: "#5865F2" }}
             >
               <Icon icon="mdi:discord" width={18} /> Join our Discord

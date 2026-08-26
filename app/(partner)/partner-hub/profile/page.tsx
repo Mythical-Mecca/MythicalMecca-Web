@@ -4,6 +4,8 @@ import { updateManufacturer } from "../../actions";
 import { Flash } from "@/components/flash";
 import { inputPill } from "@/components/form";
 
+export const metadata = { title: "Shop profile · Partner Hub" };
+
 const inputCls = `w-full ${inputPill}`;
 
 export default async function ForgeProfilePage({
@@ -58,7 +60,7 @@ export default async function ForgeProfilePage({
               name="bio"
               defaultValue={partner.bio ?? ""}
               rows={5}
-              className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--mm-violet)]"
+              className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-3 text-sm focus:border-[var(--mm-violet)]"
             />
           </div>
           <div>

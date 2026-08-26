@@ -433,8 +433,17 @@ export async function getPartners(): Promise<PartnerView[]> {
       });
     }
     return out;
-  } catch {
-    return samplePartners;
+  } catch (err) {
+    /**
+     * A configured database that fails to answer is a fault, not an empty
+     * site. Returning the samples here meant a broken query rendered three
+     * fabricated businesses on the public page as though they were real
+     * partners — and handed the admin objective form their fake ids, which no
+     * amount of retrying could ever save. The samples are for running without
+     * a database at all; that case already returned above.
+     */
+    console.error("getPartners failed — returning no partners", err);
+    return [];
   }
 }
 
@@ -447,29 +456,38 @@ export async function getPartner(slug: string): Promise<PartnerView | null> {
 // Galleries — global (homepage) + per-event
 // ---------------------------------------------------------------------------
 export interface GalleryImage {
+  /** Null for the built-in samples, which have no row to count views against. */
+  id: string | null;
   imageUrl: string;
   caption: string | null;
+  /** ISO, so the viewer can render it in the reader's own timezone. */
+  createdAt: string | null;
 }
 
-const sampleGallery: GalleryImage[] = [
-  { imageUrl: "/MythicMechaBackground.webp", caption: "Tavern nights" },
-  { imageUrl: "/MythicMechaBackground2.webp", caption: "On the cliff" },
-  { imageUrl: "/MythicMechaBackground3.webp", caption: "Into the woods" },
-  { imageUrl: "/MythicMechaAuthBackground.webp", caption: "Under the aurora" },
-];
-
+/**
+ * The homepage gallery, and only ever the real thing.
+ *
+ * This used to fall back to four stock photos whenever the table was empty or
+ * the query failed, which meant the public page could look full while the
+ * admin list was empty — and made a broken query indistinguishable from a
+ * quiet gallery. An empty list is the honest answer; the viewer says so.
+ */
 export async function getGalleryImages(): Promise<GalleryImage[]> {
-  if (!useDb) return sampleGallery;
+  if (!useDb) return [];
   try {
     const rows = await db
       .select()
       .from(galleryItems)
       .where(eq(galleryItems.published, true))
       .orderBy(galleryItems.sort, desc(galleryItems.createdAt));
-    if (rows.length === 0) return sampleGallery;
-    return rows.map((r) => ({ imageUrl: toMediaSrc(r.imageUrl), caption: r.caption }));
+    return rows.map((r) => ({
+      id: r.id,
+      imageUrl: toMediaSrc(r.imageUrl),
+      caption: r.caption,
+      createdAt: r.createdAt.toISOString(),
+    }));
   } catch {
-    return sampleGallery;
+    return [];
   }
 }
 
@@ -487,7 +505,12 @@ export async function getEventGallery(slug: string): Promise<GalleryImage[]> {
       .from(eventGalleryItems)
       .where(eq(eventGalleryItems.eventId, e.id))
       .orderBy(eventGalleryItems.sort);
-    return rows.map((r) => ({ imageUrl: toMediaSrc(r.imageUrl), caption: r.caption }));
+    return rows.map((r) => ({
+      id: r.id,
+      imageUrl: toMediaSrc(r.imageUrl),
+      caption: r.caption,
+      createdAt: r.createdAt.toISOString(),
+    }));
   } catch {
     return [];
   }

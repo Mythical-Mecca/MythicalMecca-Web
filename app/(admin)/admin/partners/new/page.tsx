@@ -1,15 +1,12 @@
+import { PageHeading } from "@/components/page-heading";
 import { listCategories } from "@/lib/categories";
 import { createPartner } from "../../../actions";
-import {
-  TextField,
-  TextareaField,
-  CheckboxField,
-  FormCard,
-  PageHeader,
-} from "@/components/form";
+import { TextField, TextareaField, CheckboxField, FormCard } from "@/components/form";
 import { PickerField } from "@/components/picker-field";
 import { Icon } from "@/components/icon";
 import { Flash } from "@/components/flash";
+
+export const metadata = { title: "New partner · Admin" };
 
 const ACCENT = "#E18D01";
 
@@ -23,9 +20,10 @@ export default async function NewPartnerPage({
 
   return (
     <div className="max-w-2xl space-y-8">
-      <PageHeader
+      <PageHeading
+        size="md"
         title="Add partner"
-        sub="Create a new vendor, artist or collaborator."
+        subtitle="Create a new vendor, artist or collaborator."
         icon="mdi:account-plus-outline"
         accent={ACCENT}
       />

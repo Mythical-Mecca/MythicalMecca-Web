@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Icon } from "@/components/icon";
-import { TextField, TextareaField, Field, inputCls } from "@/components/form";
+import { TextField, TextareaField } from "@/components/form";
+import { DateTimeField } from "@/components/datetime-input";
 import { submitCommunityEvent } from "../actions";
 import { Flash } from "@/components/flash";
 
-export const metadata = { title: "Submit an event — Mythical Mecca" };
+export const metadata = { title: "Submit an event" };
 
 export default async function SubmitEventPage({
   searchParams,
@@ -65,17 +66,18 @@ export default async function SubmitEventPage({
           placeholder="Venue or address"
         />
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Starts" icon="mdi:clock-outline">
-            <input
-              type="datetime-local"
-              name="startsAt"
-              required
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Ends (optional)" icon="mdi:clock-check-outline">
-            <input type="datetime-local" name="endsAt" className={inputCls} />
-          </Field>
+          <DateTimeField
+            label="Starts"
+            icon="mdi:clock-outline"
+            name="startsAt"
+            required
+          />
+          <DateTimeField
+            label="Ends"
+            hint="optional"
+            icon="mdi:clock-check-outline"
+            name="endsAt"
+          />
         </div>
         <button className="mm-btn mm-btn-primary w-full">
           <Icon icon="mdi:send" width={16} /> Submit for review

@@ -1,6 +1,9 @@
+import { PageHeading } from "@/components/page-heading";
 import { getCounts } from "@/lib/admin";
-import { PageHeader } from "@/components/form";
+
 import { Icon } from "@/components/icon";
+
+export const metadata = { title: "Admin" };
 
 export default async function CommandOverviewPage() {
   const c = await getCounts();
@@ -14,9 +17,10 @@ export default async function CommandOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <PageHeading
+        size="md"
         title="Admin"
-        sub="Overview — the state of the realm at a glance."
+        subtitle="Overview — the state of the realm at a glance."
         icon="game-icons:tower-flag"
         accent="#E18D01"
       />

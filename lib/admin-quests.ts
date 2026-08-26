@@ -27,6 +27,8 @@ export interface AdminQuestRow {
   active: boolean;
   startsAt: Date | null;
   endsAt: Date | null;
+  /** The attached event's id — what the table's Event cell edits. */
+  eventId: string | null;
   eventTitle: string | null;
   eventSlug: string | null;
   objectives: number;
@@ -85,6 +87,7 @@ export async function listQuestsAdmin(): Promise<AdminQuestRow[]> {
       active: r.h.active,
       startsAt: r.h.startsAt,
       endsAt: r.h.endsAt,
+      eventId: r.h.eventId,
       eventTitle: r.eventTitle,
       eventSlug: r.eventSlug,
       objectives: Number(r.objectives ?? 0),
@@ -164,6 +167,7 @@ export async function getQuestAdmin(
       active: row.h.active,
       startsAt: row.h.startsAt,
       endsAt: row.h.endsAt,
+      eventId: row.h.eventId,
       eventTitle: row.eventTitle,
       eventSlug: row.eventSlug,
       eventHasCoords: row.eventLat != null && row.eventLng != null,

@@ -13,7 +13,14 @@
   --mm-bg: #0b0f1c;
   --mm-surface: #131b30;
   --mm-elevated: #1d2746;
-  --mm-border: #35446a;
+  /* Boundary of an interactive control — inputs, buttons, tabs, chips, cards.
+     WCAG 1.4.11 wants 3:1 against what sits behind it, and the old #35446a
+     managed 1.99 on the page and 1.78 on a surface, so every control on the
+     site had an effectively invisible edge. This clears 3:1 on both. */
+  --mm-border: #55679f;
+  /* Purely decorative rules — list separators, inner card divisions. These
+     carry no information a border-only control does, so they stay quiet. */
+  --mm-divider: #35446a;
   --mm-text: #f1e7d3;
   --mm-text-dim: #9aa3bd;
   --mm-live: #5cc08c;
@@ -30,6 +37,7 @@
   --color-ember: var(--mm-blue);
   --color-rust: var(--mm-violet);
   --color-hud-border: var(--mm-border);
+  --color-hud-divider: var(--mm-divider);
   --color-hud-text: var(--mm-text);
   --color-hud-dim: var(--mm-text-dim);
   --color-live: var(--mm-live);
@@ -44,6 +52,26 @@
 html {
   /* Nudge the base font size up a touch; rem-based sizing scales everything proportionally. */
   font-size: 17.5px;
+  /* Tell the browser this is a dark UI, so everything it draws itself — the
+     date and time picker popups, native select menus, form control internals —
+     comes back dark instead of a white panel dropped on top of the page. One
+     component was already setting this inline on its own inputs; it belongs
+     here, once, for all of them. */
+  color-scheme: dark;
+}
+
+/* Date/time inputs whose picker button we supply ourselves — see
+   components/datetime-input.tsx. The browser's own indicator can't be
+   coloured, and on this surface Chrome renders it as a near-black glyph on a
+   near-black field. Scoped to the class rather than applied to every
+   `input[type=date]`, so the admin table's inline cell editors keep the native
+   control they rely on. */
+.mm-date-input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+.mm-date-input::-webkit-inner-spin-button,
+.mm-date-input::-webkit-clear-button {
+  display: none;
 }
 
 body {
@@ -114,6 +142,43 @@ button,
 [role="button"] {
   -webkit-tap-highlight-color: color-mix(in srgb, var(--mm-gold) 20%, transparent);
   touch-action: manipulation;
+}
+
+/* ---------------------------------------------------------------------------
+   Focus. One ring for the whole site, on everything focusable, drawn OUTSIDE
+   the element via `outline-offset`. The offset is what makes a single colour
+   work everywhere: a gold ring drawn on the gold primary button would be
+   invisible (1.45:1), but sitting 2px clear of it the ring is measured against
+   the page instead — 10.6:1 on the base, 9.5:1 on a surface.
+
+   Components used to opt out with `outline-none` and swap a border colour
+   instead, which only ever reached 2.3:1 against the resting border. Nothing
+   should turn this off; if a control needs a different shape, give it a
+   `border-radius`, not `outline: none`.
+   --------------------------------------------------------------------------- */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--mm-gold-hi);
+  outline-offset: 2px;
+}
+
+/* Skip link — the app puts up to a dozen nav links before <main>, so keyboard
+   and switch users need a way past them. Off-screen until focused. */
+.mm-skip {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100;
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-pill);
+  background: var(--mm-gold);
+  color: #160f0a;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transform: translateY(-200%);
+  transition: transform 0.15s ease-out;
+}
+.mm-skip:focus-visible {
+  transform: translateY(0);
 }
 
 /* Cool moonlit ambience with a faint gold hearth-hint from below.
@@ -250,6 +315,22 @@ body::before {
   opacity: 0;
 }
 
+/* Side sheet (the admin drawer). Same enter/exit contract as .mm-pop, so the
+   drawer can be mounted on open and unmounted after the exit transition
+   instead of living off-screen with its form still in the tab order. */
+.mm-sheet {
+  transform: translateX(0);
+  transition: transform 240ms ease-out;
+}
+@starting-style {
+  .mm-sheet {
+    transform: translateX(100%);
+  }
+}
+.mm-sheet[data-closing="true"] {
+  transform: translateX(100%);
+}
+
 /* Admin backdrop cogs. Duration/direction come from inline styles per gear.
    `will-change` promotes each gear to its own layer so the rotation is a
    composited transform instead of a per-frame re-rasterisation of the dashed
@@ -338,27 +419,49 @@ body::before {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Reduced motion.
+
+   The named rules below were the only thing honoured before, which left the
+   ~80 Tailwind-authored `transition-*` / `animate-*` / `duration-*` utilities
+   scattered through the components — the drawer slide, the gallery zoom, every
+   hover scale — running at full tilt for someone who asked the OS for less. The
+   blanket rule catches those; durations are collapsed rather than removed so
+   transition-dependent logic (the modals wait for `transitionend`-length
+   timers) still completes.
+   --------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  .mm-dot-live {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Hover/idle transforms are the motion itself, not just its timing — those
+     have to be cancelled outright rather than sped up. */
+  .mm-dot-live,
+  .mm-gear,
+  .mm-back-arrow {
+    animation: none !important;
   }
   .mm-gear {
-    animation: none;
     will-change: auto;
   }
-  .mm-btn:hover {
-    transform: none;
-  }
-  .mm-menu-trigger:hover {
-    transform: none;
-  }
-  .mm-menu-trigger:hover .mm-menu-trigger-icon {
-    transform: none;
-  }
-  .mm-back-arrow {
-    animation: none;
-  }
+  .mm-btn:hover,
+  .mm-menu-trigger:hover,
+  .mm-menu-trigger:hover .mm-menu-trigger-icon,
   .mm-back:hover {
+    transform: none;
+  }
+  .mm-pop,
+  .mm-fade,
+  .mm-sheet,
+  .mm-pop[data-closing="true"],
+  .mm-fade[data-closing="true"],
+  .mm-sheet[data-closing="true"] {
     transform: none;
   }
 }

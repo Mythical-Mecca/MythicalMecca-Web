@@ -50,8 +50,40 @@ function sig(data: string): string {
     .slice(0, 32);
 }
 
+const isLocalhost = (url: string) => /^https?:\/\/(localhost|127\.0\.0\.1)/i.test(url);
+
+/**
+ * The origin printed onto every QR code and written to every NFC tag.
+ *
+ * A tag must point at the public site, never at whatever machine generated it
+ * — and a localhost tag is worse than no tag, because it looks fine until
+ * someone scans it at the event. `NEXT_PUBLIC_APP_URL` being copied verbatim
+ * from a local `.env` into the deployment is an easy and near-invisible
+ * mistake, so in production a localhost value is ignored in favour of the
+ * domain Vercel already knows it is serving.
+ */
 function appUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3081";
+  const configured = process.env.NEXT_PUBLIC_APP_URL;
+  const inProduction = process.env.NODE_ENV === "production";
+
+  if (configured && !(inProduction && isLocalhost(configured))) {
+    return configured.replace(/\/+$/, "");
+  }
+
+  // Set by Vercel to the project's stable production domain (no protocol).
+  // Preferred over VERCEL_URL, which is unique per deployment and would bake a
+  // dead preview host into a printed tag.
+  const vercelDomain = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  if (vercelDomain) return `https://${vercelDomain}`;
+
+  if (inProduction) {
+    throw new Error(
+      "Cannot build a tag URL: NEXT_PUBLIC_APP_URL is unset or points at " +
+        "localhost, and no Vercel production domain is available. Set " +
+        "NEXT_PUBLIC_APP_URL to the public site URL and redeploy."
+    );
+  }
+  return "http://localhost:3081";
 }
 
 // ---------------------------------------------------------------------------

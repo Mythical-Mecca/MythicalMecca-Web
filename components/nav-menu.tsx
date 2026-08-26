@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Icon } from "./icon";
+import { trapTab } from "@/lib/focus-trap";
 
 export type NavMenuItem = {
   href: string;
@@ -38,13 +39,16 @@ const EXIT_MS = 180;
 
 function ItemLink({
   item,
-  color,
+  color: sectionColor,
   onNavigate,
 }: {
   item: NavMenuItem;
+  /** Section fallback. An item that carries its own colour keeps it, so a
+      concept is the same colour here as it is in the header and the sidebar. */
   color: string;
   onNavigate: () => void;
 }) {
+  const color = item.color || sectionColor;
   return (
     <Link
       href={item.href}
@@ -119,7 +123,11 @@ export function NavMenu({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setClosing(true);
+      if (e.key === "Escape") {
+        setClosing(true);
+        return;
+      }
+      if (panelRef.current) trapTab(panelRef.current, e);
     };
     document.addEventListener("keydown", onKey);
 

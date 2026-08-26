@@ -4,7 +4,7 @@ import { Badge } from "@/components/badge";
 import { Icon } from "@/components/icon";
 import { SectionHero } from "@/components/section-hero";
 
-export const metadata = { title: "Partners — Mythical Mecca" };
+export const metadata = { title: "Partners" };
 
 export default async function PartnersPage() {
   const partners = await getPartners();

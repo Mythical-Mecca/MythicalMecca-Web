@@ -11,6 +11,9 @@ import { LiveEventCard } from "@/components/live-event-card";
 import { Card, EmptyState } from "@/components/card";
 import { PageHeading } from "@/components/page-heading";
 import { Icon } from "@/components/icon";
+import { ACCENT } from "@/lib/accents";
+
+export const metadata = { title: "Dashboard" };
 
 /*
  * Layout follows the "snapshot strip + main/rail" pattern: each element is its
@@ -61,7 +64,7 @@ export default async function DashboardPage() {
 			<div className="grid gap-5 lg:grid-cols-3">
 				<div className="space-y-5 lg:col-span-2">
 					{/* Events — the "soon" layer */}
-					<Card title="Events" icon="game-icons:campfire" accent="#5cc08c" action={{ href: "/events", label: "All events" }}>
+					<Card title="Events" icon="game-icons:campfire" accent={ACCENT.events} action={{ href: "/events", label: "All events" }}>
 						{upcoming.length === 0 ? (
 							<EmptyState
 								href="/events/submit"
@@ -69,7 +72,7 @@ export default async function DashboardPage() {
 								cta="Submit an event"
 							/>
 						) : (
-							<ul className="divide-y divide-[var(--mm-border)]">
+							<ul className="divide-y divide-[var(--mm-divider)]">
 								{upcoming.map((e) => (
 									<li key={e.slug}>
 										<Link href={`/events/${e.slug}`} className="group flex items-center gap-3 py-2.5">
@@ -95,11 +98,11 @@ export default async function DashboardPage() {
 				{/* ---------- Rail: slower-changing, glanceable ------------------- */}
 				<div className="space-y-5">
 					{/* Quests — the standing "something to do" slot */}
-					<Card title="Quest board" icon="game-icons:treasure-map" accent="#9a6cff" action={{ href: "/quests", label: "All quests" }}>
+					<Card title="Quest board" icon="game-icons:treasure-map" accent={ACCENT.quests} action={{ href: "/quests", label: "All quests" }}>
 						{openQuests.length === 0 ? (
 							<EmptyState href="/quests" text="No trails are open right now — new ones appear around events." cta="Visit the board" />
 						) : (
-							<div className="divide-y divide-[var(--mm-border)]">
+							<div className="divide-y divide-[var(--mm-divider)]">
 								{openQuests.map((q) => {
 									const complete = q.steps > 0 && q.done === q.steps;
 									return (

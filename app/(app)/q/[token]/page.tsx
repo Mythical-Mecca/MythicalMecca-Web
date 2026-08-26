@@ -5,7 +5,7 @@ import { getClaimTarget } from "@/lib/hunts";
 import { QuestClaim } from "@/components/quest-claim";
 import { Icon } from "@/components/icon";
 
-export const metadata = { title: "Check in — Mythical Mecca" };
+export const metadata = { title: "Check in" };
 
 /**
  * Where every printed QR code and NFC tag lands.
@@ -37,7 +37,7 @@ export default async function TagLandingPage({
       // Top-aligned on phones so the check-in button sits well above the fold —
     // vertical centring looked tidy but pushed the only thing that matters
     // down the screen. Centred from tablet up, where there's room to spare.
-    <div className="mx-auto max-w-md sm:flex sm:min-h-[60vh] sm:items-center">
+    <div className="mx-auto max-w-md px-6 py-6 sm:flex sm:min-h-[60vh] sm:items-center">
         <div className="mm-glass w-full p-8 text-center">
           <Icon
             icon="game-icons:broken-shield"
@@ -63,7 +63,7 @@ export default async function TagLandingPage({
     // Top-aligned on phones so the check-in button sits well above the fold —
     // vertical centring looked tidy but pushed the only thing that matters
     // down the screen. Centred from tablet up, where there's room to spare.
-    <div className="mx-auto max-w-md sm:flex sm:min-h-[60vh] sm:items-center">
+    <div className="mx-auto max-w-md px-6 py-6 sm:flex sm:min-h-[60vh] sm:items-center">
       <div className="w-full">
         <QuestClaim
           token={token}

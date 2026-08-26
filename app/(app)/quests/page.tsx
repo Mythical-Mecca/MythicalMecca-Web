@@ -4,7 +4,7 @@ import { SectionHero } from "@/components/section-hero";
 import { listHunts } from "@/lib/hunts";
 import { Icon } from "@/components/icon";
 
-export const metadata = { title: "Quests — Mythical Mecca" };
+export const metadata = { title: "Quests" };
 
 export default async function QuestBoardPage() {
   const session = await auth();

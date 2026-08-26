@@ -7,6 +7,8 @@ import { TextField, FormSection } from "@/components/form";
 import { Icon } from "@/components/icon";
 import { Flash } from "@/components/flash";
 
+export const metadata = { title: "Profile" };
+
 export default async function ProfilePage({
   searchParams,
 }: {

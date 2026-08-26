@@ -1,9 +1,12 @@
+import { PageHeading } from "@/components/page-heading";
 import { listApplications } from "@/lib/admin";
 import { approveApplication, rejectApplication } from "../../../actions";
-import { PageHeader, inputCls } from "@/components/form";
+import { inputCls } from "@/components/form";
 import { PartnerTabs } from "@/components/partner-tabs";
 import { Icon } from "@/components/icon";
 import { Flash } from "@/components/flash";
+
+export const metadata = { title: "Partner applications · Admin" };
 
 const ACCENT = "#9a6cff";
 const STATUS_COLOR: Record<string, string> = {
@@ -24,9 +27,10 @@ export default async function AdminApplicationsPage({
 
   return (
     <div className="space-y-8">
-      <PageHeader
+      <PageHeading
+        size="md"
         title="Applications"
-        sub="Partner applications — approve to grant Partner Hub access."
+        subtitle="Partner applications — approve to grant Partner Hub access."
         icon="mdi:file-document-outline"
         accent={ACCENT}
       />
@@ -101,6 +105,7 @@ export default async function AdminApplicationsPage({
                     <input type="hidden" name="id" value={a.id} />
                     <input
                       name="note"
+                      aria-label="Note on this application"
                       placeholder="Note (optional)"
                       className={`${inputCls} py-1.5 text-xs`}
                     />

@@ -2,14 +2,24 @@
 
 import { useActionState } from "react";
 import { createQuest, type QuestFormState } from "@/app/(admin)/actions";
-import { TextField, TextareaField, FormCard } from "@/components/form";
+import { TextField, TextareaField } from "@/components/form";
+import { DateTimeField } from "@/components/datetime-input";
 import { PickerField } from "@/components/picker-field";
+
+export interface QuestEventOption {
+  id: string;
+  title: string;
+  /** Disambiguates events that share a name across dates. */
+  when: string;
+}
 
 export function QuestCreateForm({
   events,
+  onCancel,
 }: {
-  /** `when` disambiguates events that share a name across dates. */
-  events: { id: string; title: string; when: string }[];
+  events: QuestEventOption[];
+  /** Rendered as a Cancel button when the form sits in a dialog. */
+  onCancel?: () => void;
 }) {
   const [state, formAction, pending] = useActionState<QuestFormState, FormData>(
     createQuest,
@@ -17,62 +27,67 @@ export function QuestCreateForm({
   );
 
   return (
-    <FormCard title="New quest" icon="game-icons:treasure-map" accent="#9a6cff">
-      <form action={formAction} className="space-y-4">
-        <TextField
-          label="Title"
-          name="title"
-          required
-          placeholder="Opening Night Trail"
-          icon="mdi:format-title"
+    <form action={formAction} className="space-y-4">
+      <TextField
+        label="Title"
+        name="title"
+        required
+        placeholder="Opening Night Trail"
+        icon="mdi:format-title"
+      />
+      <TextareaField
+        label="Description"
+        name="description"
+        rows={3}
+        placeholder="What the trail is, and what's in it for whoever finishes."
+        icon="mdi:text"
+      />
+      <PickerField
+        label="Attached event"
+        name="eventId"
+        icon="game-icons:campfire"
+        placeholder="Not tied to an event"
+        description="Attaching a quest surfaces it on that event's page, and uses the event's location for venue checks."
+        options={events.map((e) => ({
+          value: e.id,
+          label: e.title,
+          hint: e.when,
+          icon: "game-icons:campfire",
+        }))}
+      />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <DateTimeField
+          label="Opens"
+          name="startsAt"
+          icon="mdi:clock-start"
+          hint="optional"
         />
-        <TextareaField
-          label="Description"
-          name="description"
-          rows={3}
-          placeholder="What the trail is, and what's in it for whoever finishes."
-          icon="mdi:text"
+        <DateTimeField
+          label="Closes"
+          name="endsAt"
+          icon="mdi:clock-end"
+          hint="optional"
         />
-        <PickerField
-          label="Attached event"
-          name="eventId"
-          icon="game-icons:campfire"
-          placeholder="Not tied to an event"
-          description="Attaching a quest surfaces it on that event's page, and uses the event's location for venue checks."
-          options={events.map((e) => ({
-            value: e.id,
-            label: e.title,
-            hint: e.when,
-            icon: "game-icons:campfire",
-          }))}
-        />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TextField
-            label="Opens"
-            name="startsAt"
-            type="datetime-local"
-            icon="mdi:clock-start"
-            hint="optional"
-          />
-          <TextField
-            label="Closes"
-            name="endsAt"
-            type="datetime-local"
-            icon="mdi:clock-end"
-            hint="optional"
-          />
-        </div>
-        {state.error && (
-          <p className="text-sm text-[var(--mm-danger)]">{state.error}</p>
-        )}
-        <p className="text-xs text-[var(--mm-text-dim)]">
-          New quests start switched off so you can build the trail before anyone
-          can see it.
+      </div>
+      {state.error && (
+        <p role="alert" className="text-sm text-[var(--mm-danger)]">
+          {state.error}
         </p>
+      )}
+      <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[var(--mm-divider)] pt-4">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="mm-btn mm-btn-ghost"
+          >
+            Cancel
+          </button>
+        )}
         <button disabled={pending} className="mm-btn mm-btn-primary">
           {pending ? "Creating…" : "Create quest"}
         </button>
-      </form>
-    </FormCard>
+      </div>
+    </form>
   );
 }

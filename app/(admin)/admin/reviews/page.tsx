@@ -1,3 +1,4 @@
+import { PageHeading } from "@/components/page-heading";
 import Link from "next/link";
 import { listReviewsForAdmin } from "@/lib/reviews";
 import {
@@ -5,12 +6,14 @@ import {
   rejectReview,
   toggleFeaturedReview,
 } from "../../actions";
-import { PageHeader, inputCls, CheckboxField } from "@/components/form";
+import { inputCls, CheckboxField } from "@/components/form";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
 import { Tabs } from "@/components/tabs";
 import { StarRating } from "@/components/star-rating";
 import { Flash } from "@/components/flash";
+
+export const metadata = { title: "Reviews · Admin" };
 
 const ACCENT = "#5cc08c";
 
@@ -36,9 +39,10 @@ export default async function AdminReviewsPage({
 
   return (
     <div className="space-y-8">
-      <PageHeader
+      <PageHeading
+        size="md"
         title="Reviews"
-        sub="Moderate partner reviews."
+        subtitle="Moderate partner reviews."
         icon="mdi:message-star-outline"
         accent={ACCENT}
       />
@@ -123,6 +127,7 @@ export default async function AdminReviewsPage({
                     <input type="hidden" name="id" value={r.id} />
                     <input
                       name="note"
+                      aria-label="Reason for rejecting this review"
                       placeholder="Reason (optional)"
                       className={`${inputCls} py-1.5 text-xs`}
                     />

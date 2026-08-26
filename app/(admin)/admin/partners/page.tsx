@@ -1,11 +1,14 @@
+import { PageHeading } from "@/components/page-heading";
 import Link from "next/link";
 import { listPartners } from "@/lib/partner";
 import { setPartnerPremium, setPartnerActive } from "../../actions";
-import { PageHeader } from "@/components/form";
+
 import { PartnerTabs } from "@/components/partner-tabs";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
 import { Flash } from "@/components/flash";
+
+export const metadata = { title: "Partners · Admin" };
 
 const ACCENT = "#E18D01";
 
@@ -19,12 +22,13 @@ export default async function AdminPartnersPage({
 
   return (
     <div className="space-y-8">
-      <PageHeader
+      <PageHeading
+        size="md"
         title="Partners"
-        sub="Vendors, artists & collaborators in the armory."
+        subtitle="Vendors, artists & collaborators in the armory."
         icon="game-icons:anvil"
         accent={ACCENT}
-        action={
+        actions={
           <Link href="/admin/partners/new" className="mm-btn mm-btn-primary">
             <Icon icon="mdi:plus" width={16} /> Add partner
           </Link>

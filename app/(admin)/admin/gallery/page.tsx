@@ -1,11 +1,10 @@
+import { PageHeading } from "@/components/page-heading";
 import { listGallery } from "@/lib/admin";
-import { addGalleryImages, removeGalleryImage } from "../../actions";
-import { ImageUploader } from "@/components/image-uploader";
-import { TextField, FormCard, PageHeader } from "@/components/form";
-import { Icon } from "@/components/icon";
+import { GalleryTable } from "@/components/gallery-table";
 import { Flash } from "@/components/flash";
+import { ACCENT } from "@/lib/accents";
 
-const ACCENT = "#e0b0ff";
+export const metadata = { title: "Gallery · Admin" };
 
 export default async function AdminGalleryPage({
   searchParams,
@@ -14,14 +13,17 @@ export default async function AdminGalleryPage({
 }) {
   const items = await listGallery();
   const { saved, error } = await searchParams;
+  const views = items.reduce((n, i) => n + i.views, 0);
+  const uniqueViews = items.reduce((n, i) => n + i.uniqueViews, 0);
 
   return (
-    <div className="max-w-4xl space-y-8">
-      <PageHeader
+    <div className="max-w-5xl space-y-6">
+      <PageHeading
+        size="md"
         title="Gallery"
-        sub="Community photos shown on the public homepage."
+        subtitle="Community photos shown on the public homepage."
         icon="mdi:image-multiple-outline"
-        accent={ACCENT}
+        accent={ACCENT.gallery}
       />
 
       {saved && <Flash>Gallery updated.</Flash>}
@@ -29,66 +31,20 @@ export default async function AdminGalleryPage({
         <Flash tone="error">Could not update — add at least one image.</Flash>
       )}
 
-      <FormCard title="Add photos" icon="mdi:plus" accent={ACCENT}>
-        <form action={addGalleryImages} className="space-y-5">
-          <ImageUploader
-            name="images"
-            entityType="gallery"
-            maxFiles={24}
-            accent={ACCENT}
-            label="Upload community photos"
-            description="Up to 24 · 10 MB each"
-          />
-          <TextField
-            name="caption"
-            label="Caption"
-            hint="optional"
-            icon="mdi:text-short"
-            placeholder="e.g. Midsummer Revel 2026"
-          />
-          <button type="submit" className="mm-btn mm-btn-primary">
-            <Icon icon="mdi:plus" width={16} /> Add to gallery
-          </button>
-        </form>
-      </FormCard>
-
-      <section>
-        <h2 className="mb-3 font-[family-name:var(--font-display)] text-lg">
+      <section className="space-y-3">
+        <h2 className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-[family-name:var(--font-display)] text-lg">
           Photos{" "}
           <span className="text-sm text-[var(--mm-text-dim)]">
             ({items.length})
           </span>
+          {items.length > 0 && (
+            <span className="text-sm font-normal text-[var(--mm-text-dim)]">
+              {views.toLocaleString()} view{views === 1 ? "" : "s"} ·{" "}
+              {uniqueViews.toLocaleString()} unique
+            </span>
+          )}
         </h2>
-        {items.length === 0 ? (
-          <p className="text-sm text-[var(--mm-text-dim)]">
-            No photos yet.
-          </p>
-        ) : (
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-            {items.map((g) => (
-              <div
-                key={g.id}
-                className="group relative aspect-square overflow-hidden rounded-xl border border-[var(--mm-border)]"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={g.imageUrl}
-                  alt={g.caption ?? ""}
-                  className="h-full w-full object-cover"
-                />
-                <form action={removeGalleryImage} className="absolute right-1.5 top-1.5">
-                  <input type="hidden" name="id" value={g.id} />
-                  <button
-                    className="grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100"
-                    aria-label="Remove"
-                  >
-                    <Icon icon="mdi:close" width={14} />
-                  </button>
-                </form>
-              </div>
-            ))}
-          </div>
-        )}
+        <GalleryTable items={items} />
       </section>
     </div>
   );

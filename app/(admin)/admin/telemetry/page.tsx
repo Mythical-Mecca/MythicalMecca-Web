@@ -1,5 +1,7 @@
+import { PageHeading } from "@/components/page-heading";
 import { recentActivity, recentErrors, recentHits, type LogRow } from "@/lib/admin";
-import { PageHeader } from "@/components/form";
+
+export const metadata = { title: "Logs · Admin" };
 
 function Stream({
   title,
@@ -45,9 +47,10 @@ export default async function TelemetryPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <PageHeading
+        size="md"
         title="Logs"
-        sub="Logs & activity — every deed, mishap and footstep across the hall."
+        subtitle="Logs & activity — every deed, mishap and footstep across the hall."
         icon="game-icons:book-cover"
         accent="#48c8d6"
       />

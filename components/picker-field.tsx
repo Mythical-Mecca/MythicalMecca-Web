@@ -41,6 +41,7 @@ export function PickerField({
   hint,
   required,
   disabled,
+  error,
   /** Show a filter box once the list is long enough to need one. */
   searchThreshold = 7,
 }: {
@@ -56,6 +57,8 @@ export function PickerField({
   hint?: string;
   required?: boolean;
   disabled?: boolean;
+  /** Validation message, rendered under the trigger by <Field>. */
+  error?: string | null;
   searchThreshold?: number;
 }) {
   const controlled = value !== undefined;
@@ -148,6 +151,9 @@ export function PickerField({
       icon={icon}
       description={description}
       hint={hint}
+      error={error}
+      errorId={`${name}-error`}
+      required={required}
       className="[&>span]:cursor-default"
     >
       <input type="hidden" name={name} value={current} />
@@ -171,7 +177,7 @@ export function PickerField({
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="flex w-full items-center gap-3 rounded-xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_60%,transparent)] px-4 py-3 text-left text-sm transition hover:border-[var(--mm-violet)] focus:border-[var(--mm-violet)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--mm-violet)_35%,transparent)] disabled:opacity-50"
+        className="flex w-full items-center gap-3 rounded-xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_60%,transparent)] px-4 py-3 text-left text-sm transition hover:border-[var(--mm-violet)] focus:border-[var(--mm-violet)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--mm-violet)_35%,transparent)] disabled:opacity-50"
       >
         {selected?.icon && (
           <Icon
@@ -238,7 +244,7 @@ export function PickerField({
                   onKeyDown={onListKeyDown}
                   placeholder="Search…"
                   aria-label={`Search ${label}`}
-                  className="mt-3 w-full rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm outline-none focus:border-[var(--mm-violet)]"
+                  className="mt-3 w-full rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm focus:border-[var(--mm-violet)]"
                 />
               )}
             </div>
@@ -297,7 +303,7 @@ function OptionRow({
       aria-selected={selected}
       data-selected={selected}
       onClick={onSelect}
-      className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--mm-violet)_45%,transparent)] ${
+      className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition focus:ring-2 focus:ring-[color-mix(in_srgb,var(--mm-violet)_45%,transparent)] ${
         selected
           ? "bg-[color-mix(in_srgb,var(--mm-gold)_14%,transparent)]"
           : "hover:bg-[var(--mm-surface)]"

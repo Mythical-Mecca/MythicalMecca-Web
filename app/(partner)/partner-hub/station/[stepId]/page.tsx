@@ -5,7 +5,7 @@ import { recentStationCheckIns, stationCheckInCount } from "@/lib/hunts";
 import { StationDisplay } from "@/components/station-display";
 import { Icon } from "@/components/icon";
 
-export const metadata = { title: "Station — Mythical Mecca" };
+export const metadata = { title: "Station" };
 
 export default async function StationPage({
   params,

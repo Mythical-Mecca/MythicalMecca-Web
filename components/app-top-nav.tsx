@@ -6,6 +6,8 @@ import {
   type NavMenuSection,
 } from "@/components/nav-menu";
 import { Brand } from "@/components/brand";
+import { SectionNav } from "@/components/section-nav";
+import { ACCENT } from "@/lib/accents";
 
 async function signOutAction() {
   "use server";
@@ -23,56 +25,56 @@ const ITEMS = {
     title: "Dashboard",
     desc: "Your home base & standing",
     icon: "game-icons:castle",
-    color: "#4aa8ff",
+    color: ACCENT.dashboard,
   },
   profile: {
     href: "/profile",
     title: "Profile",
     desc: "Your hero & achievements",
     icon: "game-icons:visored-helm",
-    color: "#4aa8ff",
+    color: ACCENT.profile,
   },
   events: {
     href: "/events",
     title: "Events",
     desc: "Feasts, gatherings & tournaments",
     icon: "game-icons:campfire",
-    color: "#5cc08c",
+    color: ACCENT.events,
   },
   quests: {
     href: "/quests",
     title: "Quests",
     desc: "Scavenger trails & leaderboards",
     icon: "game-icons:treasure-map",
-    color: "#5cc08c",
+    color: ACCENT.quests,
   },
   partners: {
     href: "/partners",
     title: "Partners",
     desc: "Makers, merchants & artists",
     icon: "game-icons:anvil",
-    color: "#5cc08c",
+    color: ACCENT.partners,
   },
   partnerHub: {
     href: "/partner-hub",
     title: "Partner Hub",
     desc: "Manage your shop & gallery",
     icon: "mdi:storefront-outline",
-    color: "#E18D01",
+    color: ACCENT.marketplace,
   },
   apply: {
     href: "/apply",
     title: "Apply for a stall",
     desc: "Become a Mythical Mecca partner",
     icon: "game-icons:shop",
-    color: "#E18D01",
+    color: ACCENT.marketplace,
   },
   admin: {
     href: "/admin",
     title: "Admin",
     desc: "Site management",
     icon: "game-icons:tower-flag",
-    color: "#FFB13D",
+    color: ACCENT.admin,
   },
 } satisfies Record<string, NavMenuItem>;
 
@@ -83,28 +85,28 @@ function buildSections(role: Role): NavMenuSection[] {
       title: "Home base",
       subtitle: "Your standing & story",
       icon: "game-icons:castle",
-      color: "#4aa8ff",
+      color: ACCENT.dashboard,
       items: [ITEMS.dashboard, ITEMS.profile],
     },
     {
       title: "The hall",
       subtitle: "Gather, play & explore",
       icon: "game-icons:campfire",
-      color: "#5cc08c",
+      color: ACCENT.events,
       items: [ITEMS.events, ITEMS.quests, ITEMS.partners],
     },
     {
       title: "Marketplace",
       subtitle: "Makers & merchants",
       icon: "game-icons:anvil",
-      color: "#E18D01",
+      color: ACCENT.marketplace,
       items: isPartner ? [ITEMS.partnerHub] : [ITEMS.apply],
     },
     {
       title: "Manage",
       subtitle: "Command & control",
       icon: "game-icons:tower-flag",
-      color: "#FFB13D",
+      color: ACCENT.admin,
       items: roleAtLeast(role, "admin") ? [ITEMS.admin] : [],
     },
   ];
@@ -115,13 +117,22 @@ export function AppTopNav({ role }: { role: Role }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_45%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_88%,transparent)]">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3.5">
+      <nav
+        aria-label="Primary"
+        className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-3.5"
+      >
         <Brand href="/dashboard" className="shrink-0" />
-        <NavMenu
-          sections={sections}
-          signOutAction={signOutAction}
-          trigger={{ icon: "mdi:menu" }}
-        />
+        {/* The three sections live here on md+, so the only thing hidden behind
+            the menu button is the account tier — profile, stall, admin, sign
+            out. Below md there isn't room for them and the menu carries all. */}
+        <SectionNav />
+        <div className="ml-auto shrink-0">
+          <NavMenu
+            sections={sections}
+            signOutAction={signOutAction}
+            trigger={{ icon: "mdi:menu", ariaLabel: "Open navigation menu" }}
+          />
+        </div>
       </nav>
     </header>
   );

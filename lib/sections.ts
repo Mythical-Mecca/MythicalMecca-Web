@@ -4,6 +4,8 @@
  * section="…" /> off this map, so the whole app shares one background system
  * instead of each page hand-rolling its own.
  */
+import { ACCENT } from "@/lib/accents";
+
 export interface SectionTheme {
   /** Hero background image (webp in /public). */
   bg: string;
@@ -23,7 +25,7 @@ export type SectionKey = "events" | "partners" | "quests";
 export const SECTIONS: Record<SectionKey, SectionTheme> = {
   events: {
     bg: "/MM-News-Events-BG.webp",
-    accent: "#5cc08c",
+    accent: ACCENT.events,
     icon: "game-icons:campfire",
     eyebrow: "The hall's calendar",
     lead: "Upcoming",
@@ -33,7 +35,7 @@ export const SECTIONS: Record<SectionKey, SectionTheme> = {
   },
   partners: {
     bg: "/MythicMechaBackground.webp",
-    accent: "#E18D01",
+    accent: ACCENT.partners,
     icon: "game-icons:anvil",
     eyebrow: "Makers & merchants",
     lead: "Our",
@@ -44,7 +46,7 @@ export const SECTIONS: Record<SectionKey, SectionTheme> = {
   quests: {
     // MythicMechaBackground3 (woods) — trails & scavenger hunts.
     bg: "/MythicMechaBackground3.webp",
-    accent: "#9a6cff",
+    accent: ACCENT.quests,
     icon: "game-icons:treasure-map",
     eyebrow: "Seek & prove",
     lead: "The quest",

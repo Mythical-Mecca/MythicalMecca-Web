@@ -1,11 +1,14 @@
+import { PageHeading } from "@/components/page-heading";
 import { listCommunityEventSubmissions } from "@/lib/admin";
 import { approveCommunityEvent, rejectCommunityEvent } from "../../../actions-events";
-import { PageHeader, inputCls } from "@/components/form";
+import { inputCls } from "@/components/form";
 import { EventAdminTabs } from "@/components/event-admin-tabs";
 import { Tabs } from "@/components/tabs";
 import { Icon } from "@/components/icon";
 import { Flash } from "@/components/flash";
 import { formatDateTime } from "@/lib/format";
+
+export const metadata = { title: "Event queue · Admin" };
 
 const ACCENT = "#5cc08c";
 
@@ -31,9 +34,10 @@ export default async function CommunityEventQueuePage({
 
   return (
     <div className="space-y-8">
-      <PageHeader
+      <PageHeading
+        size="md"
         title="Community queue"
-        sub="Member-submitted events — approve to publish on the calendar."
+        subtitle="Member-submitted events — approve to publish on the calendar."
         icon="mdi:account-group-outline"
         accent={ACCENT}
       />
@@ -116,6 +120,7 @@ export default async function CommunityEventQueuePage({
                     <input type="hidden" name="id" value={e.id} />
                     <input
                       name="note"
+                      aria-label="Reason for rejecting this event"
                       placeholder="Reason (optional)"
                       className={`${inputCls} py-1.5 text-xs`}
                     />

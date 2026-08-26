@@ -9,6 +9,16 @@ import { PlayerQuestActions } from "@/components/player-quest-actions";
 import { Icon } from "@/components/icon";
 import { inputPill } from "@/components/form";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const hunt = await getHunt(slug);
+  return { title: hunt?.title ?? "Quest" };
+}
+
 const inputCls = `flex-1 ${inputPill}`;
 
 /** In-app answer forms. Destination objectives are claimed at the stand. */
@@ -240,7 +250,7 @@ export default async function HuntDetailPage({
   const finished = doneCount === hunt.steps.length && hunt.steps.length > 0;
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl px-6 py-6">
       <Link
         href={returnHref}
         className="inline-flex items-center gap-1 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
@@ -365,7 +375,7 @@ export default async function HuntDetailPage({
           <h2 className="mb-3 font-[family-name:var(--font-display)] text-sm uppercase tracking-widest text-[var(--mm-gold)]">
             Leaderboard
           </h2>
-          <ol className="mm-glass divide-y divide-[var(--mm-border)]">
+          <ol className="mm-glass divide-y divide-[var(--mm-divider)]">
             {leaderboard.map((r, i) => {
               // Finding yourself in a list of twenty names in a loud hall is
               // needlessly hard; mark the row.

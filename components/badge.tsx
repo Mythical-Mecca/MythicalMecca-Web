@@ -1,4 +1,5 @@
 import { Icon } from "@/components/icon";
+import { accentText } from "@/lib/accents";
 
 /**
  * The one true status/label pill.
@@ -36,7 +37,9 @@ export function Badge({
       ? { background: color, color: "#10141f" }
       : {
           background: `color-mix(in srgb, ${color} 16%, transparent)`,
-          color,
+          // Not the raw accent: on its own 16% wash the darker accents land
+          // between 3.4 and 3.9:1. See `accentText`.
+          color: accentText(color),
         }
     : undefined;
 

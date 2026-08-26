@@ -105,6 +105,41 @@ function Sheet({
   );
 }
 
+/**
+ * Pull the check-in path out of whatever the camera read.
+ *
+ * Deliberately host-agnostic. A tag's URL is stamped with NEXT_PUBLIC_APP_URL
+ * at generation time, so it can legitimately carry a different host from the
+ * one the player is browsing — a stale env var, www vs non-www, a preview
+ * domain, http vs https. Requiring the origins to match rejected perfectly
+ * valid tags and told the player their code wasn't part of the quest.
+ *
+ * Matching on shape instead is safe because the token is signed: the server
+ * verifies it and answers "unknown tag" if it's forged. Nothing is trusted
+ * here beyond "this looks like one of ours, go and ask".
+ */
+export function claimPathFrom(value: string): string | null {
+  const fromPath = (pathname: string, search: string): string | null => {
+    const m = pathname.match(/\/q\/([^/?#]+)\/?$/);
+    return m ? `/q/${m[1]}${search}` : null;
+  };
+
+  try {
+    // Absolute URL — any host.
+    const url = new URL(value);
+    return fromPath(url.pathname, url.search);
+  } catch {
+    // Not absolute; fall through to a relative path.
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.startsWith("/")) {
+    const [pathname, search] = trimmed.split("?");
+    return fromPath(pathname!, search ? `?${search}` : "");
+  }
+  return null;
+}
+
 function ScanSheet() {
   const router = useRouter();
   const [note, setNote] = useState<string | null>(null);
@@ -112,22 +147,17 @@ function ScanSheet() {
 
   const onResult = useCallback(
     (value: string) => {
-      // Vendor tags and station screens both encode a URL on this origin.
-      try {
-        const url = new URL(value, window.location.origin);
-        if (url.origin === window.location.origin && url.pathname.startsWith("/q/")) {
-          // Navigation over congested hall wifi can take seconds. Without a
-          // visible acknowledgement the camera just keeps running and the
-          // player assumes nothing happened and re-scans.
-          setFound(true);
-          navigator.vibrate?.(60);
-          router.push(url.pathname + url.search);
-          return;
-        }
-        setNote("That code isn't part of this quest.");
-      } catch {
-        setNote("That doesn't look like a quest code.");
+      const path = claimPathFrom(value);
+      if (path) {
+        // Navigation over congested hall wifi can take seconds. Without a
+        // visible acknowledgement the camera just keeps running and the
+        // player assumes nothing happened and re-scans.
+        setFound(true);
+        navigator.vibrate?.(60);
+        router.push(path);
+        return;
       }
+      setNote("That doesn't look like a quest code. Try the code on the stand.");
     },
     [router]
   );

@@ -1,17 +1,22 @@
+import { PageHeading } from "@/components/page-heading";
 import { notFound } from "next/navigation";
 import { getPartnerById } from "@/lib/partner";
 import { listCategories } from "@/lib/categories";
 import { updatePartner } from "../../../actions";
-import {
-  TextField,
-  TextareaField,
-  CheckboxField,
-  FormCard,
-  PageHeader,
-} from "@/components/form";
+import { TextField, TextareaField, CheckboxField, FormCard } from "@/components/form";
 import { PickerField } from "@/components/picker-field";
 import { Icon } from "@/components/icon";
 import { Flash } from "@/components/flash";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const partner = await getPartnerById(id);
+  return { title: `${partner?.businessName ?? "Partner"} · Admin` };
+}
 
 const ACCENT = "#E18D01";
 
@@ -32,9 +37,10 @@ export default async function EditPartnerPage({
 
   return (
     <div className="max-w-2xl space-y-8">
-      <PageHeader
+      <PageHeading
+        size="md"
         title="Edit partner"
-        sub={partner.businessName}
+        subtitle={partner.businessName}
         icon="mdi:account-edit-outline"
         accent={ACCENT}
       />

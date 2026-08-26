@@ -111,6 +111,7 @@ export function FileUploader({
         <input
           ref={inputRef}
           type="file"
+          aria-label="Choose files to upload"
           accept={accept}
           multiple={multiple}
           hidden

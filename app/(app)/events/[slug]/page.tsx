@@ -35,6 +35,21 @@ import {
   unmarkInterested,
 } from "../actions";
 
+/**
+ * The record's own name in the tab, the history entry and any bookmark. These
+ * detail routes all inherited the site-wide default, so every event, partner
+ * and quest page was indistinguishable from every other.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const event = await getEvent(slug);
+  return { title: event?.title ?? "Event" };
+}
+
 export default async function EventPage({
   params,
   searchParams,
@@ -258,6 +273,7 @@ export default async function EventPage({
               <input type="hidden" name="slug" value={event.slug} />
               <input
                 name="body"
+                aria-label="Add a comment"
                 placeholder="Share a word…"
                 className={`flex-1 ${inputPill}`}
               />
@@ -316,9 +332,10 @@ export default async function EventPage({
               />
               <textarea
                 name="body"
+                aria-label="Your review of this gathering"
                 rows={3}
                 placeholder="How was the gathering?"
-                className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-3 text-sm outline-none focus:border-[var(--mm-violet)]"
+                className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-3 text-sm focus:border-[var(--mm-violet)]"
               />
               <button className="mm-btn mm-btn-primary text-sm">
                 Post review

@@ -1,8 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { addObjective, updateObjective } from "@/app/(admin)/actions";
-import { Field, TextField, TextareaField, inputCls } from "@/components/form";
+import { useActionState, useEffect, useState } from "react";
+import {
+  addObjective,
+  updateObjective,
+  type ObjectiveFormState,
+} from "@/app/(admin)/actions";
+import { Icon } from "@/components/icon";
+import {
+  Field,
+  TextField,
+  TextareaField,
+  inputCls,
+  invalidCls,
+} from "@/components/form";
 import { PickerField } from "@/components/picker-field";
 import type { AdminObjective } from "@/lib/admin-quests";
 import type { ClaimMode, RevealMode, StepType } from "@/lib/hunts";
@@ -109,6 +120,7 @@ export function ObjectiveForm({
   partners,
   objective,
   eventHasCoords = false,
+  atIndex,
   onDone,
 }: {
   questSlug: string;
@@ -117,8 +129,28 @@ export function ObjectiveForm({
   /** Open-tag geofencing measures from the event's coordinates. No event
    *  location means no check at all, which the admin needs telling. */
   eventHasCoords?: boolean;
+  /** Position to insert at. Omitted appends to the end of the trail. */
+  atIndex?: number;
   onDone?: () => void;
 }) {
+  const [state, formAction, pending] = useActionState<
+    ObjectiveFormState,
+    FormData
+  >(objective ? updateObjective : addObjective, {});
+  const fieldError = state.fieldErrors ?? {};
+  // React clears an uncontrolled form once its action settles, so a rejected
+  // save would otherwise wipe what was typed. `state.values` is what the server
+  // received; fall back to the record being edited, then to empty.
+  const v = state.values ?? {};
+  const keep = (name: string, fallback: string | number | undefined) =>
+    v[name] ?? (fallback === undefined ? undefined : String(fallback));
+
+  // The dialog is the caller's to close, and only a save should close it — a
+  // rejected submit has to leave the form standing with what was typed.
+  useEffect(() => {
+    if (state.ok) onDone?.();
+  }, [state, onDone]);
+
   const [type, setType] = useState<StepType>(objective?.type ?? "qr_scan");
   const [claimMode, setClaimMode] = useState<ClaimMode>(
     objective?.claimMode ?? "live_code"
@@ -132,13 +164,61 @@ export function ObjectiveForm({
   const isTrivia = type === "trivia_gate";
   const isVisit = type === "qr_scan";
 
+  /**
+   * Which inputs are on screen for this objective type — and therefore which
+   * field errors have somewhere to land.
+   *
+   * A rejected save whose only complaint was about a field this form doesn't
+   * render read as nothing happening at all: the button said "Saving…", came
+   * back, and no message appeared anywhere. Anything not in this set is shown
+   * in the banner instead, so a refusal is always visible.
+   */
+  const rendered = new Set([
+    "type",
+    "title",
+    "partnerId",
+    "locationHint",
+    "revealMode",
+    "prompt",
+    "points",
+    ...(needsAnswer ? ["answer"] : []),
+    ...(isTrivia ? ["choices"] : []),
+    ...(isVisit ? ["claimMode"] : []),
+    ...(isVisit && claimMode === "open_tag" && eventHasCoords
+      ? ["claimRadiusM"]
+      : []),
+  ]);
+  const homeless = Object.entries(fieldError).filter(([k]) => !rendered.has(k));
+
   return (
-    <form
-      action={objective ? updateObjective : addObjective}
-      className="space-y-4"
-    >
+    <form action={formAction} className="space-y-4">
+      {/* Anything that isn't about one field — a failed write, a quest deleted
+          out from under you. Field-level problems render on their inputs. */}
+      {(state.error || homeless.length > 0) && (
+        <p
+          role="alert"
+          className="flex items-start gap-2 rounded-xl border border-[var(--mm-danger)] bg-[color-mix(in_srgb,var(--mm-danger)_12%,transparent)] p-3 text-sm text-[var(--mm-danger)]"
+        >
+          <Icon
+            icon="mdi:alert-circle-outline"
+            width={16}
+            className="mt-0.5 shrink-0"
+          />
+          <span>
+            {state.error}
+            {homeless.map(([k, msg]) => (
+              <span key={k} className="block">
+                {msg}
+              </span>
+            ))}
+          </span>
+        </p>
+      )}
       <input type="hidden" name="questSlug" value={questSlug} />
       {objective && <input type="hidden" name="id" value={objective.id} />}
+      {!objective && atIndex !== undefined && (
+        <input type="hidden" name="atIndex" value={atIndex} />
+      )}
 
       <PickerField
         label="How is it completed?"
@@ -147,15 +227,17 @@ export function ObjectiveForm({
         value={type}
         onValueChange={(v) => setType(v as StepType)}
         options={TYPES}
+        error={fieldError.type}
       />
 
       <TextField
         label="Objective title"
         name="title"
         required
-        defaultValue={objective?.title}
+        defaultValue={keep("title", objective?.title)}
         placeholder="The armourer's stand"
         icon="mdi:format-title"
+        error={fieldError.title}
       />
 
       <PickerField
@@ -165,6 +247,7 @@ export function ObjectiveForm({
         defaultValue={objective?.partnerId ?? ""}
         placeholder="No partner — a landmark or free-form stop"
         description="Picking a partner links the objective straight to their profile."
+        error={fieldError.partnerId}
         options={partners.map((p) => ({
           value: p.id,
           label: p.name,
@@ -175,10 +258,11 @@ export function ObjectiveForm({
       <TextField
         label="Where to find it"
         name="locationHint"
-        defaultValue={objective?.locationHint ?? ""}
+        defaultValue={keep("locationHint", objective?.locationHint ?? "")}
         placeholder="Hall B, stand 14"
         icon="mdi:map-marker-outline"
         hint="optional"
+        error={fieldError.locationHint}
       />
 
       <PickerField
@@ -188,19 +272,21 @@ export function ObjectiveForm({
         value={revealMode}
         onValueChange={(v) => setRevealMode(v as RevealMode)}
         options={REVEAL_MODES}
+        error={fieldError.revealMode}
       />
 
       <TextareaField
         label={revealMode === "clue" ? "The clue" : "Notes for the adventurer"}
         name="prompt"
         rows={3}
-        defaultValue={objective?.prompt}
+        defaultValue={keep("prompt", objective?.prompt)}
         placeholder={
           revealMode === "clue"
             ? "Seek the one who works iron where the hall bends west."
             : "Ask them about the forging demo."
         }
         icon="mdi:text"
+        error={fieldError.prompt}
       />
 
       {needsAnswer && (
@@ -208,9 +294,10 @@ export function ObjectiveForm({
           label={answerLabel[type]}
           name="answer"
           required
-          defaultValue={String(config.answer ?? config.code ?? "")}
+          defaultValue={keep("answer", String(config.answer ?? config.code ?? ""))}
           icon="mdi:key-variant"
           description="Checked case-insensitively, ignoring extra spaces."
+          error={fieldError.answer}
         />
       )}
 
@@ -219,6 +306,8 @@ export function ObjectiveForm({
           label="Choices"
           icon="mdi:format-list-bulleted"
           description="Fill the first box with the correct answer, then the decoys."
+          error={fieldError.choices}
+          errorId="choices-error"
         >
           <div className="space-y-2">
             <input type="hidden" name="correct" value="0" />
@@ -227,10 +316,12 @@ export function ObjectiveForm({
                 key={i}
                 name="choices"
                 defaultValue={
-                  ((config.choices as string[] | undefined) ?? [])[i] ?? ""
+                  v[`choices.${i}`] ??
+                  ((config.choices as string[] | undefined) ?? [])[i] ??
+                  ""
                 }
                 placeholder={i === 0 ? "Correct answer" : `Decoy ${i}`}
-                className={inputCls}
+                className={`${inputCls} ${fieldError.choices ? invalidCls : ""}`}
               />
             ))}
           </div>
@@ -246,6 +337,7 @@ export function ObjectiveForm({
             value={claimMode}
             onValueChange={(v) => setClaimMode(v as ClaimMode)}
             options={CLAIM_MODES}
+            error={fieldError.claimMode}
           />
           {claimMode === "open_tag" &&
             (eventHasCoords ? (
@@ -255,10 +347,11 @@ export function ObjectiveForm({
                 type="number"
                 min={10}
                 max={50000}
-                defaultValue={objective?.claimRadiusM ?? 150}
+                defaultValue={keep("claimRadiusM", objective?.claimRadiusM ?? 150)}
                 icon="mdi:map-marker-radius-outline"
                 hint="metres"
                 description="Measured from the attached event's coordinates."
+                error={fieldError.claimRadiusM}
               />
             ) : (
               <div className="rounded-xl border border-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)] p-3 text-sm">
@@ -281,19 +374,26 @@ export function ObjectiveForm({
         type="number"
         min={0}
         max={1000}
-        defaultValue={objective?.points ?? 10}
+        defaultValue={keep("points", objective?.points ?? 10)}
         icon="mdi:star-outline"
+        error={fieldError.points}
       />
 
-      <div className="flex items-center gap-3">
-        <button className="mm-btn mm-btn-primary">
-          {objective ? "Save objective" : "Add objective"}
-        </button>
+      <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[var(--mm-divider)] pt-4">
         {onDone && (
           <button type="button" onClick={onDone} className="mm-btn mm-btn-ghost">
             Cancel
           </button>
         )}
+        <button disabled={pending} className="mm-btn mm-btn-primary">
+          {pending
+            ? "Saving…"
+            : objective
+              ? "Save objective"
+              : atIndex === undefined
+                ? "Add objective"
+                : `Insert as #${String(atIndex + 1).padStart(2, "0")}`}
+        </button>
       </div>
     </form>
   );

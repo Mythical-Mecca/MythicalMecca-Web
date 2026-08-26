@@ -168,6 +168,15 @@ export function QuestClaim({
               <span className="text-sm font-medium">
                 Enter the code on the stand&apos;s screen
               </span>
+              {/* Someone who tapped the NFC tag has no idea the shortcut
+                  exists — and scanning the vendor's screen fills this in for
+                  them, turning four digits of typing into one tap. */}
+              {!prefillCode && (
+                <span className="mt-1 block text-xs text-[var(--mm-text-dim)]">
+                  Or scan the code on their screen instead and this fills itself
+                  in.
+                </span>
+              )}
               <input
                 ref={codeRef}
                 name="code"
@@ -178,7 +187,7 @@ export function QuestClaim({
                 autoFocus={!prefillCode}
                 placeholder="0000"
                 aria-label="4-digit check-in code"
-                className="mt-2 w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-4 text-center font-[family-name:var(--font-display)] text-4xl tracking-[0.4em] outline-none focus:border-[var(--mm-violet)]"
+                className="mt-2 w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-4 text-center font-[family-name:var(--font-display)] text-4xl tracking-[0.4em] focus:border-[var(--mm-violet)]"
               />
             </label>
           )}

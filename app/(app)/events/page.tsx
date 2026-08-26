@@ -9,8 +9,9 @@ import { EventOriginBadge } from "@/components/event-origin-badge";
 import { getEventsPage, isEventLive } from "@/lib/content";
 import { formatDateTime } from "@/lib/format";
 import { SectionHero } from "@/components/section-hero";
+import { ACCENT } from "@/lib/accents";
 
-export const metadata = { title: "Events — Mythical Mecca" };
+export const metadata = { title: "Events" };
 
 export default async function EventsPage({
   searchParams,
@@ -58,10 +59,13 @@ export default async function EventsPage({
       <EventCalendar events={calEvents} todayIso={nowIso} />
 
       {/* ---------------- Upcoming, as a scannable list ---------------- */}
+      {/* Not "Upcoming events" — that is already the page's H1, and repeating
+          it made the same words the heading of both the page and a card inside
+          it. This card is the list view of what the calendar above shows. */}
       <Card
-        title="Upcoming events"
+        title="Next gatherings"
         icon="game-icons:campfire"
-        accent="#E18D01"
+        accent={ACCENT.events}
         action={{ href: "/events/submit", label: "Submit an event" }}
       >
         {upcoming.length === 0 ? (
@@ -69,7 +73,7 @@ export default async function EventsPage({
             No gatherings on the calendar yet — check back soon.
           </p>
         ) : (
-          <ul className="divide-y divide-[var(--mm-border)]">
+          <ul className="divide-y divide-[var(--mm-divider)]">
             {upcoming.map((e) => (
               <li key={e.slug}>
                 <Link

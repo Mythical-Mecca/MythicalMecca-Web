@@ -45,9 +45,29 @@ function isOpaqueId(seg: string): boolean {
   return UUID.test(seg) || (seg.length > 24 && !seg.includes("-"));
 }
 
-export function Breadcrumbs() {
+export interface CrumbRoot {
+  href: string;
+  label: string;
+  icon: string;
+}
+
+const DASHBOARD_ROOT: CrumbRoot = {
+  href: "/dashboard",
+  label: "Dashboard",
+  icon: "game-icons:castle",
+};
+
+/**
+ * The trail, rooted at the area you are actually in.
+ *
+ * It used to root every trail at the member dashboard, so an admin editing an
+ * event read "Dashboard › Admin › Events" — a trail whose first hop leaves the
+ * area entirely. Each shell now passes its own root, and a leading crumb that
+ * duplicates that root is dropped rather than rendered twice.
+ */
+export function Breadcrumbs({ root = DASHBOARD_ROOT }: { root?: CrumbRoot }) {
   const path = usePathname();
-  if (!path || path === "/" || path === "/dashboard") return null;
+  if (!path || path === "/" || path === root.href) return null;
 
   const segs = path.split("/").filter(Boolean);
   const visible = segs
@@ -56,7 +76,7 @@ export function Breadcrumbs() {
       seg,
       label: LABELS[seg] ?? humanize(decodeURIComponent(seg)),
     }))
-    .filter((c) => !isOpaqueId(c.seg));
+    .filter((c) => !isOpaqueId(c.seg) && c.href !== root.href);
   // Recomputed after filtering: dropping a trailing id promotes its parent to
   // last, and the last crumb must render as text rather than a link to a URL
   // that may not resolve on its own (e.g. /q).
@@ -71,10 +91,10 @@ export function Breadcrumbs() {
       className="flex flex-wrap items-center gap-1.5 text-sm text-[var(--mm-text-dim)]"
     >
       <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-1 hover:text-[var(--mm-text)]"
+        href={root.href}
+        className="inline-flex min-h-6 items-center gap-1 hover:text-[var(--mm-text)]"
       >
-        <Icon icon="game-icons:castle" width={15} /> Dashboard
+        <Icon icon={root.icon} width={15} /> {root.label}
       </Link>
       {crumbs.map((c) => (
         <span key={c.href + c.label} className="flex items-center gap-1.5">
@@ -82,7 +102,10 @@ export function Breadcrumbs() {
           {c.last ? (
             <span className="text-[var(--mm-text)]">{c.label}</span>
           ) : (
-            <Link href={c.href} className="hover:text-[var(--mm-text)]">
+            <Link
+              href={c.href}
+              className="inline-flex min-h-6 items-center hover:text-[var(--mm-text)]"
+            >
               {c.label}
             </Link>
           )}

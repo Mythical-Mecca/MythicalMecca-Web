@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Field, inputCls } from "./form";
+import { Field } from "./form";
+import { DateTimeInput } from "./datetime-input";
 import { Icon } from "./icon";
-
-const dateStyle = { colorScheme: "dark" as const };
 
 export function EventSchedule({
   onChange,
@@ -57,69 +56,62 @@ export function EventSchedule({
       {!multiDay ? (
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="Date" icon="mdi:calendar">
-            <input
+            <DateTimeInput
               type="date"
+              fieldLabel="Date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className={inputCls}
-              style={dateStyle}
             />
           </Field>
           <Field label="Starts">
-            <input
+            <DateTimeInput
               type="time"
+              fieldLabel="Starts"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className={inputCls}
-              style={dateStyle}
             />
           </Field>
           <Field label="Ends">
-            <input
+            <DateTimeInput
               type="time"
+              fieldLabel="Ends"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className={inputCls}
-              style={dateStyle}
             />
           </Field>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Start date" icon="mdi:calendar">
-            <input
+            <DateTimeInput
               type="date"
+              fieldLabel="Start date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className={inputCls}
-              style={dateStyle}
             />
           </Field>
           <Field label="Start time">
-            <input
+            <DateTimeInput
               type="time"
+              fieldLabel="Start time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className={inputCls}
-              style={dateStyle}
             />
           </Field>
           <Field label="End date" icon="mdi:calendar">
-            <input
+            <DateTimeInput
               type="date"
+              fieldLabel="End date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className={inputCls}
-              style={dateStyle}
             />
           </Field>
           <Field label="End time">
-            <input
+            <DateTimeInput
               type="time"
+              fieldLabel="End time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className={inputCls}
-              style={dateStyle}
             />
           </Field>
         </div>

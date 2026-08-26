@@ -5,6 +5,8 @@ import { stationsForPartner } from "@/lib/hunts";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
 
+export const metadata = { title: "Partner Hub" };
+
 export default async function PartnerHubOverviewPage() {
   const session = await auth();
   const partner = await getMyPartner(session!.user.id);

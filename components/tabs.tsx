@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { accentText } from "@/lib/accents";
 
 export type TabItem = { href: string; label: string };
 
@@ -26,13 +27,14 @@ export function Tabs({
           <Link
             key={t.href}
             href={t.href}
-            className="rounded-full border px-4 py-1.5 text-sm transition-colors"
+            aria-current={isActive ? "page" : undefined}
+            className="inline-flex min-h-9 items-center rounded-full border px-4 py-1.5 text-sm transition-colors"
             style={
               isActive
                 ? {
                     borderColor: accent,
                     background: `color-mix(in srgb, ${accent} 14%, transparent)`,
-                    color: accent,
+                    color: accentText(accent),
                   }
                 : {
                     borderColor: "var(--mm-border)",
