@@ -38,7 +38,13 @@ export function PlayerQuestActions() {
         </div>
       </div>
       {/* Spacer so the bar never covers the last objective. */}
-      <div aria-hidden className="h-24" />
+      {/* Clearance for the fixed bar above. It grows by the home-indicator
+          inset on a notched phone, so the spacer has to grow with it — a flat
+          h-24 left the last objective tucked behind the bar on those devices. */}
+      <div
+        aria-hidden
+        className="h-[calc(6rem+env(safe-area-inset-bottom))]"
+      />
 
       {sheet && (
         <Sheet onClose={() => setSheet(null)}>

@@ -28,20 +28,32 @@ function StepBody({ step, slug }: { step: PublicStep; slug: string }) {
     case "crossword":
     case "cipher":
       return (
-        <form action={completeStep} className="mt-3 flex gap-2">
+        <form action={completeStep} className="mt-3 flex flex-col gap-2 sm:flex-row">
           <input type="hidden" name="huntSlug" value={slug} />
           <input type="hidden" name="stepId" value={step.id} />
-          <input name="answer" placeholder="Your answer" className={inputCls} />
-          <button className="mm-btn mm-btn-primary text-sm">Submit</button>
+          <input
+            name="answer"
+            placeholder="Your answer"
+            className={`${inputCls} min-w-0 flex-1`}
+          />
+          <button className="mm-btn mm-btn-primary shrink-0 justify-center text-sm">
+            Submit
+          </button>
         </form>
       );
     case "unlock_code":
       return (
-        <form action={completeStep} className="mt-3 flex gap-2">
+        <form action={completeStep} className="mt-3 flex flex-col gap-2 sm:flex-row">
           <input type="hidden" name="huntSlug" value={slug} />
           <input type="hidden" name="stepId" value={step.id} />
-          <input name="code" placeholder="Enter code" className={inputCls} />
-          <button className="mm-btn mm-btn-primary text-sm">Unlock</button>
+          <input
+            name="code"
+            placeholder="Enter code"
+            className={`${inputCls} min-w-0 flex-1`}
+          />
+          <button className="mm-btn mm-btn-primary shrink-0 justify-center text-sm">
+            Unlock
+          </button>
         </form>
       );
     case "trivia_gate":
@@ -109,7 +121,7 @@ function Destination({ step }: { step: PublicStep }) {
         (d.partnerSlug ? (
           <Link
             href={`/partners/${d.partnerSlug}`}
-            className="inline-flex items-center gap-1.5 text-[var(--mm-gold)] hover:underline"
+            className="inline-flex min-h-6 items-center gap-1.5 text-[var(--mm-gold)] hover:underline"
           >
             <Icon icon="game-icons:anvil" width={15} className="shrink-0" />
             {d.partnerName}
@@ -147,7 +159,7 @@ function ObjectiveCard({
   return (
     <li
       id={`step-${step.id}`}
-      className={`mm-glass p-4 transition ${
+      className={`mm-glass p-3.5 transition sm:p-4 ${
         step.done
           ? "border-[var(--mm-live)] opacity-70"
           : step.locked
@@ -277,16 +289,16 @@ export default async function HuntDetailPage({
   const finished = doneCount === hunt.steps.length && hunt.steps.length > 0;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6 sm:py-6">
       <Link
         href={returnHref}
-        className="inline-flex items-center gap-1 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
+        className="-ml-1 inline-flex min-h-11 items-center gap-1 px-1 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
       >
         <Icon icon="mdi:chevron-left" width={16} /> {returnLabel}
       </Link>
 
-      <header className="mt-3">
-        <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide sm:text-3xl">
+      <header>
+        <h1 className="font-[family-name:var(--font-display)] text-xl leading-tight tracking-wide sm:text-3xl">
           {hunt.title}
         </h1>
         {hunt.description && (
@@ -297,7 +309,7 @@ export default async function HuntDetailPage({
         {hunt.eventSlug && (
           <Link
             href={`/events/${hunt.eventSlug}`}
-            className="mt-2 inline-flex items-center gap-1.5 text-sm text-[var(--mm-gold)] hover:underline"
+            className="mt-1.5 inline-flex min-h-6 items-center gap-1.5 text-sm text-[var(--mm-gold)] hover:underline"
           >
             <Icon icon="game-icons:campfire" width={15} /> Part of{" "}
             {hunt.eventTitle}
@@ -328,7 +340,7 @@ export default async function HuntDetailPage({
       )}
 
       {/* Progress. The single most-glanced-at thing on the page. */}
-      <section className="mm-glass mt-4 p-4">
+      <section className="mm-glass mt-3 p-3.5 sm:mt-4 sm:p-4">
         <div className="flex items-end justify-between">
           <div>
             <p className="font-[family-name:var(--font-display)] text-2xl">
@@ -387,15 +399,18 @@ export default async function HuntDetailPage({
                 </span>
               </p>
             )}
-            {/* The numbered list implies an order the quest doesn't enforce. */}
+            {/* The numbered list implies an order, so say whether the quest
+                actually enforces one. */}
             <p className="mt-2 text-xs text-[var(--mm-text-dim)]">
-              Visit them in any order.
+              {hunt.sequential
+                ? "Work through them in order."
+                : "Visit them in any order."}
             </p>
           </>
         )}
       </section>
 
-      <ol className="mt-4 space-y-3">
+      <ol className="mt-3 space-y-3 sm:mt-4">
         {hunt.steps.map((step, i) => (
           <ObjectiveCard
             key={step.id}
