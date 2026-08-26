@@ -11,6 +11,8 @@ import { PickerField } from "@/components/picker-field";
 import { Icon } from "@/components/icon";
 import { Flash } from "@/components/flash";
 
+export const metadata = { title: "New stall · Partner Hub" };
+
 const ERRORS: Record<string, string> = {
   limit: "You've reached the maximum number of stalls on one account.",
   category: "That category isn't open for self-managed stalls.",

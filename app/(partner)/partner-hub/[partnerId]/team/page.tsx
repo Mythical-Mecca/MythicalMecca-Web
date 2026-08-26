@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getMembership } from "@/lib/partner-access";
+import { getPartnerForHub } from "@/lib/partner";
 import {
   listPartnerMembers,
   listInvitesForPartner,
@@ -18,6 +19,16 @@ import { CopyLink } from "@/components/copy-link";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
 import { Flash } from "@/components/flash";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ partnerId: string }>;
+}) {
+  const { partnerId } = await params;
+  const partner = await getPartnerForHub(partnerId);
+  return { title: `${partner?.businessName ?? "Stall"} · Team` };
+}
 
 const ERRORS: Record<string, string> = {
   email: "Enter a valid email address.",

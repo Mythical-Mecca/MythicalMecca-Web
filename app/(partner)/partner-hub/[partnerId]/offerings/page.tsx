@@ -9,6 +9,16 @@ import { Badge } from "@/components/badge";
 import { Flash } from "@/components/flash";
 import { formatPrice } from "@/lib/format";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ partnerId: string }>;
+}) {
+  const { partnerId } = await params;
+  const partner = await getPartnerForHub(partnerId);
+  return { title: `${partner?.businessName ?? "Stall"} · Offerings` };
+}
+
 export default async function StallOfferingsPage({
   params,
   searchParams,

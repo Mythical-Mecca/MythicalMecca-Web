@@ -9,6 +9,8 @@ import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
 import { Flash } from "@/components/flash";
 
+export const metadata = { title: "Partner queue · Admin" };
+
 const ACCENT = "#E18D01";
 
 export default async function AdminPartnerQueuePage({

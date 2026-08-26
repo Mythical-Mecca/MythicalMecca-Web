@@ -4,6 +4,8 @@ import { findInviteByToken } from "@/lib/partner-invites";
 import { acceptPartnerInvite, declinePartnerInvite } from "../actions";
 import { Icon } from "@/components/icon";
 
+export const metadata = { title: "Stall invitation" };
+
 /**
  * Invitation landing page. Deliberately public so a signed-out invitee can read
  * who invited them and to what before being asked to sign in.

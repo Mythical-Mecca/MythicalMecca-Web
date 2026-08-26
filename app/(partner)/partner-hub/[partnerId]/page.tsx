@@ -8,6 +8,16 @@ import { PARTNER_STATUS } from "@/components/partner-status-badge";
 import { Flash } from "@/components/flash";
 import { Icon } from "@/components/icon";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ partnerId: string }>;
+}) {
+  const { partnerId } = await params;
+  const partner = await getPartnerForHub(partnerId);
+  return { title: `${partner?.businessName ?? "Stall"}` };
+}
+
 const SUBMIT_ERRORS: Record<string, string> = {
   incomplete: "Add a bio before submitting — reviewers need something to read.",
   state: "This stall isn't in a state that can be submitted.",

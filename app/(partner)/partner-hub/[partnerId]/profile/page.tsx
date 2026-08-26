@@ -5,6 +5,16 @@ import { Flash } from "@/components/flash";
 import { ImageUploader } from "@/components/image-uploader";
 import { inputPill } from "@/components/form";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ partnerId: string }>;
+}) {
+  const { partnerId } = await params;
+  const partner = await getPartnerForHub(partnerId);
+  return { title: `${partner?.businessName ?? "Stall"} · Shop` };
+}
+
 const inputCls = `w-full ${inputPill}`;
 
 export default async function StallProfilePage({
