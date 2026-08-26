@@ -667,7 +667,12 @@ const questSchema = z.object({
     .min(2, "Give the quest a title of at least 2 characters.")
     .max(200, "Keep the title under 200 characters."),
   description: z.string().max(2000, "Keep this under 2000 characters.").optional(),
-  eventId: z.string().uuid("Choose the event this quest belongs to."),
+  // The message has to cover the field being absent as well as malformed: an
+  // unset picker submits nothing at all, and the bare type error reads
+  // "expected string, received undefined".
+  eventId: z
+    .string({ error: "Choose the event this quest belongs to." })
+    .uuid("Choose the event this quest belongs to."),
   startsAt: z.string().optional(),
   endsAt: z.string().optional(),
 });
