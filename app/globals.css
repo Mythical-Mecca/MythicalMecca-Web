@@ -216,6 +216,38 @@ body::before {
     border-radius: var(--radius-card);
   }
 
+  /* ---------------------------------------------------------------------
+     Full-bleed panel on a phone.
+
+     Once a card runs to both edges there is nothing left to round, and a 1px
+     rule straight across the screen is a hard seam. So on small screens the
+     surface fades out at the top and bottom instead and the borders come off:
+     a stack reads as bands settling onto the page rather than boxes butted
+     against each other.
+
+     The fade is on the background layer, not a mask — a mask would take the
+     first and last line of text with it. `--band` carries the tint so a
+     featured or cleared objective keeps the emphasis its border used to give
+     it, since there is no border left to colour.
+     --------------------------------------------------------------------- */
+  .mm-band {
+    --band: color-mix(in srgb, var(--mm-surface) 80%, transparent);
+  }
+
+  @media (max-width: 639.98px) {
+    .mm-band {
+      border-top-width: 0;
+      border-bottom-width: 0;
+      background: linear-gradient(
+        to bottom,
+        transparent 0,
+        var(--band) 1.25rem,
+        var(--band) calc(100% - 1.25rem),
+        transparent 100%
+      );
+    }
+  }
+
   .mm-btn {
     display: inline-flex;
     align-items: center;

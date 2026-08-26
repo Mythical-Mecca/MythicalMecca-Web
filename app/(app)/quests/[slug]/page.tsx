@@ -159,7 +159,19 @@ function ObjectiveCard({
   return (
     <li
       id={`step-${step.id}`}
-      className={`mm-glass -mx-4 rounded-none border-x-0 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x p-4 transition ${
+      style={
+        {
+          // oklab, not srgb: mixing gold into the navy surface in srgb cancels
+          // the blue and lands on a warm grey. oklab keeps the surface reading
+          // as navy and just warms it.
+          "--band": step.done
+            ? "color-mix(in oklab, var(--mm-live) 9%, var(--mm-surface))"
+            : featured && !step.locked
+              ? "color-mix(in oklab, var(--mm-gold) 12%, var(--mm-surface))"
+              : undefined,
+        } as React.CSSProperties
+      }
+      className={`mm-glass mm-band -mx-4 rounded-none border-x-0 p-4 transition sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x ${
         step.done
           ? "border-[var(--mm-live)] opacity-70"
           : step.locked
@@ -320,7 +332,7 @@ export default async function HuntDetailPage({
       {(!hunt.open || closed) && (
         <div
           role="status"
-          className="mm-glass -mx-4 rounded-none border-x-0 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x mt-4 border-[var(--mm-gold)] p-4 text-sm"
+          className="mm-glass mm-band -mx-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x mt-4 border-[var(--mm-gold)] text-sm"
         >
           <Icon icon="mdi:pause-circle-outline" width={16} className="mr-1.5 inline" />
           This quest isn&apos;t running right now — check-ins are closed. Your
@@ -331,7 +343,7 @@ export default async function HuntDetailPage({
       {locked && (
         <div
           role="alert"
-          className="mm-glass -mx-4 rounded-none border-x-0 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x mt-4 border-[var(--mm-gold)] p-4 text-sm"
+          className="mm-glass mm-band -mx-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x mt-4 border-[var(--mm-gold)] text-sm"
         >
           <Icon icon="mdi:lock-outline" width={16} className="mr-1.5 inline" />
           That one isn&apos;t open yet — clear what it&apos;s waiting on first.
@@ -340,7 +352,7 @@ export default async function HuntDetailPage({
       )}
 
       {/* Progress. The single most-glanced-at thing on the page. */}
-      <section className="mm-glass -mx-4 rounded-none border-x-0 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x mt-3 p-4 sm:mt-4">
+      <section className="mm-glass mm-band -mx-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x mt-3 sm:mt-4">
         <div className="flex items-end justify-between">
           <div>
             <p className="font-[family-name:var(--font-display)] text-2xl">
@@ -410,7 +422,7 @@ export default async function HuntDetailPage({
         )}
       </section>
 
-      <ol className="mt-3 space-y-3 sm:mt-4">
+      <ol className="mt-4 space-y-6 sm:mt-4 sm:space-y-3">
         {hunt.steps.map((step, i) => (
           <ObjectiveCard
             key={step.id}
