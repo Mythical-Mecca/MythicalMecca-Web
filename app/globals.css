@@ -219,19 +219,23 @@ body::before {
   /* ---------------------------------------------------------------------
      Full-bleed panel on a phone.
 
-     Once a card runs to both edges there is nothing left to round, and a 1px
-     rule straight across the screen is a hard seam. So on small screens the
-     surface fades out at the top and bottom instead and the borders come off:
-     a stack reads as bands settling onto the page rather than boxes butted
-     against each other.
+     Once a card runs to both edges there is nothing left to round, so the
+     seam has to come from the surface itself rather than a rule. The band is
+     near-opaque — it sits over photographic artwork and has to be a surface
+     you can read on, which the 80% glass never was without a border to frame
+     it — and it softens over the last 10px at each end so the edge is a
+     gradient rather than a line.
 
-     The fade is on the background layer, not a mask — a mask would take the
-     first and last line of text with it. `--band` carries the tint so a
-     featured or cleared objective keeps the emphasis its border used to give
-     it, since there is no border left to colour.
+     The fade is short on purpose. At 20px it dissolved the panel instead of
+     softening it, and the artwork came through the text.
+
+     The fade is painted on the background layer, not applied as a mask: a
+     mask would take the first and last line of text with it. `--band` carries
+     the tint so a featured or cleared objective keeps the emphasis its border
+     used to give it.
      --------------------------------------------------------------------- */
   .mm-band {
-    --band: color-mix(in srgb, var(--mm-surface) 80%, transparent);
+    --band: color-mix(in srgb, var(--mm-surface) 92%, transparent);
   }
 
   @media (max-width: 639.98px) {
@@ -241,8 +245,8 @@ body::before {
       background: linear-gradient(
         to bottom,
         transparent 0,
-        var(--band) 1.25rem,
-        var(--band) calc(100% - 1.25rem),
+        var(--band) 0.625rem,
+        var(--band) calc(100% - 0.625rem),
         transparent 100%
       );
     }

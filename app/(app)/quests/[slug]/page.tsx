@@ -301,7 +301,31 @@ export default async function HuntDetailPage({
   const finished = doneCount === hunt.steps.length && hunt.steps.length > 0;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6 sm:py-6">
+    <div className="relative mx-auto max-w-3xl px-4 py-4 sm:px-6 sm:py-6">
+      {/* The shared backdrop is a full-page photograph held at ~75% darkness
+          all the way down, which puts detailed artwork behind the objective
+          list — the part of this page people read in a hall, on a phone, often
+          in sunlight.
+
+          This scrim keeps the artwork behind the title and lets it fall away
+          to flat background by the time the content starts. It is anchored to
+          the page, not the viewport: a fixed version kept a transparent strip
+          at the top of the *screen*, so as you scrolled, artwork went on
+          showing through the gaps between objectives as a warm smear.
+
+          It also gives the panels below something calm to fade into — over the
+          photograph the fade read as smearing rather than softening. Phones
+          only; on a wide screen the cards are discrete and the artwork behind
+          them is the point. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -inset-x-4 inset-y-0 -z-10 sm:hidden"
+        style={{
+          background:
+            "linear-gradient(to bottom, transparent 0, var(--mm-bg) 320px)",
+        }}
+      />
+
       <Link
         href={returnHref}
         className="-ml-1 inline-flex min-h-11 items-center gap-1 px-1 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
