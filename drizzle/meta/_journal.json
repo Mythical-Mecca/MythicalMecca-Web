@@ -40,29 +40,36 @@
     {
       "idx": 5,
       "version": "7",
-      "when": 1787657445867,
-      "tag": "0005_worried_lady_ursula",
+      "when": 1786203386278,
+      "tag": "0005_partner_multi_tenant",
       "breakpoints": true
     },
     {
       "idx": 6,
       "version": "7",
-      "when": 1787657445868,
-      "tag": "0006_partners_missing_columns",
+      "when": 1786205661431,
+      "tag": "0006_drop_partner_legacy_columns",
       "breakpoints": true
     },
     {
       "idx": 7,
       "version": "7",
-      "when": 1787657445869,
-      "tag": "0007_claim_locked",
+      "when": 1786205661432,
+      "tag": "0007_gallery_views",
       "breakpoints": true
     },
     {
       "idx": 8,
       "version": "7",
-      "when": 1787657445870,
-      "tag": "0008_quest_ordering_and_event_slug",
+      "when": 1786205661433,
+      "tag": "0008_claim_locked",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786205661434,
+      "tag": "0009_quest_ordering_and_event_slug",
       "breakpoints": true
     }
   ]

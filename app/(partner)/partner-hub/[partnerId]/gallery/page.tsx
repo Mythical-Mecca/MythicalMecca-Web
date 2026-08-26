@@ -1,7 +1,6 @@
-import { PageHeading } from "@/components/page-heading";
-import { auth } from "@/lib/auth";
-import { getMyPartner, listMyGallery } from "@/lib/partner";
-import { addGalleryItem, removeGalleryItem } from "../../actions";
+import { notFound } from "next/navigation";
+import { getPartnerForHub, listMyGallery } from "@/lib/partner";
+import { addGalleryItem, removeGalleryItem } from "../../../actions";
 import { ImageUploader } from "@/components/image-uploader";
 import { TextField, FormCard } from "@/components/form";
 import { PickerField } from "@/components/picker-field";
@@ -11,26 +10,22 @@ import { Flash } from "@/components/flash";
 
 export const metadata = { title: "Gallery · Partner Hub" };
 
-export default async function ForgeGalleryPage({
+export default async function StallGalleryPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ partnerId: string }>;
   searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
-  const session = await auth();
-  const partner = await getMyPartner(session!.user.id);
-  const gallery = partner ? await listMyGallery(partner.id) : [];
+  // Access is already enforced by the [partnerId] layout.
+  const { partnerId } = await params;
+  const partner = await getPartnerForHub(partnerId);
+  if (!partner) notFound();
+  const gallery = await listMyGallery(partner.id);
   const { saved, error } = await searchParams;
 
   return (
-    <div className="max-w-3xl space-y-8">
-      <PageHeading
-        size="md"
-        title="Gallery"
-        subtitle="Show off your wares — these appear on your public stall."
-        icon="mdi:image-multiple-outline"
-        accent="#E18D01"
-      />
-
+    <div className="max-w-3xl space-y-6">
       {saved && <Flash>Gallery updated.</Flash>}
       {error && (
         <Flash tone="error">Could not update — add at least one image.</Flash>
@@ -38,6 +33,7 @@ export default async function ForgeGalleryPage({
 
       <FormCard title="Add to your gallery" icon="mdi:plus" accent="#E18D01">
         <form action={addGalleryItem} className="space-y-5">
+          <input type="hidden" name="partnerId" value={partner.id} />
           <ImageUploader
             name="images"
             entityType="partner_gallery"
@@ -115,7 +111,11 @@ export default async function ForgeGalleryPage({
                 <Badge className="absolute left-1.5 top-1.5 !bg-black/60 !text-white">
                   {g.kind === "product" ? "Product" : "Art"}
                 </Badge>
-                <form action={removeGalleryItem} className="absolute right-1.5 top-1.5">
+                <form
+                  action={removeGalleryItem}
+                  className="absolute right-1.5 top-1.5"
+                >
+                  <input type="hidden" name="partnerId" value={partner.id} />
                   <input type="hidden" name="id" value={g.id} />
                   <button
                     className="grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100"

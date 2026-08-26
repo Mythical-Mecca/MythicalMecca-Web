@@ -15,7 +15,7 @@ function bgForPath(path: string): string {
   if (path.startsWith("/dashboard")) return DASHBOARD_BG;
   if (path.startsWith("/events")) return SECTIONS.events.bg;
   if (path.startsWith("/quests")) return SECTIONS.quests.bg;
-  if (path.startsWith("/partners")) return SECTIONS.partners.bg;
+  // /partners is public now and lives outside this layout — no branch for it.
   return DEFAULT_BG; // profile, apply, etc.
 }
 

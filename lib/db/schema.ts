@@ -188,6 +188,29 @@ export const appStatusEnum = pgEnum("app_status", [
 ]);
 export const galleryKindEnum = pgEnum("gallery_kind", ["art", "product"]);
 
+// Partner review lifecycle. Deliberately NOT app_status: that enum is shared by
+// partner_applications and reviews, so widening it later (suspended, archived…)
+// would drag review moderation along with it.
+export const partnerStatusEnum = pgEnum("partner_status", [
+  "draft",
+  "pending",
+  "approved",
+  "rejected",
+]);
+// Access to a single partner page. Owners may invite, remove and archive;
+// managers may only edit content.
+export const partnerMemberRoleEnum = pgEnum("partner_member_role", [
+  "owner",
+  "manager",
+]);
+export const partnerInviteStatusEnum = pgEnum("partner_invite_status", [
+  "pending",
+  "accepted",
+  "revoked",
+]);
+// Separate axis from gallery_kind (art|product) — do not merge the two.
+export const offeringKindEnum = pgEnum("offering_kind", ["product", "service"]);
+
 // ---------------------------------------------------------------------------
 // Files — central registry (uploader UI lands in Phase 2)
 // ---------------------------------------------------------------------------
@@ -372,31 +395,146 @@ export const partnerCategories = pgTable("partner_categories", {
 // ---------------------------------------------------------------------------
 // Partners — The Armory (vendors, artists, collaborators)
 // ---------------------------------------------------------------------------
-export const partners = pgTable("partners", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id")
-    .references(() => users.id, { onDelete: "set null" })
-    .unique(),
-  categoryId: uuid("category_id").references(() => partnerCategories.id, {
-    onDelete: "set null",
-  }),
-  slug: text("slug").notNull().unique(),
-  businessName: text("business_name").notNull(),
-  tagline: text("tagline"),
-  bio: text("bio"),
-  logoFileId: uuid("logo_file_id").references(() => files.id, {
-    onDelete: "set null",
-  }),
-  socials: jsonb("socials"),
-  isPremium: boolean("is_premium").notNull().default(false),
-  active: boolean("active").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const partners = pgTable(
+  "partners",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    categoryId: uuid("category_id").references(() => partnerCategories.id, {
+      onDelete: "set null",
+    }),
+    slug: text("slug").notNull().unique(),
+    businessName: text("business_name").notNull(),
+    tagline: text("tagline"),
+    bio: text("bio"),
+    /**
+     * Blob URLs, not file FKs. `/api/upload` already writes the `files` row and
+     * hands back a URL, and every other image column in the app is a plain URL
+     * read through `toMediaSrc` — the old `logo_file_id` FK was never populated.
+     */
+    logoUrl: text("logo_url"),
+    bannerUrl: text("banner_url"),
+    shopUrl: text("shop_url"),
+    socials: jsonb("socials"),
+    isPremium: boolean("is_premium").notNull().default(false),
+    /** Review lifecycle. Orthogonal to `active`: approved+inactive is valid. */
+    status: partnerStatusEnum("status").notNull().default("draft"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    reviewedBy: text("reviewed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reviewNote: text("review_note"),
+    /** Admin kill switch, independent of the review lifecycle. */
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("partners_category_idx").on(t.categoryId),
+    // Every public listing filters on both together.
+    index("partners_public_idx").on(t.status, t.active),
+  ]
+);
+
+/**
+ * Who may manage a partner page. Replaces the old one-user-per-partner rule;
+ * this table is the authoritative access check (see lib/partner-access.ts).
+ */
+export const partnerMembers = pgTable(
+  "partner_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    partnerId: uuid("partner_id")
+      .notNull()
+      .references(() => partners.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: partnerMemberRoleEnum("role").notNull().default("manager"),
+    invitedBy: text("invited_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("partner_members_unique").on(t.partnerId, t.userId),
+    // Hot path: resolved on every partner-hub render and nav flag.
+    index("partner_members_user_idx").on(t.userId),
+  ]
+);
+
+/**
+ * Pending invitations to co-manage a partner page. The raw token is never
+ * stored — only its sha256, so the unique index doubles as the comparison.
+ * Expiry is derived from `expiresAt` at read time; there is no cron to sweep.
+ */
+export const partnerInvites = pgTable(
+  "partner_invites",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    partnerId: uuid("partner_id")
+      .notNull()
+      .references(() => partners.id, { onDelete: "cascade" }),
+    /** Always lowercased. Null means a link-only invite. */
+    email: text("email"),
+    /** Set when the address already maps to an account, so it shows in-app. */
+    invitedUserId: text("invited_user_id").references(() => users.id, {
+      onDelete: "cascade",
+    }),
+    role: partnerMemberRoleEnum("role").notNull().default("manager"),
+    tokenHash: text("token_hash").notNull().unique(),
+    status: partnerInviteStatusEnum("status").notNull().default("pending"),
+    invitedBy: text("invited_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    acceptedBy: text("accepted_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("partner_invites_partner_idx").on(t.partnerId, t.status),
+    index("partner_invites_email_idx").on(t.email, t.status),
+    index("partner_invites_user_idx").on(t.invitedUserId, t.status),
+  ]
+);
+
+/** Products and services shown on the public partner page. */
+export const partnerOfferings = pgTable(
+  "partner_offerings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    partnerId: uuid("partner_id")
+      .notNull()
+      .references(() => partners.id, { onDelete: "cascade" }),
+    kind: offeringKindEnum("kind").notNull().default("product"),
+    name: text("name").notNull(),
+    description: text("description"),
+    /** Minor units. Null means "price on request". */
+    priceCents: integer("price_cents"),
+    currency: text("currency").notNull().default("ZAR"),
+    imageUrl: text("image_url"),
+    externalUrl: text("external_url"),
+    active: boolean("active").notNull().default(true),
+    sort: integer("sort").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("partner_offerings_partner_idx").on(t.partnerId, t.sort)]
+);
 
 export const eventComments = pgTable(
   "event_comments",
@@ -465,22 +603,28 @@ export const partnerApplications = pgTable("partner_applications", {
     .defaultNow(),
 });
 
-export const partnerGalleryItems = pgTable("partner_gallery_items", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  partnerId: uuid("partner_id")
-    .notNull()
-    .references(() => partners.id, { onDelete: "cascade" }),
-  fileId: uuid("file_id").references(() => files.id, { onDelete: "set null" }),
-  kind: galleryKindEnum("kind").notNull().default("art"),
-  imageUrl: text("image_url"),
-  title: text("title"),
-  caption: text("caption"),
-  externalUrl: text("external_url"),
-  sort: integer("sort").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const partnerGalleryItems = pgTable(
+  "partner_gallery_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    partnerId: uuid("partner_id")
+      .notNull()
+      .references(() => partners.id, { onDelete: "cascade" }),
+    fileId: uuid("file_id").references(() => files.id, {
+      onDelete: "set null",
+    }),
+    kind: galleryKindEnum("kind").notNull().default("art"),
+    imageUrl: text("image_url"),
+    title: text("title"),
+    caption: text("caption"),
+    externalUrl: text("external_url"),
+    sort: integer("sort").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("partner_gallery_items_partner_idx").on(t.partnerId, t.sort)]
+);
 
 // ---------------------------------------------------------------------------
 // Galleries — global (homepage) + per-event

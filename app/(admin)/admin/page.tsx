@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeading } from "@/components/page-heading";
 import { getCounts } from "@/lib/admin";
 
@@ -32,6 +33,25 @@ export default async function CommandOverviewPage() {
           and run <code className="text-[var(--mm-gold)]">pnpm db:push</code> to
           go live.
         </div>
+      )}
+
+      {c.partnersPending > 0 && (
+        <Link
+          href="/admin/partners/queue"
+          className="mm-glass flex items-center justify-between gap-3 border-[var(--mm-gold)] p-4 transition hover:border-[var(--mm-gold-hi)]"
+        >
+          <span className="flex items-center gap-2 text-sm text-[var(--mm-text)]">
+            <Icon
+              icon="mdi:clipboard-check-outline"
+              width={20}
+              className="text-[var(--mm-gold)]"
+            />
+            {c.partnersPending}{" "}
+            {c.partnersPending === 1 ? "stall is" : "stalls are"} waiting for
+            review
+          </span>
+          <Icon icon="mdi:chevron-right" width={20} />
+        </Link>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

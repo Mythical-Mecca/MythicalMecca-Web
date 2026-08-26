@@ -29,13 +29,23 @@ export function roleAtLeast(
 /** First path segment → minimum role required. Consumed by proxy.ts. */
 export const ROUTE_RULES: { prefix: string; min: Role }[] = [
   { prefix: "/admin", min: "admin" },
-  { prefix: "/partner-hub", min: "partner" },
+  /**
+   * Only "signed in" — deliberately NOT "partner".
+   *
+   * proxy.ts reads the role straight off the JWT, and the Auth.js jwt callback
+   * only refreshes it on sign-in. Someone promoted to partner mid-session (by
+   * accepting a team invite, or having an application approved) still carries a
+   * `member` token, and gating here would lock them out of the hub they just
+   * joined until they signed out. The real gate is a partner_members lookup in
+   * app/(partner)/layout.tsx, which is always current.
+   */
+  { prefix: "/partner-hub", min: "member" },
   { prefix: "/dashboard", min: "member" },
   { prefix: "/profile", min: "member" },
   { prefix: "/apply", min: "member" },
-  // Three authenticated sections. Strict one-pager public site: only "/",
-  // "/login" and "/collab" stay open.
-  { prefix: "/partners", min: "member" },
+  // Two authenticated sections. /partners used to be listed here, but it is
+  // public now — and the rule was dead anyway: proxy.ts's matcher never
+  // included /partners, so this table was never consulted for it.
   { prefix: "/events", min: "member" },
   { prefix: "/quests", min: "member" },
   // Tag landing route — scanned from a QR code or NFC tag on the floor.

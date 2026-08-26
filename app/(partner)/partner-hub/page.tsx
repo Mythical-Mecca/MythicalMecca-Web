@@ -1,28 +1,91 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { getMyPartner, listMyGallery } from "@/lib/partner";
+import { listMyPartners } from "@/lib/partner-access";
+import { listPendingInvitesForUser } from "@/lib/partner-invites";
 import { stationsForPartner } from "@/lib/hunts";
+import { acceptPartnerInviteById } from "../actions";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
+import { Flash } from "@/components/flash";
+import { PartnerStatusBadge } from "@/components/partner-status-badge";
 
 export const metadata = { title: "Partner Hub" };
 
-export default async function PartnerHubOverviewPage() {
+export default async function PartnerHubPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ denied?: string; saved?: string }>;
+}) {
   const session = await auth();
-  const partner = await getMyPartner(session!.user.id);
-  const [gallery, stations] = await Promise.all([
-    partner ? listMyGallery(partner.id) : Promise.resolve([]),
+  const [memberships, stations, pendingInvites] = await Promise.all([
+    listMyPartners(session!.user.id),
     stationsForPartner(session!.user.id),
+    // Invitations addressed to this account show up here directly, which is how
+    // an invite reaches an existing member with no mail provider configured.
+    listPendingInvitesForUser(session!.user.id, session!.user.email ?? null),
   ]);
+  const { denied } = await searchParams;
+
   // On event day the running quest is the only thing that matters here, so it
-  // goes above everything else — a vendor mid-sale shouldn't have to hunt.
+  // goes above everything else — a partner mid-sale shouldn't have to hunt.
   const liveStations = stations.filter((s) => s.open);
+  const canCreate = memberships.some((m) => m.status === "approved");
 
   return (
     <div className="space-y-6">
-      <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
-        Partner <span className="mm-gradient-text">Hub</span>
-      </h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
+          Partner <span className="mm-gradient-text">Hub</span>
+        </h1>
+        {canCreate && (
+          <Link href="/partner-hub/new" className="mm-btn mm-btn-ghost text-sm">
+            <Icon icon="mdi:plus" width={16} /> New stall
+          </Link>
+        )}
+      </div>
+
+      {denied && (
+        <Flash tone="error">
+          You don&apos;t have access to that stall.
+        </Flash>
+      )}
+
+      {pendingInvites.length > 0 && (
+        <section className="mm-glass border-[var(--mm-violet)] p-5">
+          <h2 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-lg">
+            <Icon
+              icon="mdi:account-plus-outline"
+              width={20}
+              className="text-[var(--mm-violet)]"
+            />
+            {pendingInvites.length === 1
+              ? "You have an invitation"
+              : "You have invitations"}
+          </h2>
+          <div className="mt-3 space-y-2">
+            {pendingInvites.map((i) => (
+              <div
+                key={i.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface)] p-3"
+              >
+                <span className="min-w-0 text-sm">
+                  <span className="text-[var(--mm-text)]">{i.partnerName}</span>
+                  <span className="text-[var(--mm-text-dim)]">
+                    {" "}
+                    · as {i.role === "owner" ? "owner" : "manager"}
+                  </span>
+                </span>
+                <form action={acceptPartnerInviteById}>
+                  <input type="hidden" name="inviteId" value={i.id} />
+                  <button className="mm-btn mm-btn-primary text-xs">
+                    <Icon icon="mdi:check" width={14} /> Accept
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {liveStations.length > 0 && (
         <section className="mm-glass border-[var(--mm-live)] p-5">
@@ -48,7 +111,8 @@ export default async function PartnerHubOverviewPage() {
                 <span className="flex min-w-0 flex-col items-start">
                   <span className="truncate text-base">Open station</span>
                   <span className="truncate text-xs opacity-80">
-                    {s.questTitle} · {s.objectiveTitle}
+                    {/* Labelled by stall — a user may staff several. */}
+                    {s.partnerName} · {s.questTitle} · {s.objectiveTitle}
                   </span>
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
@@ -85,7 +149,7 @@ export default async function PartnerHubOverviewPage() {
                 className="flex items-center justify-between rounded-xl px-3 py-2 text-sm text-[var(--mm-text-dim)] transition hover:bg-[var(--mm-surface)] hover:text-[var(--mm-text)]"
               >
                 <span className="truncate">
-                  {s.questTitle} · {s.objectiveTitle}
+                  {s.partnerName} · {s.questTitle} · {s.objectiveTitle}
                 </span>
                 <Icon icon="mdi:chevron-right" width={16} />
               </Link>
@@ -94,51 +158,58 @@ export default async function PartnerHubOverviewPage() {
         </section>
       )}
 
-      {!partner ? (
-        <div className="mm-glass border-[var(--mm-gold)] p-4 text-sm text-[var(--mm-text-dim)]">
-          No stall loaded yet. Once a database is connected and your petition is
-          approved, your shop fills in here.
-        </div>
-      ) : (
-        <>
-          <div className="mm-glass p-6">
-            <p className="text-xs uppercase tracking-widest text-[var(--mm-gold)]">
-              Stall
-            </p>
-            <h2 className="mt-1 font-[family-name:var(--font-display)] text-xl">
-              {partner.businessName}
-            </h2>
-            <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
-              {partner.tagline ?? "Add a tagline in your profile."}
-            </p>
-            <Link
-              href={`/partners/${partner.slug}`}
-              className="mt-4 inline-block text-sm text-[var(--mm-gold)] hover:text-[var(--mm-gold-hi)]"
-            >
-              View public page →
-            </Link>
-          </div>
+      <section>
+        <h2 className="mb-3 font-[family-name:var(--font-display)] text-lg">
+          Your stalls{" "}
+          <span className="text-sm text-[var(--mm-text-dim)]">
+            ({memberships.length})
+          </span>
+        </h2>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Link href="/partner-hub/gallery" className="mm-glass p-5">
-              <p className="text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
-                Gallery items
-              </p>
-              <p className="mt-2 font-[family-name:var(--font-display)] text-2xl">
-                {gallery.length}
-              </p>
-            </Link>
-            <Link href="/partner-hub/profile" className="mm-glass p-5">
-              <p className="text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
-                Stall profile
-              </p>
-              <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
-                Edit tagline, bio & socials →
-              </p>
-            </Link>
+        {memberships.length === 0 ? (
+          <div className="mm-glass border-[var(--mm-gold)] p-6 text-sm text-[var(--mm-text-dim)]">
+            No stall loaded yet. Once your petition is approved, your shop fills
+            in here.
           </div>
-        </>
-      )}
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {memberships.map((m) => (
+              <Link
+                key={m.partnerId}
+                href={`/partner-hub/${m.partnerId}`}
+                className="mm-glass group flex flex-col p-5 transition hover:border-[var(--mm-gold)]"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <Icon
+                    icon="game-icons:shop"
+                    width={24}
+                    className="text-[var(--mm-gold)]"
+                  />
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    <PartnerStatusBadge status={m.status} />
+                    {m.role === "owner" && (
+                      <Badge color="var(--mm-violet)" icon="mdi:key-variant">
+                        Owner
+                      </Badge>
+                    )}
+                    {!m.active && (
+                      <Badge color="var(--mm-danger)" icon="mdi:pause-circle-outline">
+                        Paused
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <h3 className="mt-3 font-[family-name:var(--font-display)] text-lg group-hover:text-[var(--mm-gold)]">
+                  {m.businessName}
+                </h3>
+                <span className="mt-1 text-sm text-[var(--mm-text-dim)]">
+                  Manage profile, gallery &amp; more →
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

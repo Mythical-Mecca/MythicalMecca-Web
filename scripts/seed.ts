@@ -29,7 +29,9 @@ async function main() {
   // Partner + gallery
   const [partner] = await db
     .insert(partners)
-    .values([{ slug: "neon-forge-minis", businessName: "Neon Forge Minis", tagline: "Hand-painted miniatures & 3D-printed terrain", bio: "A two-person studio.", socials: { raw: "https://instagram.com" } }])
+    // status: seeded partners are live — the column defaults to `draft`, which
+    // would keep them off the public site until an admin approved them.
+    .values([{ slug: "neon-forge-minis", businessName: "Neon Forge Minis", tagline: "Hand-painted miniatures & 3D-printed terrain", bio: "A two-person studio.", status: "approved", socials: { instagram: "https://instagram.com" } }])
     .onConflictDoNothing()
     .returning();
   if (partner) {

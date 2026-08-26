@@ -78,8 +78,13 @@ const ITEMS = {
   },
 } satisfies Record<string, NavMenuItem>;
 
-function buildSections(role: Role): NavMenuSection[] {
-  const isPartner = roleAtLeast(role, "partner");
+/**
+ * `hasPartner` comes from a partner_members count, not the JWT role — the role
+ * in the token goes stale until the next sign-in, which would hide the hub from
+ * someone who just accepted a team invite.
+ */
+function buildSections(role: Role, hasPartner: boolean): NavMenuSection[] {
+  const isPartner = hasPartner || roleAtLeast(role, "admin");
   return [
     {
       title: "Home base",
@@ -112,8 +117,14 @@ function buildSections(role: Role): NavMenuSection[] {
   ];
 }
 
-export function AppTopNav({ role }: { role: Role }) {
-  const sections = buildSections(role);
+export function AppTopNav({
+  role,
+  hasPartner = false,
+}: {
+  role: Role;
+  hasPartner?: boolean;
+}) {
+  const sections = buildSections(role, hasPartner);
 
   return (
     <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_45%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_88%,transparent)]">

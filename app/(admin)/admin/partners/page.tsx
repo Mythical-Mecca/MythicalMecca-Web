@@ -25,7 +25,7 @@ export default async function AdminPartnersPage({
       <PageHeading
         size="md"
         title="Partners"
-        subtitle="Vendors, artists & collaborators in the armory."
+        subtitle="Every partner in the armory, across all categories."
         icon="game-icons:anvil"
         accent={ACCENT}
         actions={
