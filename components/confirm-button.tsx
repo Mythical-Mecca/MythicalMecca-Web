@@ -1,15 +1,27 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "@/components/icon";
 import { trapTab } from "@/lib/focus-trap";
 
 /**
  * A submit button that asks first.
  *
- * Rendered inside the form it submits, so the confirm control is a real
- * `type="submit"` — the action still runs as a normal form post, and the
- * dialog is purely a gate in front of it. `window.confirm` would do the same
+ * The trigger sits inside the form it submits; the dialog itself is portaled
+ * to <body> and submits that form by hand.
+ *
+ * Both halves matter. Rendered in place, the `fixed inset-0` backdrop is
+ * positioned against the nearest transformed ancestor rather than the viewport
+ * — and `.mm-pop`, which every dialog panel uses for its entrance, sets a
+ * transform. Inside <Modal> that meant this dialog was laid out within the
+ * modal panel and clipped by its `overflow-hidden`: scroll the form down and
+ * the confirmation appeared off-view, so "Delete objective" looked dead.
+ *
+ * Portaling fixes the positioning but breaks `type="submit"`, since form
+ * ownership follows the DOM, not the React tree. So the confirm control calls
+ * `requestSubmit()` on the form the trigger belongs to, which still runs the
+ * action as a normal submit. `window.confirm` would do the same
  * job, but it can't show what is about to cascade, and browsers increasingly
  * suppress it.
  */
@@ -32,12 +44,16 @@ export function ConfirmButton({
 }) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const accent = tone === "danger" ? "var(--mm-danger)" : "var(--mm-gold)";
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        // Stop here: this dialog may sit inside a <Modal>, which also closes on
+        // Escape — one press should dismiss the confirmation, not both.
+        e.stopPropagation();
         setOpen(false);
         return;
       }
@@ -55,18 +71,35 @@ export function ConfirmButton({
     };
   }, [open]);
 
+  /**
+   * The dialog lives in a portal, so the confirm control is no longer a DOM
+   * descendant of the form and `type="submit"` would submit nothing. Form
+   * ownership is read off the trigger, which *is* inside it.
+   */
+  const confirm = () => {
+    const form = triggerRef.current?.form;
+    setOpen(false);
+    form?.requestSubmit();
+  };
+
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={className}>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen(true)}
+        className={className}
+      >
         <Icon icon={icon} width={16} />
         {label}
       </button>
 
-      {open && (
-        <div
-          onClick={() => setOpen(false)}
-          className="mm-fade fixed inset-0 z-50 grid place-items-center bg-black/60 p-4"
-        >
+      {open &&
+        createPortal(
+          <div
+            onClick={() => setOpen(false)}
+            className="mm-fade fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4"
+          >
           <div
             ref={panelRef}
             role="alertdialog"
@@ -96,8 +129,8 @@ export function ConfirmButton({
                 Cancel
               </button>
               <button
-                type="submit"
-                onClick={() => setOpen(false)}
+                type="button"
+                onClick={confirm}
                 className="mm-btn text-sm"
                 style={{ background: accent, color: "#160f0a" }}
               >
@@ -105,8 +138,9 @@ export function ConfirmButton({
               </button>
             </div>
           </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </>
   );
 }
