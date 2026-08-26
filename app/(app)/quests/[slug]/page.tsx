@@ -19,7 +19,9 @@ export async function generateMetadata({
   return { title: hunt?.title ?? "Quest" };
 }
 
-const inputCls = `flex-1 ${inputPill}`;
+// `inputPill` is painted --mm-surface, which is right when an input sits on
+// the page and wrong here, where it sits inside a panel of that same colour.
+const inputCls = `mm-inset flex-1 ${inputPill}`;
 
 /** In-app answer forms. Destination objectives are claimed at the stand. */
 function StepBody({ step, slug }: { step: PublicStep; slug: string }) {
@@ -65,7 +67,7 @@ function StepBody({ step, slug }: { step: PublicStep; slug: string }) {
             {(step.choices ?? []).map((c, i) => (
               <label
                 key={i}
-                className="flex items-center gap-2.5 rounded-xl border border-[var(--mm-border)] px-3 py-2.5 text-sm"
+                className="mm-inset flex min-h-11 items-center gap-2.5 rounded-xl border border-[var(--mm-border)] px-3 py-2.5 text-sm"
               >
                 <input type="radio" name="choice" value={i} required />
                 {c}
@@ -89,7 +91,7 @@ function StepBody({ step, slug }: { step: PublicStep; slug: string }) {
       );
     case "qr_scan":
       return (
-        <p className="mt-3 flex items-center gap-1.5 rounded-xl bg-[var(--mm-surface)] px-3 py-2.5 text-sm text-[var(--mm-text-dim)]">
+        <p className="mm-inset mt-3 flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm text-[var(--mm-text-dim)]">
           <Icon
             icon="mdi:qrcode-scan"
             width={16}
@@ -164,14 +166,14 @@ function ObjectiveCard({
           // oklab, not srgb: mixing gold into the navy surface in srgb cancels
           // the blue and lands on a warm grey. oklab keeps the surface reading
           // as navy and just warms it.
-          "--band": step.done
-            ? "color-mix(in oklab, var(--mm-live) 9%, var(--mm-surface))"
+          "--panel": step.done
+            ? "color-mix(in oklab, var(--mm-live) 7%, var(--mm-surface))"
             : featured && !step.locked
-              ? "color-mix(in oklab, var(--mm-gold) 12%, var(--mm-surface))"
+              ? "color-mix(in oklab, var(--mm-gold) 9%, var(--mm-surface))"
               : undefined,
         } as React.CSSProperties
       }
-      className={`mm-glass mm-band -mx-4 rounded-none border-x-0 p-4 transition sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x ${
+      className={`mm-glass mm-panel p-4 transition ${
         step.done
           ? "border-[var(--mm-live)] opacity-70"
           : step.locked
@@ -183,10 +185,10 @@ function ObjectiveCard({
     >
       <div className="flex items-start gap-3">
         <span
-          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-medium ${
+          className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-medium ${
             step.done
               ? "bg-[var(--mm-live)] text-[#070b1e]"
-              : "bg-[var(--mm-surface)] text-[var(--mm-text-dim)]"
+              : "mm-inset text-[var(--mm-text-dim)] ring-1 ring-[var(--mm-divider)]"
           }`}
         >
           {step.done ? (
@@ -210,7 +212,7 @@ function ObjectiveCard({
                 </span>
               )}
             </h3>
-            <span className="shrink-0 text-xs text-[var(--mm-gold)]">
+            <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--mm-gold)_14%,transparent)] px-2 py-0.5 text-xs font-medium text-[var(--mm-gold)]">
               +{step.points}
             </span>
           </div>
@@ -356,7 +358,7 @@ export default async function HuntDetailPage({
       {(!hunt.open || closed) && (
         <div
           role="status"
-          className="mm-glass mm-band -mx-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x mt-4 border-[var(--mm-gold)] text-sm"
+          className="mm-glass mm-panel mt-4 border-[var(--mm-gold)] p-4 text-sm"
         >
           <Icon icon="mdi:pause-circle-outline" width={16} className="mr-1.5 inline" />
           This quest isn&apos;t running right now — check-ins are closed. Your
@@ -367,7 +369,7 @@ export default async function HuntDetailPage({
       {locked && (
         <div
           role="alert"
-          className="mm-glass mm-band -mx-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x mt-4 border-[var(--mm-gold)] text-sm"
+          className="mm-glass mm-panel mt-4 border-[var(--mm-gold)] p-4 text-sm"
         >
           <Icon icon="mdi:lock-outline" width={16} className="mr-1.5 inline" />
           That one isn&apos;t open yet — clear what it&apos;s waiting on first.
@@ -376,7 +378,7 @@ export default async function HuntDetailPage({
       )}
 
       {/* Progress. The single most-glanced-at thing on the page. */}
-      <section className="mm-glass mm-band -mx-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x mt-3 sm:mt-4">
+      <section className="mm-glass mm-panel mt-3 p-4 sm:mt-4">
         <div className="flex items-end justify-between">
           <div>
             <p className="font-[family-name:var(--font-display)] text-2xl">
@@ -401,7 +403,7 @@ export default async function HuntDetailPage({
             </p>
           </div>
         </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--mm-surface)]">
+        <div className="mm-inset mt-3 h-2 overflow-hidden rounded-full">
           <div
             className="h-full rounded-full bg-[var(--mm-gold)] transition-[width] duration-500"
             style={{ width: `${pct}%` }}
@@ -446,7 +448,11 @@ export default async function HuntDetailPage({
         )}
       </section>
 
-      <ol className="mt-4 space-y-6 sm:mt-4 sm:space-y-3">
+      <h2 className="mb-3 mt-6 font-[family-name:var(--font-display)] text-sm uppercase tracking-widest text-[var(--mm-gold)] sm:mt-8">
+        The Trail
+      </h2>
+
+      <ol className="space-y-6 sm:space-y-3">
         {hunt.steps.map((step, i) => (
           <ObjectiveCard
             key={step.id}
@@ -464,7 +470,7 @@ export default async function HuntDetailPage({
           <h2 className="mb-3 font-[family-name:var(--font-display)] text-sm uppercase tracking-widest text-[var(--mm-gold)]">
             Leaderboard
           </h2>
-          <ol className="mm-glass divide-y divide-[var(--mm-divider)]">
+          <ol className="mm-glass mm-panel divide-y divide-[var(--mm-divider)]">
             {leaderboard.map((r, i) => {
               // Finding yourself in a list of twenty names in a loud hall is
               // needlessly hard; mark the row.

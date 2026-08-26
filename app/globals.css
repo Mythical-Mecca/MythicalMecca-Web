@@ -219,37 +219,59 @@ body::before {
   /* ---------------------------------------------------------------------
      Full-bleed panel on a phone.
 
-     Once a card runs to both edges there is nothing left to round, so the
-     seam has to come from the surface itself rather than a rule. The band is
-     near-opaque — it sits over photographic artwork and has to be a surface
-     you can read on, which the 80% glass never was without a border to frame
-     it — and it softens over the last 10px at each end so the edge is a
-     gradient rather than a line.
+     Dark interfaces separate layers by lightness, not by shadow. A drop
+     shadow needs something to darken and there is nothing below near-black;
+     over the backdrop photograph it only muddies. So a panel earns its
+     separation by being a solid step lighter than the page, which is what
+     the token ladder is already built for: --mm-bg, --mm-surface and
+     --mm-elevated sit ~5.4 points of oklab lightness apart, and 5-8 points
+     is the step that reads as "lifted" without reading as a different
+     colour.
 
-     The fade is short on purpose. At 20px it dissolved the panel instead of
-     softening it, and the artwork came through the text.
+     Solid is the point. The translucent version put detailed artwork
+     directly behind body copy — the text people read in a hall, on a phone,
+     often in sunlight — and no amount of fading fixes a panel you can see
+     through.
 
-     The fade is painted on the background layer, not applied as a mask: a
-     mask would take the first and last line of text with it. `--band` carries
-     the tint so a featured or cleared objective keeps the emphasis its border
-     used to give it.
+     What stays soft is the seam. Once a card runs to both edges there is
+     nothing left to round, so each end ramps over 12px from the panel to the
+     page. Both ends of that ramp are opaque, so it fades panel-to-page and
+     never to the photograph. The ramp is painted on the background layer
+     rather than applied as a mask: a mask would take the first and last line
+     of text with it.
+
+     `--panel` carries the tint, so a featured or cleared objective keeps the
+     emphasis its border used to give it.
      --------------------------------------------------------------------- */
-  .mm-band {
-    --band: color-mix(in srgb, var(--mm-surface) 92%, transparent);
+  .mm-panel {
+    /* Phones only. On a wide screen the cards are discrete, fully bordered
+       and small against the backdrop, so the artwork behind them is the
+       point and the glass stays. */
+    --panel: var(--mm-surface);
   }
 
   @media (max-width: 639.98px) {
-    .mm-band {
-      border-top-width: 0;
-      border-bottom-width: 0;
+    .mm-panel {
+      margin-inline: -1rem;
+      border-radius: 0;
+      border-inline-width: 0;
+      border-block-width: 0;
       background: linear-gradient(
         to bottom,
-        transparent 0,
-        var(--band) 0.625rem,
-        var(--band) calc(100% - 0.625rem),
-        transparent 100%
+        var(--mm-bg) 0,
+        var(--panel) 0.75rem,
+        var(--panel) calc(100% - 0.75rem),
+        var(--mm-bg) 100%
       );
     }
+  }
+
+  /* Level 2. Controls nested inside a panel — inputs, chips, the progress
+     track — have to step up from the panel the same way the panel steps up
+     from the page, or the hierarchy flattens and the whole card reads as one
+     plane. They were all sitting on --mm-surface, the panel's own colour. */
+  .mm-inset {
+    background: var(--mm-elevated);
   }
 
   .mm-btn {
