@@ -661,14 +661,22 @@ export async function toggleFeaturedReview(formData: FormData) {
 // ---------------------------------------------------------------------------
 
 const questSchema = z.object({
-  title: z.string().min(2).max(200),
-  description: z.string().max(2000).optional(),
-  eventId: z.string().uuid().optional(),
+  title: z
+    .string()
+    .trim()
+    .min(2, "Give the quest a title of at least 2 characters.")
+    .max(200, "Keep the title under 200 characters."),
+  description: z.string().max(2000, "Keep this under 2000 characters.").optional(),
+  eventId: z.string().uuid("Choose the event this quest belongs to."),
   startsAt: z.string().optional(),
   endsAt: z.string().optional(),
 });
 
-export type QuestFormState = { error?: string };
+export type QuestFormState = {
+  error?: string;
+  /** Keyed by field name, rendered on that input — see ObjectiveFormState. */
+  fieldErrors?: Record<string, string>;
+};
 
 export async function createQuest(
   _prev: QuestFormState,
@@ -682,7 +690,9 @@ export async function createQuest(
     startsAt: formData.get("startsAt") || undefined,
     endsAt: formData.get("endsAt") || undefined,
   });
-  if (!parsed.success) return { error: "Give the quest a title (2+ characters)." };
+  if (!parsed.success) {
+    return { fieldErrors: fieldErrorsFrom(parsed.error.issues) };
+  }
 
   const slug = `${slugify(parsed.data.title)}-${Date.now().toString(36)}`;
   if (process.env.DATABASE_URL) {
@@ -692,6 +702,7 @@ export async function createQuest(
         title: parsed.data.title,
         description: parsed.data.description,
         eventId: parsed.data.eventId,
+        sequential: formData.get("sequential") === "1",
         startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : null,
         endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : null,
         active: false, // built in private, switched on once objectives exist
@@ -760,7 +771,8 @@ export async function updateQuest(
         .set({
           title: parsed.data.title,
           description: parsed.data.description ?? null,
-          eventId: parsed.data.eventId ?? null,
+          eventId: parsed.data.eventId,
+          sequential: formData.get("sequential") === "1",
           startsAt: opens,
           endsAt: closes,
           updatedAt: new Date(),
@@ -859,6 +871,7 @@ const objectiveSchema = z.object({
     .string()
     .max(200, "Keep the location hint under 200 characters.")
     .optional(),
+  parentId: z.string().uuid("Pick an objective from the list.").optional(),
   claimRadiusM: z.coerce
     .number({ error: "Radius must be a number." })
     .int("Radius must be a whole number of metres.")
@@ -934,6 +947,9 @@ function objectiveTypeErrors(
         ? "Set the password they have to type in."
         : "Set the answer this is checked against.";
   }
+  if (data.parentId && data.parentId === formData.get("id")) {
+    out.parentId = "An objective can't wait for itself.";
+  }
   if (data.type === "trivia_gate") {
     const choices = formData
       .getAll("choices")
@@ -957,6 +973,7 @@ function objectiveFields(formData: FormData) {
     claimMode: formData.get("claimMode") || "live_code",
     partnerId: formData.get("partnerId") || undefined,
     locationHint: formData.get("locationHint") || undefined,
+    parentId: formData.get("parentId") || undefined,
     claimRadiusM: formData.get("claimRadiusM") || undefined,
     answer: formData.get("answer") || undefined,
   };
@@ -1071,6 +1088,7 @@ export async function addObjective(
           points: parsed.data.points,
           partnerId: parsed.data.partnerId,
           locationHint: parsed.data.locationHint,
+          parentId: parsed.data.parentId,
           revealMode: parsed.data.revealMode,
           claimMode: parsed.data.claimMode,
           claimRadiusM: parsed.data.claimRadiusM,
@@ -1124,6 +1142,7 @@ export async function updateObjective(
           points: parsed.data.points,
           partnerId: parsed.data.partnerId ?? null,
           locationHint: parsed.data.locationHint ?? null,
+          parentId: parsed.data.parentId ?? null,
           revealMode: parsed.data.revealMode,
           claimMode: parsed.data.claimMode,
           claimRadiusM: parsed.data.claimRadiusM ?? null,

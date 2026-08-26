@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { updateQuest, type QuestSettingsState } from "@/app/(admin)/actions";
-import { TextField, TextareaField } from "@/components/form";
+import { CheckboxField, TextField, TextareaField } from "@/components/form";
 import { PickerField } from "@/components/picker-field";
 import { DateTimeField } from "@/components/datetime-input";
 import { Icon } from "@/components/icon";
@@ -36,6 +36,7 @@ export function QuestSettingsForm({
   title,
   description,
   eventId,
+  sequential,
   startsAtLocal,
   endsAtLocal,
   events,
@@ -44,6 +45,7 @@ export function QuestSettingsForm({
   title: string;
   description: string;
   eventId: string;
+  sequential: boolean;
   startsAtLocal: string;
   endsAtLocal: string;
   events: QuestSettingsEvent[];
@@ -100,12 +102,13 @@ export function QuestSettingsForm({
         error={fieldError.description}
       />
       <PickerField
-        label="Attached event"
+        label="Event"
         name="eventId"
         icon="game-icons:campfire"
-        placeholder="Not tied to an event"
+        required
+        placeholder="Choose an event"
         defaultValue={eventId}
-        description="The event's coordinates are what venue checks measure against."
+        description="Every quest belongs to one event. Its coordinates are what venue checks measure against."
         error={fieldError.eventId}
         options={events.map((e) => ({
           value: e.id,
@@ -114,6 +117,18 @@ export function QuestSettingsForm({
           icon: "game-icons:campfire",
         }))}
       />
+      {/* How the trail may be walked. Off is the venue-navigation default —
+          objectives are destinations, and making someone walk them in a fixed
+          order turns a floor plan into a queue. */}
+      <CheckboxField
+        name="sequential"
+        value="1"
+        defaultChecked={sequential}
+        label="Complete objectives in order"
+        icon="mdi:format-list-numbered"
+        description="On: each objective opens only once the one before it is cleared. Off: objectives are free, apart from any that name a prerequisite of their own."
+      />
+
       <div className="grid gap-4 sm:grid-cols-2">
         <DateTimeField
           label="Opens"

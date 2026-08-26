@@ -38,7 +38,8 @@ function sampleAdminEvents(): AdminEvent[] {
 export interface AdminEvent {
   id: string;
   title: string;
-  slug: string;
+  /** Null while the event isn't public — see events.slug. */
+  slug: string | null;
   status: string;
   location: string | null;
   startsAt: string | null;
@@ -88,7 +89,8 @@ export async function listEvents(): Promise<AdminEvent[]> {
 export interface AdminEventRow {
   id: string;
   title: string;
-  slug: string;
+  /** Null while the event isn't public — see events.slug in the schema. */
+  slug: string | null;
   status: string;
   origin: string;
   summary: string | null;
@@ -188,7 +190,8 @@ export async function listEventRows(): Promise<AdminEventRow[]> {
 export interface CommunityEventSubmission {
   id: string;
   title: string;
-  slug: string;
+  /** Null while the event isn't public — see events.slug. */
+  slug: string | null;
   summary: string;
   bodyMd: string;
   location: string | null;

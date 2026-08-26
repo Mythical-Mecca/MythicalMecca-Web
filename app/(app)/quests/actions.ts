@@ -22,7 +22,7 @@ export async function completeStep(formData: FormData) {
   if (!session?.user) redirect(`/login?from=/quests/${huntSlug}`);
   const stepId = String(formData.get("stepId") ?? "");
 
-  const found = await getStepRaw(huntSlug, stepId);
+  const found = await getStepRaw(huntSlug, stepId, session.user.id);
   if (!found) redirect(`/quests/${huntSlug}?serr=${stepId}`);
   const { step, huntId, huntOpen } = found;
 
@@ -30,6 +30,18 @@ export async function completeStep(formData: FormData) {
   // could be submitted while a quest was still being staged, or after it
   // closed and the scores were called.
   if (!huntOpen) redirect(`/quests/${huntSlug}?closed=1`);
+
+  // Ordering holds here too. Logged like any other refused claim so a run of
+  // them shows up on the admin monitor.
+  if (found.lockedBy) {
+    await logClaimAttempt({
+      stepId,
+      userId: session.user.id,
+      outcome: "locked",
+      ip: null,
+    });
+    redirect(`/quests/${huntSlug}?locked=${stepId}#step-${stepId}`);
+  }
 
   const submitted: Record<string, unknown> = {
     answer: formData.get("answer") ?? undefined,

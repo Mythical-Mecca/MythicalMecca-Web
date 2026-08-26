@@ -13,6 +13,8 @@ type Failure = NonNullable<ClaimState["outcome"]>;
  * is standing at a counter with a queue behind them.
  */
 const FAILURE_COPY: Record<Exclude<Failure, "ok">, string> = {
+  locked:
+    "Something else comes first — check the quest page for what's still open.",
   duplicate: "You've already checked in here — no need to do it twice.",
   bad_code:
     "That code has expired. Type the 4 digits showing on the stand's screen right now.",
@@ -37,6 +39,7 @@ export function QuestClaim({
   locationHint,
   points,
   alreadyDone,
+  lockedBy,
 }: {
   token: string;
   claimMode: ClaimMode;
@@ -49,11 +52,22 @@ export function QuestClaim({
   locationHint: string | null;
   points: number;
   alreadyDone: boolean;
+  /** Set when an earlier objective is still outstanding — see hunts.blockedBy. */
+  lockedBy: string | null;
 }) {
   const [state, formAction, pending] = useActionState<ClaimState, FormData>(
     submitClaim,
     {
-      outcome: alreadyDone ? "duplicate" : !questOpen ? "not_open" : undefined,
+      // Seeded so the page opens in its final state rather than offering a
+      // control that the server is going to refuse. Order matters: already
+      // cleared beats locked beats closed.
+      outcome: alreadyDone
+        ? "duplicate"
+        : !questOpen
+          ? "not_open"
+          : lockedBy
+            ? "locked"
+            : undefined,
     }
   );
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);

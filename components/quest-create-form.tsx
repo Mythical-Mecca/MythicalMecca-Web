@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { createQuest, type QuestFormState } from "@/app/(admin)/actions";
-import { TextField, TextareaField } from "@/components/form";
+import { CheckboxField, TextField, TextareaField } from "@/components/form";
 import { DateTimeField } from "@/components/datetime-input";
 import { PickerField } from "@/components/picker-field";
 
@@ -25,6 +25,7 @@ export function QuestCreateForm({
     createQuest,
     {}
   );
+  const fieldError = state.fieldErrors ?? {};
 
   return (
     <form action={formAction} className="space-y-4">
@@ -34,6 +35,7 @@ export function QuestCreateForm({
         required
         placeholder="Opening Night Trail"
         icon="mdi:format-title"
+        error={fieldError.title}
       />
       <TextareaField
         label="Description"
@@ -41,13 +43,16 @@ export function QuestCreateForm({
         rows={3}
         placeholder="What the trail is, and what's in it for whoever finishes."
         icon="mdi:text"
+        error={fieldError.description}
       />
       <PickerField
-        label="Attached event"
+        label="Event"
         name="eventId"
         icon="game-icons:campfire"
-        placeholder="Not tied to an event"
-        description="Attaching a quest surfaces it on that event's page, and uses the event's location for venue checks."
+        required
+        placeholder="Choose an event"
+        description="Every quest belongs to one event — its page lists the quest, and its coordinates are what venue checks measure against."
+        error={fieldError.eventId}
         options={events.map((e) => ({
           value: e.id,
           label: e.title,
@@ -55,6 +60,14 @@ export function QuestCreateForm({
           icon: "game-icons:campfire",
         }))}
       />
+      <CheckboxField
+        name="sequential"
+        value="1"
+        label="Complete objectives in order"
+        icon="mdi:format-list-numbered"
+        description="Leave off for a venue trail — objectives are destinations, and a fixed order turns a floor plan into a queue. You can change this later."
+      />
+
       <div className="grid gap-4 sm:grid-cols-2">
         <DateTimeField
           label="Opens"

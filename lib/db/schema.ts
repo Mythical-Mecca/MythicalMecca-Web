@@ -12,6 +12,7 @@ import {
   boolean,
   doublePrecision,
 } from "drizzle-orm/pg-core";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "next-auth/adapters";
 
 // ---------------------------------------------------------------------------
@@ -217,7 +218,16 @@ export const events = pgTable(
   "events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    slug: text("slug").notNull().unique(),
+    /**
+     * The public URL, and only public events have one.
+     *
+     * Nullable because a draft has no public page to address — it was
+     * `notNull`, so every event carried a URL whether or not anything answered
+     * at it, and the admin form asked for one with the description "the public
+     * URL" even on a draft. `status` remains the single source of truth for
+     * visibility; the slug follows it. Still unique where present.
+     */
+    slug: text("slug").unique(),
     title: text("title").notNull(),
     summary: text("summary"),
     bodyMd: text("body_md"),
@@ -589,16 +599,33 @@ export const claimOutcomeEnum = pgEnum("claim_outcome", [
   "unknown_step",
   // Too many wrong codes in a short window — see tooManyBadAttempts().
   "rate_limited",
+  // A prerequisite objective hasn't been cleared yet — see prerequisiteFor().
+  "locked",
 ]);
 export const scavengerHunts = pgTable("scavenger_hunts", {
   id: uuid("id").primaryKey().defaultRandom(),
-  eventId: uuid("event_id").references(() => events.id, {
-    onDelete: "set null",
-  }),
+  /**
+   * Quests are strictly event-bound: there is nowhere on the site a quest
+   * appears without one, and venue checks measure from the event's
+   * coordinates. Cascade rather than the old `set null`, which manufactured
+   * exactly the orphan this column now forbids.
+   */
+  eventId: uuid("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
   slug: text("slug").notNull().unique(),
   title: text("title").notNull(),
   description: text("description"),
   mode: huntModeEnum("mode").notNull().default("hybrid"),
+  /**
+   * How the trail may be walked.
+   *
+   * `true` — strictly in order: an objective opens only once everything before
+   * it (by `sort`) is cleared.
+   * `false` — free, except where an objective names a `parentId`; that one
+   * waits for its parent and the rest can be done whenever.
+   */
+  sequential: boolean("sequential").notNull().default(false),
   startsAt: timestamp("starts_at", { withTimezone: true }),
   endsAt: timestamp("ends_at", { withTimezone: true }),
   active: boolean("active").notNull().default(true),
@@ -634,6 +661,17 @@ export const huntSteps = pgTable(
     }),
     /** Where to find it on the floor — "Hall B, stand 14". */
     locationHint: text("location_hint"),
+    /**
+     * Optional prerequisite, used only when the quest is not `sequential`.
+     *
+     * Self-referential, so it is declared with an explicit type annotation and
+     * a callback — Drizzle can't infer a table that mentions itself. Set null
+     * on delete: removing a prerequisite unlocks its dependants rather than
+     * deleting them with it.
+     */
+    parentId: uuid("parent_id").references((): AnyPgColumn => huntSteps.id, {
+      onDelete: "set null",
+    }),
     revealMode: revealModeEnum("reveal_mode").notNull().default("direct"),
     claimMode: claimModeEnum("claim_mode").notNull().default("live_code"),
     /** Geofence for `open_tag`, in metres. Null falls back to the event radius. */

@@ -174,12 +174,21 @@ const optionalStamp = () =>
  */
 const EVENT_FIELDS = {
   title: z.string().trim().min(2, "Needs at least 2 characters").max(200),
+  /**
+   * Empty means "no public page". A non-public event is allowed to have no
+   * slug at all; `publicNeedsSlug` below is what stops a *public* one from
+   * being saved without one.
+   */
   slug: z
     .string()
     .trim()
-    .min(2)
-    .max(120)
-    .regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers and hyphens only"),
+    .transform((v) => (v === "" ? null : v))
+    .refine((v) => v === null || (v.length >= 2 && v.length <= 120), {
+      message: "Between 2 and 120 characters",
+    })
+    .refine((v) => v === null || /^[a-z0-9-]+$/.test(v), {
+      message: "Lowercase letters, numbers and hyphens only",
+    }),
   status: z.enum(EVENT_STATUSES),
   origin: z.enum(EVENT_ORIGINS),
   summary: optionalText(400),
@@ -209,6 +218,26 @@ const EVENT_FIELDS = {
 export type EventField = keyof typeof EVENT_FIELDS;
 
 export type FieldSaveResult = { ok: true } | { ok: false; error: string };
+
+/** Statuses that put an event on the public site — mirrors lib/content.ts. */
+const PUBLIC_STATUSES: readonly string[] = ["published", "live", "ended"];
+
+/**
+ * A public event needs an address.
+ *
+ * The two fields can be edited independently — one cell at a time from the
+ * table, or together from the form — so the check has to consider the row's
+ * resulting state rather than whichever field is being written. Returns an
+ * error message, or null when the pair is coherent.
+ */
+function publicNeedsSlug(
+  status: string,
+  slug: string | null
+): string | null {
+  if (!PUBLIC_STATUSES.includes(status)) return null;
+  if (slug) return null;
+  return "A public event needs a slug — that is the URL its page lives at.";
+}
 
 /** Write one cell of one event. */
 export async function updateEventField(
@@ -253,6 +282,13 @@ export async function updateEventField(
       if (clash && clash.id !== id) {
         return { ok: false, error: "Another event already uses that slug." };
       }
+    }
+
+    if (key === "status" || key === "slug") {
+      const nextStatus = key === "status" ? (next as string) : current.status;
+      const nextSlug = key === "slug" ? (next as string | null) : current.slug;
+      const problem = publicNeedsSlug(nextStatus, nextSlug);
+      if (problem) return { ok: false, error: problem };
     }
 
     // The window has to stay a window, whichever end is being moved.
@@ -369,6 +405,15 @@ export async function updateEvent(formData: FormData) {
     redirect(backTo(id, "details", "badwindow"));
   }
 
+  // A public status with no address would list an event whose page 404s. The
+  // form submits both fields together, so this can be judged here.
+  if (
+    typeof patch.status === "string" &&
+    publicNeedsSlug(patch.status, (patch.slug as string | null) ?? null)
+  ) {
+    redirect(backTo(id, "details", "needslug"));
+  }
+
   if (process.env.DATABASE_URL) {
     let clashed = false;
     try {
@@ -415,7 +460,8 @@ export async function announceEventOnDiscord(formData: FormData) {
 
   if (process.env.DATABASE_URL) {
     const [e] = await db.select().from(events).where(eq(events.id, id)).limit(1);
-    if (e?.startsAt) {
+    // Nothing to announce for an event with no public page to link to.
+    if (e?.startsAt && e.slug) {
       posted = await announceEvent({
         title: e.title,
         summary: e.summary,

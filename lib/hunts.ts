@@ -35,7 +35,9 @@ export type ClaimOutcome =
   | "out_of_range"
   | "not_open"
   | "unknown_step"
-  | "rate_limited";
+  | "rate_limited"
+  /** A prerequisite objective hasn't been cleared yet. */
+  | "locked";
 
 /**
  * `qr_scan` is the workhorse type for a venue quest: "get to the destination
@@ -59,20 +61,34 @@ export interface PublicStep {
   done: boolean;
   revealMode: RevealMode;
   claimMode: ClaimMode;
+  /**
+   * Waiting on something else. `true` when the quest is sequential and an
+   * earlier objective is outstanding, or when this one names a prerequisite
+   * that hasn't been cleared.
+   */
+  locked: boolean;
+  /** What it is waiting for, for the player-facing explanation. */
+  lockedBy: string | null;
   /** Null until earned when `revealMode` is "clue" — the clue *is* the puzzle. */
   destination: Destination | null;
 }
 
 export interface HuntView {
   slug: string;
+  /** True when the trail must be walked in order — drives the player copy. */
+  sequential: boolean;
   title: string;
   description: string;
   mode: string;
   steps: PublicStep[];
   totalPoints: number;
   earnedPoints: number;
+  /**
+   * Null when the quest's event isn't public yet — the event exists (the FK is
+   * NOT NULL) but a draft has no page to link to.
+   */
   eventSlug: string | null;
-  eventTitle: string | null;
+  eventTitle: string;
   open: boolean;
 }
 
@@ -85,6 +101,8 @@ export interface LeaderRow {
 
 interface RawStep {
   id: string;
+  sort: number;
+  parentId: string | null;
   type: StepType;
   title: string;
   prompt: string;
@@ -101,12 +119,17 @@ interface RawStep {
 interface RawHunt {
   id: string;
   slug: string;
+  sequential: boolean;
   title: string;
   description: string;
   mode: string;
   steps: RawStep[];
+  /**
+   * Null when the quest's event isn't public yet — the event exists (the FK is
+   * NOT NULL) but a draft has no page to link to.
+   */
   eventSlug: string | null;
-  eventTitle: string | null;
+  eventTitle: string;
   eventLat: number | null;
   eventLng: number | null;
   open: boolean;
@@ -144,6 +167,8 @@ async function stepsFor(huntId: string): Promise<RawStep[]> {
     .orderBy(huntSteps.sort);
   return rows.map(({ s, partnerSlug, partnerName }) => ({
     id: s.id,
+    sort: s.sort,
+    parentId: s.parentId,
     type: s.type,
     title: s.title,
     prompt: s.prompt ?? "",
@@ -170,13 +195,14 @@ async function rawHunt(slug: string): Promise<RawHunt | null> {
       eventLng: events.lng,
     })
     .from(scavengerHunts)
-    .leftJoin(events, eq(scavengerHunts.eventId, events.id))
+    .innerJoin(events, eq(scavengerHunts.eventId, events.id))
     .where(eq(scavengerHunts.slug, slug))
     .limit(1);
   if (!row) return null;
   return {
     id: row.h.id,
     slug: row.h.slug,
+    sequential: row.h.sequential,
     title: row.h.title,
     description: row.h.description ?? "",
     mode: row.h.mode,
@@ -189,7 +215,47 @@ async function rawHunt(slug: string): Promise<RawHunt | null> {
   };
 }
 
-function publicStep(s: RawStep, done: boolean): PublicStep {
+/**
+ * Is this objective open to the player yet?
+ *
+ * Two models, chosen per quest:
+ *
+ * - `sequential` — the trail is a line. An objective opens once everything
+ *   before it in `sort` order is cleared. Parent links are ignored, because a
+ *   second ordering on top of a strict one can only contradict it.
+ * - free — an objective opens immediately unless it names a `parentId`, in
+ *   which case it waits for exactly that one. Everything unparented stays
+ *   claimable in any order, which is the default and what the venue-navigation
+ *   model was designed around.
+ *
+ * Returns the blocking objective's title, or null when nothing blocks it.
+ */
+function blockedBy(
+  step: RawStep,
+  all: RawStep[],
+  doneIds: Set<string>,
+  sequential: boolean
+): string | null {
+  if (sequential) {
+    const earlier = all
+      .filter((o) => o.sort < step.sort)
+      .sort((a, b) => b.sort - a.sort);
+    const blocking = earlier.find((o) => !doneIds.has(o.id));
+    return blocking ? blocking.title : null;
+  }
+  if (!step.parentId) return null;
+  if (doneIds.has(step.parentId)) return null;
+  // A parent that has since been deleted leaves parentId null via the FK, so
+  // an unresolvable id here means the row is mid-change; treat it as open
+  // rather than stranding the player.
+  return all.find((o) => o.id === step.parentId)?.title ?? null;
+}
+
+function publicStep(
+  s: RawStep,
+  done: boolean,
+  lockedBy: string | null = null
+): PublicStep {
   // A "clue" objective withholds *where* until it's been claimed — revealing
   // the vendor early would hand over the answer.
   const reveal = s.revealMode === "direct" || done;
@@ -206,6 +272,8 @@ function publicStep(s: RawStep, done: boolean): PublicStep {
     done,
     revealMode: s.revealMode,
     claimMode: s.claimMode,
+    locked: lockedBy !== null,
+    lockedBy,
     destination: reveal
       ? {
           partnerSlug: s.partnerSlug,
@@ -248,8 +316,12 @@ export interface HuntCard {
   title: string;
   description: string;
   steps: number;
+  /**
+   * Null when the quest's event isn't public yet — the event exists (the FK is
+   * NOT NULL) but a draft has no page to link to.
+   */
   eventSlug: string | null;
-  eventTitle: string | null;
+  eventTitle: string;
   /** How many objectives this adventurer has cleared. 0 when signed out. */
   done: number;
 }
@@ -272,7 +344,7 @@ export async function listHunts(userId?: string): Promise<HuntCard[]> {
           : sql<number>`0`,
       })
       .from(scavengerHunts)
-      .leftJoin(events, eq(scavengerHunts.eventId, events.id))
+      .innerJoin(events, eq(scavengerHunts.eventId, events.id))
       .where(openPredicate())
       .orderBy(desc(scavengerHunts.createdAt));
     return rows.map((r) => ({
@@ -312,9 +384,12 @@ export async function getHunt(
   const raw = await rawHunt(slug);
   if (!raw) return null;
   const done = userId ? await completedStepIds(raw.id, userId) : new Set<string>();
-  const steps = raw.steps.map((s) => publicStep(s, done.has(s.id)));
+  const steps = raw.steps.map((s) =>
+    publicStep(s, done.has(s.id), blockedBy(s, raw.steps, done, raw.sequential))
+  );
   return {
     slug: raw.slug,
+    sequential: raw.sequential,
     title: raw.title,
     description: raw.description,
     mode: raw.mode,
@@ -335,12 +410,25 @@ export async function getHunt(
  */
 export async function getStepRaw(
   huntSlug: string,
-  stepId: string
-): Promise<{ step: RawStep; huntId: string; huntOpen: boolean } | null> {
+  stepId: string,
+  /** Resolves `lockedBy` for this player. Omit for callers that don't gate. */
+  userId?: string
+): Promise<{
+  step: RawStep;
+  huntId: string;
+  huntOpen: boolean;
+  lockedBy: string | null;
+} | null> {
   const raw = await rawHunt(huntSlug);
   const step = raw?.steps.find((s) => s.id === stepId);
   if (!raw || !step) return null;
-  return { step, huntId: raw.id, huntOpen: raw.open };
+  // In-app objectives are claimed by POSTing an answer, which is as forgeable
+  // as opening a tag URL — the ordering rule has to hold on this path too.
+  const done = userId ? await completedStepIds(raw.id, userId) : new Set<string>();
+  const lockedBy = userId
+    ? blockedBy(step, raw.steps, done, raw.sequential)
+    : null;
+  return { step, huntId: raw.id, huntOpen: raw.open, lockedBy };
 }
 
 function haversine(
@@ -497,6 +585,14 @@ export interface ClaimTarget {
   rotationSeconds: number;
   stationKey: string | null;
   alreadyDone: boolean;
+  /**
+   * Title of the objective this one is waiting on, or null when it is open.
+   *
+   * Resolved here rather than in the UI because the claim itself has to honour
+   * it — a tag is a URL anyone can open, so a lock the page merely draws is no
+   * lock at all.
+   */
+  lockedBy: string | null;
 }
 
 /** Everything the claim route needs, resolved from a tag token's step id. */
@@ -520,7 +616,7 @@ export async function getClaimTarget(
       .from(huntSteps)
       .innerJoin(scavengerHunts, eq(huntSteps.huntId, scavengerHunts.id))
       .leftJoin(partners, eq(huntSteps.partnerId, partners.id))
-      .leftJoin(events, eq(scavengerHunts.eventId, events.id))
+      .innerJoin(events, eq(scavengerHunts.eventId, events.id))
       .leftJoin(huntStations, eq(huntStations.stepId, huntSteps.id))
       .where(eq(huntSteps.id, stepId))
       .limit(1);
@@ -538,9 +634,22 @@ export async function getClaimTarget(
       alreadyDone = !!p;
     }
 
+    // Only worth resolving for a signed-in player: the lock is per-person, and
+    // a signed-out visitor is stopped earlier anyway.
+    let lockedBy: string | null = null;
+    if (userId && !alreadyDone) {
+      const siblings = await stepsFor(row.h.id);
+      const self = siblings.find((o) => o.id === row.s.id);
+      if (self) {
+        const done = await completedStepIds(row.h.id, userId);
+        lockedBy = blockedBy(self, siblings, done, row.h.sequential);
+      }
+    }
+
     return {
       stepId: row.s.id,
       huntId: row.h.id,
+      lockedBy,
       huntSlug: row.h.slug,
       huntTitle: row.h.title,
       huntOpen: isOpen(row.h),
@@ -653,6 +762,9 @@ export async function claimObjective(input: {
 
   if (!target.huntOpen) return finish("not_open");
   if (target.alreadyDone) return finish("duplicate");
+  // Before any proof is examined: no point telling someone their code is wrong
+  // when the objective wasn't open to them in the first place.
+  if (target.lockedBy) return finish("locked");
 
   switch (target.claimMode) {
     case "live_code": {

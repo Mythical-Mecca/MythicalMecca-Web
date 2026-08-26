@@ -77,6 +77,7 @@ export default async function TagLandingPage({
           locationHint={target.locationHint}
           points={target.points}
           alreadyDone={target.alreadyDone}
+          lockedBy={target.lockedBy}
         />
       </div>
     </div>

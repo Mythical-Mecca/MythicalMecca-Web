@@ -8,7 +8,7 @@ import {
   galleryItems,
   eventGalleryItems,
 } from "@/lib/db/schema";
-import { desc, eq, asc, and, inArray, sql } from "drizzle-orm";
+import { desc, eq, asc, and, inArray, isNotNull, sql } from "drizzle-orm";
 import { toMediaSrc } from "@/lib/media";
 
 export type EventOrigin = "hosted" | "partner" | "external" | "community";
@@ -216,7 +216,9 @@ function toEventView(r: EventRow): EventView {
     ? (r.e.status as EventView["status"])
     : "published";
   return {
-    slug: r.e.slug,
+    // Every caller filters to public statuses AND a non-null slug, so this is
+    // always present by the time a row reaches here.
+    slug: r.e.slug ?? "",
     title: r.e.title,
     summary: r.e.summary ?? "",
     bodyMd: r.e.bodyMd ?? "",
@@ -245,7 +247,15 @@ export async function getEvents(): Promise<EventView[]> {
       })
       .from(events)
       .leftJoin(partners, eq(events.partnerId, partners.id))
-      .where(inArray(events.status, [...PUBLIC_EVENT_STATUSES]))
+      // Both halves of "public": a public status *and* an address to be
+      // public at. A published event with no slug has no page, so listing it
+      // would render links that 404.
+      .where(
+        and(
+          inArray(events.status, [...PUBLIC_EVENT_STATUSES]),
+          isNotNull(events.slug)
+        )
+      )
       .orderBy(events.startsAt);
     return rows.map(toEventView);
   } catch {

@@ -162,12 +162,17 @@ export function ObjectiveTimeline({
   objectives,
   partners,
   eventHasCoords,
+  sequential,
 }: {
   questSlug: string;
   objectives: AdminObjective[];
   partners: { id: string; name: string }[];
   eventHasCoords: boolean;
+  /** Strictly-ordered quest: the rail *is* the rule, so no per-objective
+   *  prerequisites and the seams say so. */
+  sequential: boolean;
 }) {
+  const titleById = new Map(objectives.map((o) => [o.id, o.title]));
   /** `{kind:"edit"}` loads an objective; `{kind:"add"}` opens a blank form. */
   const [dialog, setDialog] = useState<
     | { kind: "edit"; objective: AdminObjective }
@@ -192,8 +197,10 @@ export function ObjectiveTimeline({
             The trail is empty
           </p>
           <p className="mx-auto mt-1 max-w-sm text-sm text-[var(--mm-text-dim)]">
-            Add one objective for each stand you want people to walk to. They
-            can be tackled in any order — this list is the order they read in.
+            Add one objective for each stand you want people to walk to.{" "}
+            {sequential
+              ? "They must be cleared top to bottom, in this order."
+              : "They can be tackled in any order unless one names a prerequisite."}
           </p>
           <button
             type="button"
@@ -215,6 +222,16 @@ export function ObjectiveTimeline({
             }}
           />
 
+          <p className="mb-2 flex items-center gap-1.5 text-xs text-[var(--mm-text-dim)]">
+            <Icon
+              icon={sequential ? "mdi:format-list-numbered" : "mdi:shuffle-variant"}
+              width={13}
+              style={{ color: ACCENT }}
+            />
+            {sequential
+              ? "Strictly in order — each objective opens once the one above it is cleared."
+              : "Any order, except where an objective names a prerequisite."}
+          </p>
           <ol className="relative space-y-0">
             {objectives.map((o, i) => {
               const claim = CLAIM_LABEL[o.claimMode];
@@ -269,6 +286,16 @@ export function ObjectiveTimeline({
                               {o.completions} done
                             </Badge>
                           </div>
+                          {!sequential && o.parentId && (
+                            <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--mm-text-dim)]">
+                              <Icon icon="mdi:source-branch" width={13} />
+                              Locked until{" "}
+                              <span className="text-[var(--mm-text)]">
+                                {titleById.get(o.parentId) ?? "another objective"}
+                              </span>{" "}
+                              is cleared
+                            </p>
+                          )}
                           {o.locationHint && (
                             <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--mm-text-dim)]">
                               <Icon icon="mdi:map-marker-outline" width={13} />
@@ -424,6 +451,8 @@ export function ObjectiveTimeline({
               objective={editing}
               atIndex={dialog.kind === "add" ? dialog.atIndex : undefined}
               eventHasCoords={eventHasCoords}
+              sequential={sequential}
+              siblings={objectives.map((o) => ({ id: o.id, title: o.title }))}
               onDone={close}
             />
             {editing && (

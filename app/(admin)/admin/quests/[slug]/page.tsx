@@ -248,6 +248,7 @@ export default async function AdminQuestEditorPage({
           objectives={quest.objectiveList}
           partners={partnerOptions}
           eventHasCoords={quest.eventHasCoords}
+          sequential={quest.sequential}
         />
       </section>
 
@@ -256,7 +257,8 @@ export default async function AdminQuestEditorPage({
           slug={quest.slug}
           title={quest.title}
           description={quest.description}
-          eventId={events.find((e) => e.slug === quest.eventSlug)?.id ?? ""}
+          eventId={quest.eventId}
+          sequential={quest.sequential}
           startsAtLocal={toLocalInput(quest.startsAt)}
           endsAtLocal={toLocalInput(quest.endsAt)}
           events={events.map((e) => ({

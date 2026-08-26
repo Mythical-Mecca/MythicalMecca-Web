@@ -28,9 +28,11 @@ export interface AdminQuestRow {
   startsAt: Date | null;
   endsAt: Date | null;
   /** The attached event's id — what the table's Event cell edits. */
-  eventId: string | null;
-  eventTitle: string | null;
+  eventId: string;
+  eventTitle: string;
   eventSlug: string | null;
+  /** True when the trail must be walked in order — see scavengerHunts. */
+  sequential: boolean;
   objectives: number;
   players: number;
 }
@@ -46,6 +48,8 @@ export interface AdminObjective {
   claimMode: ClaimMode;
   claimRadiusM: number | null;
   locationHint: string | null;
+  /** Prerequisite objective, honoured only on free-order quests. */
+  parentId: string | null;
   partnerId: string | null;
   partnerName: string | null;
   /** Answers and choices. Admin-only — never hand this to a player's page. */
@@ -78,7 +82,7 @@ export async function listQuestsAdmin(): Promise<AdminQuestRow[]> {
         players: sql<number>`(select count(distinct ${huntProgress.userId}) from ${huntProgress} where ${huntProgress.huntId} = ${scavengerHunts.id})`,
       })
       .from(scavengerHunts)
-      .leftJoin(events, eq(scavengerHunts.eventId, events.id))
+      .innerJoin(events, eq(scavengerHunts.eventId, events.id))
       .orderBy(desc(scavengerHunts.createdAt));
     return rows.map((r) => ({
       id: r.h.id,
@@ -88,6 +92,7 @@ export async function listQuestsAdmin(): Promise<AdminQuestRow[]> {
       startsAt: r.h.startsAt,
       endsAt: r.h.endsAt,
       eventId: r.h.eventId,
+      sequential: r.h.sequential,
       eventTitle: r.eventTitle,
       eventSlug: r.eventSlug,
       objectives: Number(r.objectives ?? 0),
@@ -112,7 +117,7 @@ export async function getQuestAdmin(
         eventLng: events.lng,
       })
       .from(scavengerHunts)
-      .leftJoin(events, eq(scavengerHunts.eventId, events.id))
+      .innerJoin(events, eq(scavengerHunts.eventId, events.id))
       .where(eq(scavengerHunts.slug, slug))
       .limit(1);
     if (!row) return null;
@@ -142,6 +147,7 @@ export async function getQuestAdmin(
       claimMode: r.s.claimMode,
       claimRadiusM: r.s.claimRadiusM,
       locationHint: r.s.locationHint,
+      parentId: r.s.parentId,
       partnerId: r.s.partnerId,
       partnerName: r.partnerName,
       config: (r.s.config as Record<string, unknown>) ?? {},
@@ -168,6 +174,7 @@ export async function getQuestAdmin(
       startsAt: row.h.startsAt,
       endsAt: row.h.endsAt,
       eventId: row.h.eventId,
+      sequential: row.h.sequential,
       eventTitle: row.eventTitle,
       eventSlug: row.eventSlug,
       eventHasCoords: row.eventLat != null && row.eventLng != null,

@@ -120,12 +120,19 @@ export function ObjectiveForm({
   partners,
   objective,
   eventHasCoords = false,
+  sequential = false,
+  siblings = [],
   atIndex,
   onDone,
 }: {
   questSlug: string;
   partners: { id: string; name: string }[];
   objective?: AdminObjective;
+  /** When the quest is strictly ordered, a per-objective prerequisite is
+   *  meaningless — the sort order already decides everything. */
+  sequential?: boolean;
+  /** The other objectives on this quest, as prerequisite candidates. */
+  siblings?: { id: string; title: string }[];
   /** Open-tag geofencing measures from the event's coordinates. No event
    *  location means no check at all, which the admin needs telling. */
   eventHasCoords?: boolean;
@@ -181,6 +188,7 @@ export function ObjectiveForm({
     "revealMode",
     "prompt",
     "points",
+    ...(sequential ? [] : ["parentId"]),
     ...(needsAnswer ? ["answer"] : []),
     ...(isTrivia ? ["choices"] : []),
     ...(isVisit ? ["claimMode"] : []),
@@ -264,6 +272,28 @@ export function ObjectiveForm({
         hint="optional"
         error={fieldError.locationHint}
       />
+
+      {/* Only meaningful on a free-order quest: when the trail is strictly
+          ordered, `sort` already says what comes first and a second, possibly
+          contradictory ordering would just be a way to deadlock it. */}
+      {!sequential && (
+        <PickerField
+          label="Comes after"
+          name="parentId"
+          icon="mdi:source-branch"
+          defaultValue={objective?.parentId ?? ""}
+          placeholder="Nothing — available from the start"
+          description="Leave empty and this can be done at any time. Name an objective and it stays locked until that one is cleared."
+          error={fieldError.parentId}
+          options={siblings
+            .filter((o) => o.id !== objective?.id)
+            .map((o) => ({
+              value: o.id,
+              label: o.title,
+              icon: "mdi:flag-outline",
+            }))}
+        />
+      )}
 
       <PickerField
         label="How much do they get told?"

@@ -150,9 +150,11 @@ function ObjectiveCard({
       className={`mm-glass p-4 transition ${
         step.done
           ? "border-[var(--mm-live)] opacity-70"
-          : featured
-            ? "border-[var(--mm-gold)]"
-            : ""
+          : step.locked
+            ? "opacity-60"
+            : featured
+              ? "border-[var(--mm-gold)]"
+              : ""
       }`}
     >
       <div className="flex items-start gap-3">
@@ -163,7 +165,13 @@ function ObjectiveCard({
               : "bg-[var(--mm-surface)] text-[var(--mm-text-dim)]"
           }`}
         >
-          {step.done ? <Icon icon="mdi:check" width={16} /> : index + 1}
+          {step.done ? (
+            <Icon icon="mdi:check" width={16} />
+          ) : step.locked ? (
+            <Icon icon="mdi:lock-outline" width={14} />
+          ) : (
+            index + 1
+          )}
         </span>
 
         <div className="min-w-0 flex-1">
@@ -189,6 +197,23 @@ function ObjectiveCard({
                   redirect lands the step is already done, so a flash rendered
                   in the not-done branch below could never be seen. */}
               {flash.ok ? "Just cleared — nice one." : "Cleared"}
+            </p>
+          ) : step.locked ? (
+            /* Locked: say what it is waiting for and stop there. No prompt, no
+               destination, no claim control — the objective isn't open, and
+               showing the way to it would give away a clue the player hasn't
+               earned. The tag itself is refused server-side too. */
+            <p className="mt-1.5 flex items-center gap-1.5 text-sm text-[var(--mm-text-dim)]">
+              <Icon icon="mdi:lock-outline" width={14} className="shrink-0" />
+              {step.lockedBy ? (
+                <>
+                  Opens once{" "}
+                  <span className="text-[var(--mm-text)]">{step.lockedBy}</span>{" "}
+                  is cleared
+                </>
+              ) : (
+                "Not open yet"
+              )}
             </p>
           ) : (
             <>
@@ -225,11 +250,12 @@ export default async function HuntDetailPage({
     ok?: string;
     fail?: string;
     closed?: string;
+    locked?: string;
     from?: string;
   }>;
 }) {
   const { slug } = await params;
-  const { ok, fail, closed, from } = await searchParams;
+  const { ok, fail, closed, locked, from } = await searchParams;
   const session = await auth();
   const hunt = await getHunt(slug, session?.user?.id);
   if (!hunt) notFound();
@@ -244,8 +270,9 @@ export default async function HuntDetailPage({
   const pct = hunt.steps.length
     ? Math.round((doneCount / hunt.steps.length) * 100)
     : 0;
-  // Free-order, so this is a suggestion rather than a gate.
-  const next = hunt.steps.find((s) => !s.done) ?? null;
+  // A suggestion, not a gate — but it has to point at something the player can
+  // actually do, so locked objectives are skipped.
+  const next = hunt.steps.find((s) => !s.done && !s.locked) ?? null;
   const nextId = next?.id ?? null;
   const finished = doneCount === hunt.steps.length && hunt.steps.length > 0;
 
@@ -286,6 +313,17 @@ export default async function HuntDetailPage({
           <Icon icon="mdi:pause-circle-outline" width={16} className="mr-1.5 inline" />
           This quest isn&apos;t running right now — check-ins are closed. Your
           progress so far is safe.
+        </div>
+      )}
+
+      {locked && (
+        <div
+          role="alert"
+          className="mm-glass mt-4 border-[var(--mm-gold)] p-4 text-sm"
+        >
+          <Icon icon="mdi:lock-outline" width={16} className="mr-1.5 inline" />
+          That one isn&apos;t open yet — clear what it&apos;s waiting on first.
+          Nothing was lost.
         </div>
       )}
 

@@ -43,14 +43,21 @@ export async function generateMetadata({
 const ACCENT = "#5cc08c";
 
 const STATUS_OPTIONS = [
-  { value: "draft", label: "Draft", hint: "Invisible to everyone but you.", icon: "mdi:file-outline" },
+  { value: "draft", label: "Draft", hint: "No public page. Only visible here.", icon: "mdi:file-outline" },
   { value: "published", label: "Published", hint: "Listed publicly.", icon: "mdi:check-circle-outline" },
   { value: "live", label: "Live", hint: "Happening right now.", icon: "mdi:broadcast" },
   { value: "ended", label: "Ended", hint: "Over — reviews stay open.", icon: "mdi:flag-checkered" },
-  { value: "cancelled", label: "Cancelled", hint: "Called off; stays listed as cancelled.", icon: "mdi:close-circle-outline" },
-  { value: "pending", label: "Pending", hint: "A submission awaiting moderation.", icon: "mdi:clock-outline" },
-  { value: "rejected", label: "Rejected", hint: "A submission turned down.", icon: "mdi:cancel" },
+  { value: "cancelled", label: "Cancelled", hint: "Called off. Pulled from the public site; stays listed here.", icon: "mdi:close-circle-outline" },
+  { value: "pending", label: "Pending", hint: "A submission awaiting moderation. Not public.", icon: "mdi:clock-outline" },
+  { value: "rejected", label: "Rejected", hint: "A submission turned down. Not public.", icon: "mdi:cancel" },
 ];
+
+/**
+ * The statuses that put an event on the public site. Mirrors
+ * PUBLIC_EVENT_STATUSES in lib/content.ts — `status` is the single source of
+ * truth for visibility, and the slug follows it rather than competing with it.
+ */
+const PUBLIC_STATUSES = new Set(["published", "live", "ended"]);
 
 const ORIGIN_OPTIONS = [
   { value: "hosted", label: "Official", hint: "Hosted by us.", icon: "game-icons:castle" },
@@ -131,6 +138,7 @@ export default async function AdminEventPage({
     fromLabel?: string;
     slug?: string;
     badwindow?: string;
+    needslug?: string;
     announced?: string;
   }>;
 }) {
@@ -144,6 +152,7 @@ export default async function AdminEventPage({
 
   const tab = TABS.some((t) => t.key === sp.tab) ? sp.tab! : "details";
   const base = `/admin/events/${id}`;
+  const isPublic = PUBLIC_STATUSES.has(event.status);
   const backTo = parseReturn(sp, {
     href: "/admin/events",
     label: "All events",
@@ -207,6 +216,12 @@ export default async function AdminEventPage({
           The end has to come after the start — nothing was saved.
         </Flash>
       )}
+      {sp.needslug && (
+        <Flash tone="error">
+          A public event needs a slug — that is the URL its page lives at. Add
+          one, or set the status back to Draft.
+        </Flash>
+      )}
       {sp.error && <Flash tone="error">Something went wrong — check the fields and try again.</Flash>}
 
       <SectionTabs
@@ -242,6 +257,68 @@ export default async function AdminEventPage({
             <form action={updateEvent} className="space-y-5">
               <input type="hidden" name="id" value={event.id} />
 
+              {/* Visibility, stated rather than inferred.
+
+                  This used to be a Slug field sitting beside Title, marked
+                  required and described as "the public URL" — shown identically
+                  on a draft that has no public page at all. The thing actually
+                  deciding visibility (status) was a picker further down, next
+                  to Origin, and nothing on the screen ever said whether this
+                  event was public. */}
+              <div
+                className="rounded-xl border p-4"
+                style={{
+                  borderColor: isPublic
+                    ? "color-mix(in srgb, var(--mm-live) 45%, transparent)"
+                    : "var(--mm-border)",
+                  background: isPublic
+                    ? "color-mix(in srgb, var(--mm-live) 8%, transparent)"
+                    : "color-mix(in srgb, var(--mm-elevated) 40%, transparent)",
+                }}
+              >
+                <p className="flex items-center gap-2 text-sm font-medium">
+                  <Icon
+                    icon={isPublic ? "mdi:earth" : "mdi:eye-off-outline"}
+                    width={17}
+                    style={{
+                      color: isPublic
+                        ? "var(--mm-live)"
+                        : "var(--mm-text-dim)",
+                    }}
+                  />
+                  {isPublic ? "Public" : "Not public"}
+                </p>
+                <p className="mt-1 text-xs text-[var(--mm-text-dim)]">
+                  {isPublic ? (
+                    event.slug ? (
+                      <>
+                        Live at{" "}
+                        <code className="text-[var(--mm-text)]">
+                          /events/{event.slug}
+                        </code>
+                        . Changing the slug breaks existing links.
+                      </>
+                    ) : (
+                      <>
+                        This status is public but there is no slug yet — give it
+                        one below and save, or nothing will be reachable.
+                      </>
+                    )
+                  ) : (
+                    <>
+                      No public page while the status is{" "}
+                      <span className="text-[var(--mm-text)]">
+                        {event.status}
+                      </span>
+                      . Members and visitors can&apos;t see it; you still can.
+                      {event.slug
+                        ? " Its URL is kept reserved for when you publish again."
+                        : " Choose a public status to give it a URL."}
+                    </>
+                  )}
+                </p>
+              </div>
+
               <div className="grid gap-5 sm:grid-cols-2">
                 <TextField
                   name="title"
@@ -254,9 +331,14 @@ export default async function AdminEventPage({
                   name="slug"
                   label="Slug"
                   icon="mdi:link-variant"
-                  required
-                  defaultValue={event.slug}
-                  description="The public URL: /events/<slug>. Changing it breaks existing links."
+                  required={isPublic}
+                  defaultValue={event.slug ?? ""}
+                  hint={isPublic ? undefined : "optional"}
+                  description={
+                    isPublic
+                      ? "The public URL: /events/<slug>."
+                      : "Only needed once this event goes public. Reserved if set."
+                  }
                 />
               </div>
 
