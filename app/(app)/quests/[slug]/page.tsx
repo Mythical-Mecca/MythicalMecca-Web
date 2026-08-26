@@ -159,7 +159,7 @@ function ObjectiveCard({
   return (
     <li
       id={`step-${step.id}`}
-      className={`mm-glass p-3.5 transition sm:p-4 ${
+      className={`mm-glass -mx-4 rounded-none border-x-0 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x p-4 transition ${
         step.done
           ? "border-[var(--mm-live)] opacity-70"
           : step.locked
@@ -320,7 +320,7 @@ export default async function HuntDetailPage({
       {(!hunt.open || closed) && (
         <div
           role="status"
-          className="mm-glass mt-4 border-[var(--mm-gold)] p-4 text-sm"
+          className="mm-glass -mx-4 rounded-none border-x-0 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x mt-4 border-[var(--mm-gold)] p-4 text-sm"
         >
           <Icon icon="mdi:pause-circle-outline" width={16} className="mr-1.5 inline" />
           This quest isn&apos;t running right now — check-ins are closed. Your
@@ -331,7 +331,7 @@ export default async function HuntDetailPage({
       {locked && (
         <div
           role="alert"
-          className="mm-glass mt-4 border-[var(--mm-gold)] p-4 text-sm"
+          className="mm-glass -mx-4 rounded-none border-x-0 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x mt-4 border-[var(--mm-gold)] p-4 text-sm"
         >
           <Icon icon="mdi:lock-outline" width={16} className="mr-1.5 inline" />
           That one isn&apos;t open yet — clear what it&apos;s waiting on first.
@@ -340,7 +340,7 @@ export default async function HuntDetailPage({
       )}
 
       {/* Progress. The single most-glanced-at thing on the page. */}
-      <section className="mm-glass mt-3 p-3.5 sm:mt-4 sm:p-4">
+      <section className="mm-glass -mx-4 rounded-none border-x-0 sm:mx-0 sm:rounded-[var(--radius-card)] sm:border-x mt-3 p-4 sm:mt-4">
         <div className="flex items-end justify-between">
           <div>
             <p className="font-[family-name:var(--font-display)] text-2xl">
