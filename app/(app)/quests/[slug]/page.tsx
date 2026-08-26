@@ -151,12 +151,18 @@ function ObjectiveCard({
   slug,
   featured,
   flash,
+  isFirst,
+  prevDone,
 }: {
   step: PublicStep;
   index: number;
   slug: string;
   featured: boolean;
   flash: { ok: boolean; fail: boolean };
+  /** The path starts at the first node, so it gets no incoming segment. */
+  isFirst: boolean;
+  /** Lights the segment arriving at this node — the ground already covered. */
+  prevDone: boolean;
 }) {
   return (
     <li
@@ -171,9 +177,15 @@ function ObjectiveCard({
             : featured && !step.locked
               ? "color-mix(in oklab, var(--mm-gold) 9%, var(--mm-surface))"
               : undefined,
+          // The two halves of the connector are lit by the step each one
+          // belongs to, so the gold stops exactly where progress does.
+          "--trail-seg-in": prevDone ? "var(--mm-gold)" : undefined,
+          "--trail-seg-out": step.done ? "var(--mm-gold)" : undefined,
         } as React.CSSProperties
       }
-      className={`mm-glass mm-panel p-4 transition ${
+      className={`mm-glass mm-panel mm-trail-out relative p-4 transition ${
+        isFirst ? "" : "mm-trail-in"
+      } ${
         step.done
           ? "border-[var(--mm-live)] opacity-70"
           : step.locked
@@ -185,10 +197,12 @@ function ObjectiveCard({
     >
       <div className="flex items-start gap-3">
         <span
-          className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-medium ${
+          className={`relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-medium ${
             step.done
               ? "bg-[var(--mm-live)] text-[#070b1e]"
-              : "mm-inset text-[var(--mm-text-dim)] ring-1 ring-[var(--mm-divider)]"
+              : featured
+                ? "mm-node-next bg-[var(--mm-gold)] text-[#160f0a]"
+                : "mm-inset text-[var(--mm-text-dim)] ring-1 ring-[var(--mm-divider)]"
           }`}
         >
           {step.done ? (
@@ -212,8 +226,9 @@ function ObjectiveCard({
                 </span>
               )}
             </h3>
-            <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--mm-gold)_14%,transparent)] px-2 py-0.5 text-xs font-medium text-[var(--mm-gold)]">
-              +{step.points}
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--mm-gold)_14%,transparent)] px-2 py-0.5 text-xs font-medium text-[var(--mm-gold)]">
+              <Icon icon="game-icons:two-coins" width={12} />
+              {step.points}
             </span>
           </div>
 
@@ -403,12 +418,29 @@ export default async function HuntDetailPage({
             </p>
           </div>
         </div>
-        <div className="mm-inset mt-3 h-2 overflow-hidden rounded-full">
-          <div
-            className="h-full rounded-full bg-[var(--mm-gold)] transition-[width] duration-500"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
+        {hunt.steps.length <= 12 ? (
+          <div className="mt-3 flex gap-1">
+            {hunt.steps.map((s) => (
+              <span
+                key={s.id}
+                className={`h-2.5 flex-1 rounded-full transition ${
+                  s.done
+                    ? "bg-[var(--mm-gold)] shadow-[0_0_8px_color-mix(in_srgb,var(--mm-gold)_55%,transparent)]"
+                    : "mm-inset"
+                }`}
+              />
+            ))}
+          </div>
+        ) : (
+          /* Past a dozen the pips are narrower than the gaps between them and
+             stop being countable, which was their whole advantage. */
+          <div className="mm-inset mt-3 h-2 overflow-hidden rounded-full">
+            <div
+              className="h-full rounded-full bg-[var(--mm-gold)] transition-[width] duration-500"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        )}
         {finished ? (
           <p className="mt-3 flex items-center gap-2 text-sm text-[var(--mm-live)]">
             <Icon icon="game-icons:laurels-trophy" width={18} />
@@ -452,7 +484,7 @@ export default async function HuntDetailPage({
         The Trail
       </h2>
 
-      <ol className="space-y-6 sm:space-y-3">
+      <ol className="mm-trail space-y-6 sm:space-y-3">
         {hunt.steps.map((step, i) => (
           <ObjectiveCard
             key={step.id}
@@ -461,8 +493,51 @@ export default async function HuntDetailPage({
             slug={slug}
             featured={step.id === nextId}
             flash={{ ok: ok === step.id, fail: fail === step.id }}
+            isFirst={i === 0}
+            prevDone={i > 0 && hunt.steps[i - 1].done}
           />
         ))}
+
+        {/* The end of the path. Without it the trail stops in mid-air after
+            the last objective and there is nothing on screen to walk toward,
+            which is most of what makes a trail worth walking. */}
+        <li
+          className="mm-trail-in relative -mx-4 flex items-center gap-3 px-4 sm:mx-0"
+          style={
+            {
+              "--trail-seg-in": finished ? "var(--mm-gold)" : undefined,
+            } as React.CSSProperties
+          }
+        >
+          <span
+            className={`relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full ${
+              finished
+                ? "bg-[var(--mm-gold)] text-[#160f0a] shadow-[0_0_16px_color-mix(in_srgb,var(--mm-gold)_65%,transparent)]"
+                : "mm-inset text-[var(--mm-text-dim)] ring-1 ring-[var(--mm-divider)]"
+            }`}
+          >
+            <Icon
+              icon={finished ? "game-icons:open-chest" : "game-icons:locked-chest"}
+              width={17}
+            />
+          </span>
+          <p
+            className={`text-sm ${
+              finished ? "text-[var(--mm-gold)]" : "text-[var(--mm-text-dim)]"
+            }`}
+          >
+            {finished ? (
+              <>Hoard claimed — all {hunt.totalPoints} points banked.</>
+            ) : (
+              <>
+                Clear all {hunt.steps.length} to claim the hoard —{" "}
+                <span className="text-[var(--mm-gold)]">
+                  {hunt.totalPoints} points
+                </span>
+              </>
+            )}
+          </p>
+        </li>
       </ol>
 
       {leaderboard.length > 0 && (
@@ -486,11 +561,18 @@ export default async function HuntDetailPage({
                 >
                   <span className="flex items-center gap-2.5">
                     <span
-                      className={`w-5 text-right ${
-                        i === 0
-                          ? "text-[var(--mm-gold)]"
-                          : "text-[var(--mm-text-dim)]"
+                      className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-medium ${
+                        i < 3
+                          ? "text-[#0b0f1c]"
+                          : "mm-inset text-[var(--mm-text-dim)]"
                       }`}
+                      style={
+                        i < 3
+                          ? {
+                              background: ["#FFB13D", "#c9d1e6", "#c8813f"][i],
+                            }
+                          : undefined
+                      }
                     >
                       {i + 1}
                     </span>
