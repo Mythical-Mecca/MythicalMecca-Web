@@ -108,11 +108,19 @@ export default async function AdminQuestEditorPage({
             <Link href={`/quests/${quest.slug}`} className="mm-btn mm-btn-ghost">
               <Icon icon="mdi:eye-outline" width={16} /> View
             </Link>
+            {/* Two different printed things: a sheet of small codes to cut up
+                and stick on stands, and a full A4 poster per objective. */}
             <Link
               href={forwardReturn(`/admin/quests/${quest.slug}/tags`, sp)}
               className="mm-btn mm-btn-ghost"
             >
-              <Icon icon="mdi:printer-outline" width={16} /> Tags
+              <Icon icon="mdi:qrcode" width={16} /> Tag sheet
+            </Link>
+            <Link
+              href={forwardReturn(`/admin/quests/${quest.slug}/print`, sp)}
+              className="mm-btn mm-btn-ghost"
+            >
+              <Icon icon="mdi:printer-outline" width={16} /> Station pack
             </Link>
             <form action={setQuestActive}>
               <input type="hidden" name="slug" value={quest.slug} />

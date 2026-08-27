@@ -596,3 +596,123 @@ body::before {
     transform: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   The station pack — A4 sheets rendered in the browser and printed from it.
+
+   Paper is not a screen and the site's palette does not survive the trip. A
+   full-bleed navy A4 costs a cartridge, bands on any office laser, and looks
+   worse the cheaper the printer. So the pack inverts: the brand's own cream
+   (--mm-text, already a warm parchment) becomes the page, deep navy becomes
+   the ink, and the navy is spent where it earns its keep — a header and footer
+   band. That reads more tavern than the dark version did, and it prints.
+
+   Gold is the catch. #E18D01 on cream is around 2.4:1 — fine as a rule or a
+   fill, unreadable as text — so paper gets a deeper bronze for words and keeps
+   the bright gold for the bands and hairlines.
+
+   `--pp-*` rather than `--mm-*`: these are ink values for one artifact, and
+   nothing outside the pack should inherit them.
+   --------------------------------------------------------------------------- */
+.mm-pack {
+  --pp-paper: #f4ecdc;
+  --pp-ink: #10182c;
+  --pp-ink-dim: #5c6480;
+  --pp-rule: #cbbfa6;
+  --pp-gold-text: #8a5406;
+  --pp-gold: #e18d01;
+  --pp-band: #0b0f1c;
+  --pp-band-ink: #f1e7d3;
+}
+
+/* Kept for anyone who genuinely wants the dark sheet — a screen handout, or a
+   pack going to a print shop on heavy stock where the ink cost is the point. */
+.mm-pack[data-pack-theme="dark"] {
+  --pp-paper: #0b0f1c;
+  --pp-ink: #f1e7d3;
+  --pp-ink-dim: #9aa3bd;
+  --pp-rule: #35446a;
+  --pp-gold-text: #ffb13d;
+  --pp-gold: #e18d01;
+  --pp-band: #131b30;
+  --pp-band-ink: #f1e7d3;
+}
+
+.mm-sheet-page {
+  width: 210mm;
+  height: 297mm;
+  background: var(--pp-paper);
+  color: var(--pp-ink);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* An objective that runs long must not push a second, mostly-blank sheet
+     into the pack — the page is a fixed frame and content is fitted to it. */
+}
+
+@media screen {
+  /* Preview: sheets floating on a desk, so what you see is what comes out. */
+  .mm-pack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .mm-sheet-page {
+    box-shadow: 0 10px 40px rgb(0 0 0 / 0.5);
+    border-radius: 2px;
+    /* Narrow windows would otherwise scroll sideways across a 210mm sheet. */
+    transform: scale(var(--pack-zoom, 1));
+    transform-origin: top center;
+    /* A scaled element still reserves its unscaled height, so each sheet would
+       leave a growing gap beneath it. Pull the margin back by the shortfall. */
+    margin-bottom: calc(-1 * var(--pack-shrink, 0mm));
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #fff;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Without this the bands print as white boxes: browsers drop background
+     colours by default to save ink, which is exactly the wrong call for a
+     sheet whose header IS a block of colour. */
+  .mm-pack,
+  .mm-pack * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .mm-pack {
+    display: block;
+    gap: 0;
+  }
+
+  .mm-sheet-page {
+    box-shadow: none;
+    border-radius: 0;
+    transform: none;
+    break-after: page;
+    break-inside: avoid;
+  }
+
+  /* `break-after: page` on the final sheet emits one trailing blank side. */
+  .mm-sheet-page:last-child {
+    break-after: auto;
+  }
+
+  /* Everything that is screen furniture rather than part of the artifact. */
+  .print\:hidden,
+  .mm-pack-chrome {
+    display: none !important;
+  }
+}

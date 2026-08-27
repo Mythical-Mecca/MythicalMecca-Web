@@ -62,7 +62,7 @@ const isLocalhost = (url: string) => /^https?:\/\/(localhost|127\.0\.0\.1)/i.tes
  * mistake, so in production a localhost value is ignored in favour of the
  * domain Vercel already knows it is serving.
  */
-function appUrl(): string {
+export function appUrl(): string {
   const configured = process.env.NEXT_PUBLIC_APP_URL;
   const inProduction = process.env.NODE_ENV === "production";
 
