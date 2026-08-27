@@ -37,38 +37,49 @@ const CLAIM_NOTE: Record<ClaimMode, string> = {
 function BandHeader({
   questTitle,
   eventTitle,
+  origin,
+  questQr,
 }: {
   questTitle: string;
   eventTitle: string;
+  origin: string;
+  questQr: string;
 }) {
+  const host = origin.replace(/^https?:\/\//, "");
   return (
     <>
       <header
-        className="flex shrink-0 items-center justify-between gap-6 px-[14mm]"
+        className="flex shrink-0 items-center gap-[8mm] px-[14mm]"
         style={{
-          height: "24mm",
+          height: "30mm",
           background: "var(--pp-band)",
           color: "var(--pp-band-ink)",
         }}
       >
-        <span className="flex items-center gap-3">
+        <span className="flex shrink-0 items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/MMRefined2026.png"
             alt=""
             width={120}
             height={120}
-            style={{ height: "12mm", width: "12mm" }}
+            style={{ height: "13mm", width: "13mm" }}
             className="object-contain"
           />
-          <span
-            className="font-[family-name:var(--font-display)] tracking-[0.18em]"
-            style={{ fontSize: "5mm" }}
-          >
-            MYTHICAL MECCA
+          <span>
+            <span
+              className="block font-[family-name:var(--font-display)] tracking-[0.18em]"
+              style={{ fontSize: "5mm" }}
+            >
+              MYTHICAL MECCA
+            </span>
+            <span className="block opacity-70" style={{ fontSize: "2.7mm" }}>
+              {host}
+            </span>
           </span>
         </span>
-        <span className="min-w-0 text-right">
+
+        <span className="min-w-0 flex-1 text-right">
           <span
             className="block truncate font-[family-name:var(--font-display)] tracking-wide"
             style={{ fontSize: "4mm", color: "var(--pp-gold)" }}
@@ -82,60 +93,31 @@ function BandHeader({
             {eventTitle}
           </span>
         </span>
+
+        {/* The way back in, at the top where someone who has lost their place
+            looks first. It needs its white quiet zone even inside a dark band,
+            so it gets a plate rather than sitting straight on the navy. 18mm
+            reads from roughly 180mm — arm's length at the stand. */}
+        <span className="shrink-0 text-center">
+          <span className="block bg-white" style={{ padding: "1.2mm" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={questQr}
+              alt=""
+              style={{ height: "18mm", width: "18mm" }}
+              className="block"
+            />
+          </span>
+          <span
+            className="mt-[1mm] block opacity-80"
+            style={{ fontSize: "2.5mm" }}
+          >
+            Open the quest
+          </span>
+        </span>
       </header>
       <div style={{ height: "1.4mm", background: "var(--pp-gold)" }} />
     </>
-  );
-}
-
-function BandFooter({ origin, questQr }: { origin: string; questQr: string }) {
-  const host = origin.replace(/^https?:\/\//, "");
-  return (
-    <footer
-      className="flex shrink-0 items-center justify-between gap-6 px-[14mm]"
-      style={{
-        height: "25mm",
-        background: "var(--pp-band)",
-        color: "var(--pp-band-ink)",
-      }}
-    >
-      <span>
-        <span
-          className="block font-[family-name:var(--font-display)] tracking-[0.18em]"
-          style={{ fontSize: "3.6mm", color: "var(--pp-gold)" }}
-        >
-          FOLLOW THE TRAIL
-        </span>
-        <span className="block opacity-80" style={{ fontSize: "3mm" }}>
-          Every stand, every objective, live standings — {host}
-        </span>
-      </span>
-      {/* This code carries most of the sheet's practical weight: it is the way
-          back in for someone who closed the tab halfway round the hall, and the
-          way in for someone who has never opened it. The label has to serve
-          both — "join the hunt" only spoke to the second, and the person who
-          has lost their place is the one standing here reading a poster.
-
-          The QR needs its white quiet zone even inside a dark band, so it gets
-          a plate rather than sitting straight on the navy. 18mm reads from
-          roughly 180mm — arm's length at the stand. */}
-      <span className="flex shrink-0 items-center gap-2.5">
-        <span className="text-right opacity-80" style={{ fontSize: "2.7mm" }}>
-          Open or resume
-          <br />
-          the quest
-        </span>
-        <span className="block bg-white" style={{ padding: "1.2mm" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={questQr}
-            alt=""
-            style={{ height: "18mm", width: "18mm" }}
-            className="block"
-          />
-        </span>
-      </span>
-    </footer>
   );
 }
 
@@ -231,11 +213,14 @@ function NotesPanel({ page }: { page: PrintPage }) {
 
 function VendorBlock({ partner }: { partner: NonNullable<PrintPage["partner"]> }) {
   return (
+    /* The foot of the sheet. A gold rule rather than a hairline: this is now
+       the page's closing band and has to hold the bottom down on its own,
+       where it used to have a navy footer beneath it doing that job. */
     <section
       className="shrink-0"
       style={{
-        borderTop: "0.4mm solid var(--pp-rule)",
-        padding: "7mm 14mm",
+        borderTop: "1.4mm solid var(--pp-gold)",
+        padding: "7mm 14mm 9mm",
       }}
     >
       <div className="flex items-start gap-[6mm]">
@@ -322,7 +307,10 @@ function HouseBlock({ description }: { description: string }) {
   return (
     <section
       className="shrink-0"
-      style={{ borderTop: "0.4mm solid var(--pp-rule)", padding: "7mm 14mm" }}
+      style={{
+        borderTop: "1.4mm solid var(--pp-gold)",
+        padding: "7mm 14mm 9mm",
+      }}
     >
       <p
         className="font-[family-name:var(--font-display)] tracking-[0.14em]"
@@ -350,7 +338,12 @@ function Sheet({
   if (!pack) return null;
   return (
     <article className="mm-sheet-page">
-      <BandHeader questTitle={pack.title} eventTitle={pack.eventTitle} />
+      <BandHeader
+        questTitle={pack.title}
+        eventTitle={pack.eventTitle}
+        origin={pack.origin}
+        questQr={pack.questQr}
+      />
 
       <div
         className="flex min-h-0 flex-1 flex-col"
@@ -432,8 +425,6 @@ function Sheet({
       ) : (
         <HouseBlock description={pack.description} />
       )}
-
-      <BandFooter origin={pack.origin} questQr={pack.questQr} />
     </article>
   );
 }
