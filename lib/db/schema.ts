@@ -720,20 +720,22 @@ export const huntModeEnum = pgEnum("hunt_mode", [
 // How an objective proves the adventurer is physically at the destination.
 // The printed/NFC tag only ever *identifies* an objective — it never grants
 // completion — so the mode can be switched mid-event without reprinting.
-//   live_code  — vendor keeps a station page open; a code rolls every N seconds
-//   sealed_tag — NFC tag that emits a fresh MAC per tap (NTAG 424 DNA class)
-//   open_tag   — plain static tag; shareable by design, geofenced only
+//   live_code         — vendor keeps a station page open; a code rolls every N seconds
+//   sealed_tag        — NFC tag that emits a fresh MAC per tap (NTAG 424 DNA class)
+//   location_verified — plain static tag, allowed only inside the venue geofence
+//   open              — plain static tag and nothing else; the scan is the claim
 export const claimModeEnum = pgEnum("claim_mode", [
   "live_code",
   "sealed_tag",
-  "open_tag",
+  "location_verified",
+  "open",
 ]);
 
 // Whether the adventurer is told where they're going, or has to work it out.
 export const revealModeEnum = pgEnum("reveal_mode", ["direct", "clue"]);
 
 // Every claim attempt is logged, whatever the outcome — this is what makes
-// sharing visible on the admin monitor even in `open_tag` mode.
+// sharing visible on the admin monitor even in `open` mode.
 export const claimOutcomeEnum = pgEnum("claim_outcome", [
   "ok",
   "duplicate",
@@ -818,7 +820,7 @@ export const huntSteps = pgTable(
     }),
     revealMode: revealModeEnum("reveal_mode").notNull().default("direct"),
     claimMode: claimModeEnum("claim_mode").notNull().default("live_code"),
-    /** Geofence for `open_tag`, in metres. Null falls back to the event radius. */
+    /** Geofence for `location_verified`, in metres. Null falls back to the event radius. */
     claimRadiusM: integer("claim_radius_m"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

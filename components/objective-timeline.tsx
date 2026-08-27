@@ -23,9 +23,14 @@ const CLAIM_LABEL: Record<string, { label: string; color: string; icon: string }
       color: "var(--mm-live)",
       icon: "mdi:shield-check-outline",
     },
-    open_tag: {
-      label: "Open tag",
+    location_verified: {
+      label: "Location verified",
       color: "var(--mm-gold)",
+      icon: "mdi:map-marker-check-outline",
+    },
+    open: {
+      label: "Open scan",
+      color: "var(--mm-danger)",
       icon: "mdi:shield-alert-outline",
     },
     sealed_tag: {

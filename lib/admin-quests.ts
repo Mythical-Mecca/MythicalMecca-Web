@@ -8,6 +8,7 @@ import {
   huntClaimAttempts,
   events,
   partners,
+  users,
 } from "@/lib/db/schema";
 import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { tagUrl, MissingSigningSecretError } from "@/lib/qr";
@@ -224,6 +225,69 @@ export async function questClaimFeed(
       .orderBy(desc(huntClaimAttempts.createdAt))
       .limit(limit);
     return rows;
+  } catch {
+    return [];
+  }
+}
+
+export interface PaceFlag {
+  playerName: string;
+  /** Shortest gap, in seconds, between two of this player's check-ins. */
+  fastestSeconds: number;
+  /** How many of their check-ins landed faster than the threshold. */
+  hops: number;
+}
+
+/**
+ * Check-ins that came too close together to have been walked between.
+ *
+ * The other two flags key on the source address, which a group sharing one
+ * hotspot trips innocently. This one is per person and measures the thing a
+ * passed-on tag can't hide: clearing two stands eight seconds apart means the
+ * adventurer never walked to the second one. It is the only check an `open`
+ * objective gets, since nothing about the scan itself can be verified.
+ *
+ * Covers the whole quest rather than the last hour — "did anyone cheat?" is
+ * usually asked once the event is over.
+ */
+export async function paceFlags(
+  huntId: string,
+  thresholdSeconds = 20
+): Promise<PaceFlag[]> {
+  if (!useDb) return [];
+  try {
+    const rows = await db
+      .select({
+        userId: huntProgress.userId,
+        playerName: users.name,
+        completedAt: huntProgress.completedAt,
+      })
+      .from(huntProgress)
+      .innerJoin(users, eq(huntProgress.userId, users.id))
+      .where(eq(huntProgress.huntId, huntId))
+      .orderBy(asc(huntProgress.userId), asc(huntProgress.completedAt));
+
+    // One row per objective per player, so consecutive rows for the same
+    // player are always two different destinations.
+    const byPlayer = new Map<string, PaceFlag>();
+    for (let i = 1; i < rows.length; i++) {
+      const prev = rows[i - 1]!;
+      const row = rows[i]!;
+      if (row.userId !== prev.userId) continue;
+      const gap = Math.round(
+        (row.completedAt.getTime() - prev.completedAt.getTime()) / 1000
+      );
+      if (gap > thresholdSeconds) continue;
+      const seen = byPlayer.get(row.userId);
+      byPlayer.set(row.userId, {
+        playerName: row.playerName ?? "An adventurer",
+        fastestSeconds: Math.min(seen?.fastestSeconds ?? gap, gap),
+        hops: (seen?.hops ?? 0) + 1,
+      });
+    }
+    return [...byPlayer.values()]
+      .sort((a, b) => a.fastestSeconds - b.fastestSeconds)
+      .slice(0, 10);
   } catch {
     return [];
   }

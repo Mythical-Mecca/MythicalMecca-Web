@@ -1017,7 +1017,9 @@ const objectiveSchema = z.object({
     "unlock_code",
   ]),
   revealMode: z.enum(["direct", "clue"]).default("direct"),
-  claimMode: z.enum(["live_code", "sealed_tag", "open_tag"]).default("live_code"),
+  claimMode: z
+    .enum(["live_code", "sealed_tag", "location_verified", "open"])
+    .default("live_code"),
   partnerId: z.string().uuid("Pick a partner from the list.").optional(),
   locationHint: z
     .string()

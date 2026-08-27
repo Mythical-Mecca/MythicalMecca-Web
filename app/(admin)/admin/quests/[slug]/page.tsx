@@ -6,6 +6,7 @@ import {
   questClaimFeed,
   sharingFlags,
   guessFlags,
+  paceFlags,
 } from "@/lib/admin-quests";
 import { listEvents } from "@/lib/admin";
 import { getPartners } from "@/lib/content";
@@ -49,6 +50,8 @@ const OUTCOME_TONE: Record<string, string> = {
   out_of_range: "var(--mm-danger)",
   not_open: "var(--mm-gold)",
   unknown_step: "var(--mm-danger)",
+  locked: "var(--mm-gold)",
+  rate_limited: "var(--mm-gold)",
 };
 
 export default async function AdminQuestEditorPage({
@@ -79,10 +82,11 @@ export default async function AdminQuestEditorPage({
     label: "All quests",
   });
 
-  const [feed, flags, guesses] = await Promise.all([
+  const [feed, flags, guesses, pace] = await Promise.all([
     questClaimFeed(quest.id),
     sharingFlags(quest.id),
     guessFlags(quest.id),
+    paceFlags(quest.id),
   ]);
 
   // The tag URLs are shown and copied from this page, so the warning belongs
@@ -237,6 +241,29 @@ export default async function AdminQuestEditorPage({
           <p className="mt-2 text-xs text-[var(--mm-text-dim)]">
             They&apos;re already being throttled after 10 wrong codes, so this
             is unlikely to have worked — but it&apos;s worth knowing about.
+          </p>
+        </div>
+      )}
+
+      {pace.length > 0 && (
+        <div className="mm-glass border-[var(--mm-danger)] p-4">
+          <h3 className="flex items-center gap-2 font-medium text-[var(--mm-danger)]">
+            <Icon icon="mdi:run-fast" width={18} />
+            Check-ins nobody could have walked
+          </h3>
+          <ul className="mt-2 space-y-1 text-sm text-[var(--mm-text-dim)]">
+            {pace.map((p, i) => (
+              <li key={i}>
+                <span className="text-[var(--mm-text)]">{p.playerName}</span> —{" "}
+                {p.hops === 1 ? "two objectives" : `${p.hops} pairs of objectives`}{" "}
+                cleared as little as {p.fastestSeconds}s apart.
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-[var(--mm-text-dim)]">
+            Either the tags were sent to them, or they were standing beside
+            someone who scanned for both. Worth a look before you hand out a
+            prize.
           </p>
         </div>
       )}

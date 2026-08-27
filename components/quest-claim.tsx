@@ -23,7 +23,7 @@ const FAILURE_COPY: Record<Exclude<Failure, "ok">, string> = {
   not_open: "This quest isn't running right now.",
   unknown_step: "This tag isn't one of ours, or the objective has been removed.",
   rate_limited:
-    "Too many wrong codes. Wait a couple of minutes, then try the code showing now.",
+    "Give it a moment and check in again. After a run of wrong codes the wait is a couple of minutes.",
   signed_out: "Your sign-in expired. Sign in again and this will still be here.",
 };
 
@@ -206,7 +206,7 @@ export function QuestClaim({
             </label>
           )}
 
-          {claimMode === "open_tag" && (
+          {claimMode === "location_verified" && (
             <>
               <input type="hidden" name="lat" value={coords?.lat ?? ""} />
               <input type="hidden" name="lng" value={coords?.lng ?? ""} />
@@ -235,7 +235,7 @@ export function QuestClaim({
             </p>
           ) : (
             <button
-              disabled={pending || (claimMode === "open_tag" && !coords)}
+              disabled={pending || (claimMode === "location_verified" && !coords)}
               className="mm-btn mm-btn-primary w-full justify-center py-4 text-base disabled:opacity-50"
             >
               {pending ? "Checking in…" : `Check in · +${points} pts`}

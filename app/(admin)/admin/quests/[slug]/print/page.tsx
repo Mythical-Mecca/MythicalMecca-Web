@@ -28,8 +28,9 @@ const CLAIM_NOTE: Record<ClaimMode, string> = {
   live_code:
     "Staffed stand. Keep the station screen open — adventurers read the rolling four-digit code from it, or show a pass for you to scan.",
   sealed_tag: "Tap the NFC tag. Each tap signs itself, so nothing to staff.",
-  open_tag:
-    "Open tag. Anyone can scan it, so the check-in is confirmed by location instead.",
+  location_verified:
+    "Unstaffed tag. Anyone can scan it, so the check-in is confirmed by the adventurer's location instead.",
+  open: "Unstaffed tag. Scanning it is the check-in — nothing to staff here.",
 };
 
 /* ── sheet furniture ─────────────────────────────────────────────────────── */

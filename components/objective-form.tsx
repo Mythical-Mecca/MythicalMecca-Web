@@ -80,9 +80,15 @@ const CLAIM_MODES = [
     icon: "mdi:shield-check-outline",
   },
   {
-    value: "open_tag",
-    label: "Open tag",
-    hint: "The tag alone completes it, so a shared link works for anyone inside the venue. Fine for low-stakes stops, and the fallback if a vendor's device dies.",
+    value: "location_verified",
+    label: "Location verified",
+    hint: "The tag alone completes it, but only from inside the venue — a passed-on link is useless to anyone who isn't already here. The fallback if a vendor's device dies.",
+    icon: "mdi:map-marker-check-outline",
+  },
+  {
+    value: "open",
+    label: "Open scan",
+    hint: "The scan is the check-in: no code, no location. Anyone sent the link can clear it from anywhere, so keep this for low-stakes stops.",
     icon: "mdi:shield-alert-outline",
   },
   {
@@ -133,8 +139,8 @@ export function ObjectiveForm({
   sequential?: boolean;
   /** The other objectives on this quest, as prerequisite candidates. */
   siblings?: { id: string; title: string }[];
-  /** Open-tag geofencing measures from the event's coordinates. No event
-   *  location means no check at all, which the admin needs telling. */
+  /** Location-verified geofencing measures from the event's coordinates. No
+   *  event location means no check at all, which the admin needs telling. */
   eventHasCoords?: boolean;
   /** Position to insert at. Omitted appends to the end of the trail. */
   atIndex?: number;
@@ -192,7 +198,7 @@ export function ObjectiveForm({
     ...(needsAnswer ? ["answer"] : []),
     ...(isTrivia ? ["choices"] : []),
     ...(isVisit ? ["claimMode"] : []),
-    ...(isVisit && claimMode === "open_tag" && eventHasCoords
+    ...(isVisit && claimMode === "location_verified" && eventHasCoords
       ? ["claimRadiusM"]
       : []),
   ]);
@@ -369,7 +375,7 @@ export function ObjectiveForm({
             options={CLAIM_MODES}
             error={fieldError.claimMode}
           />
-          {claimMode === "open_tag" &&
+          {claimMode === "location_verified" &&
             (eventHasCoords ? (
               <TextField
                 label="Venue radius"
@@ -388,11 +394,11 @@ export function ObjectiveForm({
                 <strong className="text-[var(--mm-gold)]">
                   No venue check will happen.
                 </strong>{" "}
-                Open tag measures distance from the attached event&apos;s
-                coordinates, and this quest&apos;s event has none — so this
-                objective could be claimed from anywhere in the world by anyone
-                who gets the link. Add coordinates to the event, or use a live
-                code instead.
+                This measures distance from the attached event&apos;s
+                coordinates, and this quest&apos;s event has none — so the
+                objective behaves exactly like an open scan: claimable from
+                anywhere in the world by anyone who gets the link. Add
+                coordinates to the event, or pick a mode that means it.
               </div>
             ))}
         </>

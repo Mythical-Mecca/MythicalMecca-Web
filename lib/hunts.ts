@@ -27,7 +27,11 @@ export type StepType =
   | "trivia_gate"
   | "unlock_code";
 
-export type ClaimMode = "live_code" | "sealed_tag" | "open_tag";
+export type ClaimMode =
+  | "live_code"
+  | "sealed_tag"
+  | "location_verified"
+  | "open";
 export type RevealMode = "direct" | "clue";
 export type ClaimOutcome =
   | "ok"
@@ -737,6 +741,45 @@ async function tooManyBadAttempts(
 }
 
 /**
+ * Shortest believable gap between two check-in attempts by one person.
+ *
+ * Nobody walks between two stands, or retypes four digits after a fumble, in
+ * under two seconds — so a real adventurer never meets this, while a script
+ * replaying a shared tag URL in a loop is held to one attempt every two
+ * seconds. Deliberately well under the pace a person could manage: the point
+ * is to make automation slow, not to police anyone standing in a queue.
+ */
+const MIN_CLAIM_GAP_MS = 2000;
+
+/**
+ * True when this user attempted a check-in — on any objective, on any quest —
+ * within the last {@link MIN_CLAIM_GAP_MS}.
+ *
+ * Every attempt is logged, throttled ones included, so a caller that keeps
+ * hammering keeps pushing its own next allowed attempt out of reach.
+ */
+async function claimingTooFast(userId: string): Promise<boolean> {
+  if (!useDb) return false;
+  try {
+    const since = new Date(Date.now() - MIN_CLAIM_GAP_MS);
+    const [row] = await db
+      .select({ id: huntClaimAttempts.id })
+      .from(huntClaimAttempts)
+      .where(
+        and(
+          eq(huntClaimAttempts.userId, userId),
+          gte(huntClaimAttempts.createdAt, since)
+        )
+      )
+      .limit(1);
+    return !!row;
+  } catch {
+    // A telemetry failure must not become a denial of service.
+    return false;
+  }
+}
+
+/**
  * The single gate every destination check-in passes through. Returns the
  * outcome rather than throwing so the caller can render it *and* log it.
  */
@@ -766,6 +809,9 @@ export async function claimObjective(input: {
   // Before any proof is examined: no point telling someone their code is wrong
   // when the objective wasn't open to them in the first place.
   if (target.lockedBy) return finish("locked");
+  // Only once the objective is genuinely claimable: throttling a tap that was
+  // going to be answered "you've already done this" is noise on the monitor.
+  if (await claimingTooFast(userId)) return finish("rate_limited");
 
   switch (target.claimMode) {
     case "live_code": {
@@ -787,13 +833,14 @@ export async function claimObjective(input: {
       // failing closed beats silently accepting an unverified tap.
       return finish("bad_code");
     }
-    case "open_tag": {
+    case "location_verified": {
       const lat = Number(input.lat);
       const lng = Number(input.lng);
       const originLat = target.eventLat;
       const originLng = target.eventLng;
-      // With no venue coordinates there's nothing to check against; the tag is
-      // the only evidence and the admin chose that trade by picking open_tag.
+      // With no venue coordinates there is nothing to measure against, so the
+      // objective degrades to `open` — which the admin is warned about on the
+      // form, since the alternative is refusing every check-in at the event.
       if (originLat != null && originLng != null) {
         if (Number.isNaN(lat) || Number.isNaN(lng)) return finish("out_of_range");
         const away = haversine(
@@ -804,6 +851,11 @@ export async function claimObjective(input: {
           return finish("out_of_range");
         }
       }
+      break;
+    }
+    case "open": {
+      // Nothing to check: the scan is the claim. Shareable by design, and the
+      // pace and address flags on the admin monitor are what catch abuse.
       break;
     }
   }
