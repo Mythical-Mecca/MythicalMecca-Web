@@ -142,7 +142,17 @@ export function OpenLinkDialog({
                     href={item.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => setOpen(false)}
+                    // Close on the NEXT task, never this one. This anchor lives
+                    // inside `{open && …}`, so closing synchronously unmounts it
+                    // while the click is still being dispatched — React flushes
+                    // discrete updates before the browser runs the default
+                    // action. The browser is then left resolving `_blank`
+                    // against an element that has no document, and the
+                    // navigation falls back into this tab instead of a new one.
+                    // Deferring lets the default action complete first.
+                    onClick={() => {
+                      setTimeout(() => setOpen(false), 0);
+                    }}
                     aria-label={`${item.label} — open in new tab`}
                     title="Open in new tab"
                     className="grid w-11 shrink-0 place-items-center rounded-r-xl border-l border-[var(--mm-border)] text-[var(--mm-text-dim)] transition hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-gold)]"
