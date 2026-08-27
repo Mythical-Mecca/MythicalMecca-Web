@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   getEvent,
+  type EventView,
   isEventLive,
   isEventEnded,
   getEventGallery,
@@ -28,12 +29,14 @@ import { PageHeading } from "@/components/page-heading";
 import { Card } from "@/components/card";
 import { inputPill } from "@/components/form";
 import { formatDateTime, formatDate } from "@/lib/format";
+import { SignInCta } from "@/components/sign-in-cta";
+import { pageMetadata } from "@/lib/metadata";
 import {
   addComment,
   addReview,
   markInterested,
   unmarkInterested,
-} from "../actions";
+} from "@/app/(app)/events/actions";
 
 /**
  * The record's own name in the tab, the history entry and any bookmark. These
@@ -47,7 +50,88 @@ export async function generateMetadata({
 }) {
   const { slug } = await params;
   const event = await getEvent(slug);
-  return { title: event?.title ?? "Event" };
+  if (!event) {
+    return pageMetadata({
+      title: "Event",
+      description: "This event has ended or the link is no longer good.",
+    });
+  }
+
+  // When and where come first: for a link dropped into a group chat, those are
+  // the two things everyone replies asking about.
+  const when = formatDateTime(event.startsAt);
+  const where = event.location ? ` · ${event.location}` : "";
+  const summary = event.summary?.trim();
+
+  return pageMetadata({
+    title: event.title,
+    description: summary ? `${when}${where}. ${summary}` : `${when}${where}.`,
+  });
+}
+
+/** The signed-out view: the facts of the event, and the way in. */
+function EventTeaser({ event }: { event: EventView }) {
+  const live = isEventLive(event);
+  const ended = isEventEnded(event);
+
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+      <header className="text-center">
+        <p className="text-xs uppercase tracking-[0.2em] text-[var(--mm-gold)]">
+          {live ? "Happening now" : ended ? "This event has ended" : "Upcoming"}
+        </p>
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl leading-tight tracking-wide sm:text-4xl">
+          {event.title}
+        </h1>
+        {event.summary && (
+          <p className="mx-auto mt-3 max-w-lg text-[var(--mm-text-dim)]">
+            {event.summary}
+          </p>
+        )}
+      </header>
+
+      <section className="mm-glass mm-panel mt-6 space-y-2.5 p-5 text-sm">
+        <p className="flex items-start gap-2.5">
+          <Icon
+            icon="mdi:calendar-clock"
+            width={17}
+            className="mt-0.5 shrink-0 text-[var(--mm-gold)]"
+          />
+          <span>{formatDateTime(event.startsAt)}</span>
+        </p>
+        {event.location && (
+          <p className="flex items-start gap-2.5">
+            <Icon
+              icon="mdi:map-marker-outline"
+              width={17}
+              className="mt-0.5 shrink-0 text-[var(--mm-gold)]"
+            />
+            <span>{event.location}</span>
+          </p>
+        )}
+        {event.partnerName && (
+          <p className="flex items-start gap-2.5">
+            <Icon
+              icon="game-icons:shop"
+              width={17}
+              className="mt-0.5 shrink-0 text-[var(--mm-gold)]"
+            />
+            <span>Hosted by {event.partnerName}</span>
+          </p>
+        )}
+      </section>
+
+      <SignInCta
+        from={`/events/${event.slug}`}
+        headline={ended ? "See how it went" : "Pull up a chair"}
+        blurb={
+          ended
+            ? "Sign in to read the full write-up, the gallery and what people made of it."
+            : "Sign in for the full details, to say you're coming and to talk to whoever else is."
+        }
+      />
+    </div>
+  );
 }
 
 export default async function EventPage({
@@ -63,6 +147,18 @@ export default async function EventPage({
   if (!event) notFound();
 
   const session = await auth();
+
+  /**
+   * Signed out, this is the listing — not the room.
+   *
+   * Comments, reviews and chat are members talking to each other under their
+   * real names; the gallery is theirs too. The facts of the event are public
+   * by nature, so those are what a forwarded link shows.
+   */
+  if (!session?.user) {
+    return <EventTeaser event={event} />;
+  }
+
   const [comments, reviews, summary, gallery, interested] = await Promise.all([
     getComments(slug),
     getReviews(slug),

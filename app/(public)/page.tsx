@@ -12,6 +12,14 @@ import {
 import { EventCalendar } from "@/components/event-calendar";
 import { Badge } from "@/components/badge";
 import { formatDateTime } from "@/lib/format";
+import { pageMetadata } from "@/lib/metadata";
+
+// No title: the root layout's default already names the site, and a template
+// suffix on the landing page would read as a duplicate in the tab.
+export const metadata = pageMetadata({
+  description:
+    "The hearth for the geek collective in Cape Town — tabletop, gaming, anime, cosplay and making, all gathered under one roof. See what's on and come find your people.",
+});
 
 /*
  * The public one-pager. Everything a visitor needs to decide whether Mythical

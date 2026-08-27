@@ -12,6 +12,9 @@ import { Badge } from "@/components/badge";
 import { StarRating } from "@/components/star-rating";
 import { ReviewForm } from "@/components/review-form";
 import { formatDateTime } from "@/lib/format";
+import { pageMetadata } from "@/lib/metadata";
+
+const FALLBACK = "Browse the stalls of the Mythical Mecca partner directory.";
 
 export async function generateMetadata({
   params,
@@ -20,7 +23,19 @@ export async function generateMetadata({
 }) {
   const { slug } = await params;
   const partner = await getPartner(slug);
-  return { title: partner?.businessName ?? "Partner" };
+  if (!partner) return pageMetadata({ title: "Partner", description: FALLBACK });
+
+  // The partner's own tagline is what they'd want quoted when someone shares
+  // their stall; the bio is the longer fallback and gets clamped for us.
+  const own = partner.tagline?.trim() || partner.bio?.trim();
+  const trade = partner.categoryName
+    ? `${partner.categoryName} at Mythical Mecca.`
+    : "A trader at Mythical Mecca.";
+
+  return pageMetadata({
+    title: partner.businessName,
+    description: own ? `${trade} ${own}` : `${trade} ${FALLBACK}`,
+  });
 }
 
 /**

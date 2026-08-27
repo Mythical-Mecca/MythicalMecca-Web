@@ -3,8 +3,13 @@ import { getPartnersByCategory } from "@/lib/content";
 import { Badge } from "@/components/badge";
 import { Icon } from "@/components/icon";
 import { SectionHero } from "@/components/section-hero";
+import { pageMetadata } from "@/lib/metadata";
 
-export const metadata = { title: "Partners — Mythical Mecca" };
+export const metadata = pageMetadata({
+  title: "Partners",
+  description:
+    "The traders, makers and studios of Mythical Mecca — miniatures, games, art, apparel and more, listed by craft. Browse the stalls or apply for one of your own.",
+});
 
 export default async function PartnersPage() {
   // The full directory: every category with partners, not just the featured

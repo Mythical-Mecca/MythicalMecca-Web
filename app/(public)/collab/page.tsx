@@ -4,8 +4,13 @@ import { db } from "@/lib/db";
 import { collabSubmissions } from "@/lib/db/schema";
 import { logActivity } from "@/lib/logging";
 import { inputPill } from "@/components/form";
+import { pageMetadata } from "@/lib/metadata";
 
-export const metadata = { title: "Contact" };
+export const metadata = pageMetadata({
+  title: "Contact",
+  description:
+    "Want to collaborate, sponsor, host an event, or trade with us? Send the Keep a message and we'll write back.",
+});
 
 const schema = z.object({
   name: z.string().min(1).max(120),

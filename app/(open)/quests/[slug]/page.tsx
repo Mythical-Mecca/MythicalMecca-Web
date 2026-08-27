@@ -1,13 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getHunt, getLeaderboard, type PublicStep } from "@/lib/hunts";
-import { completeStep } from "../actions";
+import {
+  getHunt,
+  getLeaderboard,
+  type HuntView,
+  type PublicStep,
+} from "@/lib/hunts";
+import { completeStep } from "@/app/(app)/quests/actions";
 import { GeoStep } from "@/components/geo-step";
 import { PhotoStep } from "@/components/photo-step";
 import { PlayerQuestActions } from "@/components/player-quest-actions";
 import { Icon } from "@/components/icon";
 import { inputPill } from "@/components/form";
+import { SignInCta } from "@/components/sign-in-cta";
+import { pageMetadata } from "@/lib/metadata";
 
 export async function generateMetadata({
   params,
@@ -16,7 +23,27 @@ export async function generateMetadata({
 }) {
   const { slug } = await params;
   const hunt = await getHunt(slug);
-  return { title: hunt?.title ?? "Quest" };
+  if (!hunt) {
+    return pageMetadata({
+      title: "Quest",
+      description: "This quest has ended or the link is no longer good.",
+    });
+  }
+
+  // What a shared link unfurls as in a group chat. The quest's own blurb comes
+  // first because it's the part someone wrote to sell the thing; the trail
+  // length is the fact people actually ask about before committing an evening.
+  const trail = `${hunt.steps.length} ${
+    hunt.steps.length === 1 ? "objective" : "objectives"
+  } to clear for ${hunt.totalPoints} points.`;
+  const where = hunt.eventTitle ? ` Part of ${hunt.eventTitle}.` : "";
+
+  return pageMetadata({
+    title: hunt.title,
+    description: hunt.description?.trim()
+      ? `${hunt.description.trim()} ${trail}${where}`
+      : `A quest around the venue — ${trail}${where}`,
+  });
 }
 
 // `inputPill` is painted --mm-surface, which is right when an input sits on
@@ -282,6 +309,76 @@ function ObjectiveCard({
   );
 }
 
+/** The signed-out view: enough to decide it's worth signing in for. */
+function QuestTeaser({ hunt, from }: { hunt: HuntView; from: string }) {
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+      <header className="text-center">
+        <p className="text-xs uppercase tracking-[0.2em] text-[var(--mm-gold)]">
+          {hunt.open ? "A quest is running" : "Quest"}
+        </p>
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl leading-tight tracking-wide sm:text-4xl">
+          {hunt.title}
+        </h1>
+        {hunt.description && (
+          <p className="mx-auto mt-3 max-w-lg text-[var(--mm-text-dim)]">
+            {hunt.description}
+          </p>
+        )}
+        {hunt.eventTitle && (
+          <p className="mt-3 inline-flex items-center gap-1.5 text-sm text-[var(--mm-gold)]">
+            <Icon icon="game-icons:campfire" width={15} /> Part of{" "}
+            {hunt.eventTitle}
+          </p>
+        )}
+      </header>
+
+      <section className="mm-glass mm-panel mt-6 grid grid-cols-2 divide-x divide-[var(--mm-divider)] p-4 text-center">
+        <div>
+          <p className="font-[family-name:var(--font-display)] text-2xl">
+            {hunt.steps.length}
+          </p>
+          <p className="text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
+            {hunt.steps.length === 1 ? "Objective" : "Objectives"}
+          </p>
+        </div>
+        <div>
+          <p className="font-[family-name:var(--font-display)] text-2xl text-[var(--mm-gold)]">
+            {hunt.totalPoints}
+          </p>
+          <p className="text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
+            Points
+          </p>
+        </div>
+      </section>
+
+      {!hunt.open && (
+        <p
+          role="status"
+          className="mm-glass mm-panel mt-4 p-4 text-center text-sm text-[var(--mm-text-dim)]"
+        >
+          <Icon
+            icon="mdi:pause-circle-outline"
+            width={16}
+            className="mr-1.5 inline"
+          />
+          This quest isn&apos;t running right now.
+        </p>
+      )}
+
+      <SignInCta
+        from={from}
+        headline="Walk the trail"
+        blurb={
+          hunt.open
+            ? "Sign in to see the objectives, check in at each stand and get on the leaderboard."
+            : "Sign in to see the trail and your progress so far."
+        }
+      />
+    </div>
+  );
+}
+
 export default async function HuntDetailPage({
   params,
   searchParams,
@@ -300,6 +397,25 @@ export default async function HuntDetailPage({
   const session = await auth();
   const hunt = await getHunt(slug, session?.user?.id);
   if (!hunt) notFound();
+
+  /**
+   * Signed out, this page is a shop window, not the quest.
+   *
+   * The trail itself is withheld deliberately: the objectives name the stands
+   * a player is meant to walk to, and the leaderboard is a list of real
+   * members' names. Neither belongs to a stranger holding a forwarded link.
+   * What's left — what this is, how long it runs, whose event it belongs to —
+   * is exactly what the link preview already promised.
+   */
+  if (!session?.user) {
+    return (
+      <QuestTeaser
+        hunt={hunt}
+        from={`/quests/${slug}${from && from.startsWith("/") ? `?from=${encodeURIComponent(from)}` : ""}`}
+      />
+    );
+  }
+
   const leaderboard = await getLeaderboard(slug);
 
   // Honour a safe internal ?from= (e.g. arriving from an event page).

@@ -3,8 +3,15 @@ import { auth, signOut } from "@/lib/auth";
 import { findInviteByToken } from "@/lib/partner-invites";
 import { acceptPartnerInvite, declinePartnerInvite } from "../actions";
 import { Icon } from "@/components/icon";
+import { pageMetadata } from "@/lib/metadata";
 
-export const metadata = { title: "Stall invitation" };
+// Deliberately says nothing about which partner: the token is the secret, and
+// a preview unfurled into a group chat would spill the name to everyone in it.
+export const metadata = pageMetadata({
+  title: "Stall invitation",
+  description: "You've been invited to join a stall on Mythical Mecca.",
+  index: false,
+});
 
 /**
  * Invitation landing page. Deliberately public so a signed-out invitee can read

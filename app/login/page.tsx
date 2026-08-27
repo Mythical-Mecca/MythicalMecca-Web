@@ -4,8 +4,13 @@ import { redirect } from "next/navigation";
 import { AuroraField } from "@/components/animations/aurora-field";
 import { Icon } from "@/components/icon";
 import { LogoMark } from "@/components/brand";
+import { pageMetadata } from "@/lib/metadata";
 
-export const metadata = { title: "Sign in" };
+export const metadata = pageMetadata({
+  title: "Sign in",
+  description:
+    "Sign in to Mythical Mecca to join events, follow quests and find your people.",
+});
 
 export default async function LoginPage({
   searchParams,

@@ -61,8 +61,14 @@ export const config = {
     "/profile/:path*",
     "/apply/:path*",
     "/community/:path*",
-    "/events/:path*",
-    "/quests/:path*",
+    // Detail pages are publicly readable so a shared link previews as itself
+    // rather than as the sign-in screen — see app/(open)/layout.tsx. Only the
+    // browse boards and the submit form are gated here; the pages themselves
+    // decide what a signed-out reader may see.
+    "/events",
+    "/events/submit",
+    "/quests",
+    // A scanned tag still needs a member: /q is where a claim happens.
     "/q/:path*",
   ],
 };
