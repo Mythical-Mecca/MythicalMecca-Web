@@ -94,7 +94,7 @@ function BandFooter({ origin, questQr }: { origin: string; questQr: string }) {
     <footer
       className="flex shrink-0 items-center justify-between gap-6 px-[14mm]"
       style={{
-        height: "22mm",
+        height: "25mm",
         background: "var(--pp-band)",
         color: "var(--pp-band-ink)",
       }}
@@ -110,20 +110,27 @@ function BandFooter({ origin, questQr }: { origin: string; questQr: string }) {
           Every stand, every objective, live standings — {host}
         </span>
       </span>
-      {/* The QR needs its white quiet zone even inside a dark band, so it gets
-          a plate rather than sitting straight on the navy. */}
+      {/* This code carries most of the sheet's practical weight: it is the way
+          back in for someone who closed the tab halfway round the hall, and the
+          way in for someone who has never opened it. The label has to serve
+          both — "join the hunt" only spoke to the second, and the person who
+          has lost their place is the one standing here reading a poster.
+
+          The QR needs its white quiet zone even inside a dark band, so it gets
+          a plate rather than sitting straight on the navy. 18mm reads from
+          roughly 180mm — arm's length at the stand. */}
       <span className="flex shrink-0 items-center gap-2.5">
         <span className="text-right opacity-80" style={{ fontSize: "2.7mm" }}>
-          Scan to
+          Open or resume
           <br />
-          join the hunt
+          the quest
         </span>
-        <span className="block bg-white" style={{ padding: "1mm" }}>
+        <span className="block bg-white" style={{ padding: "1.2mm" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={questQr}
             alt=""
-            style={{ height: "15mm", width: "15mm" }}
+            style={{ height: "18mm", width: "18mm" }}
             className="block"
           />
         </span>
