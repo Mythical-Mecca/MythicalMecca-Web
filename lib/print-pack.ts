@@ -66,10 +66,12 @@ export interface PrintPack {
   eventTitle: string;
   eventLocation: string | null;
   eventStartsAt: Date | null;
-  /** QR to the public quest page — the "join the hunt" call to action. */
+  /** QR to the public quest page — the way back in, printed on every sheet. */
   questUrl: string;
   questQr: string;
   origin: string;
+  /** The emblem, inlined. Only populated when `embedImages` is on. */
+  logo: string | null;
   pages: PrintPage[];
 }
 
@@ -97,7 +99,58 @@ function needsTag(type: StepType): boolean {
   return type === "qr_scan";
 }
 
-export async function getPrintPack(slug: string): Promise<PrintPack | null> {
+/**
+ * Inline an image as a data URL, for the PDF renderer.
+ *
+ * The HTML sheet can point an `<img>` at `/api/media?…` and let the browser
+ * fetch it. A PDF has no browser and no session, so the bytes have to be in
+ * hand at render time — and partner logos live in a private Blob store whose
+ * URLs are not fetchable at all. Reading through the same SDK call the media
+ * proxy uses avoids the server making an HTTP request to itself.
+ *
+ * Failure returns null rather than throwing: a missing logo should cost the
+ * pack a logo, not the whole document.
+ */
+async function embedImage(src: string | null): Promise<string | null> {
+  if (!src) return null;
+  try {
+    if (src.startsWith("/api/media?")) {
+      const pathname = new URL(src, "http://local").searchParams.get("pathname");
+      if (!pathname) return null;
+      const { get } = await import("@vercel/blob");
+      const found = await get(pathname, { access: "private" });
+      if (!found) return null;
+      const bytes = Buffer.from(await new Response(found.stream).arrayBuffer());
+      const mime = found.blob.contentType ?? "image/png";
+      return `data:${mime};base64,${bytes.toString("base64")}`;
+    }
+    if (src.startsWith("/")) {
+      const [fs, path] = await Promise.all([
+        import("node:fs/promises"),
+        import("node:path"),
+      ]);
+      const bytes = await fs.readFile(
+        path.join(process.cwd(), "public", src.replace(/^\/+/, ""))
+      );
+      const ext = path.extname(src).slice(1).toLowerCase();
+      const mime = ext === "jpg" ? "jpeg" : ext === "svg" ? "svg+xml" : ext;
+      return `data:image/${mime};base64,${bytes.toString("base64")}`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getPrintPack(
+  slug: string,
+  /**
+   * Inline every image as a data URL. Costs a Blob read per partner logo, so
+   * the HTML preview leaves it off and lets the browser fetch as usual; the
+   * PDF renderer has no browser and needs it on.
+   */
+  opts: { embedImages?: boolean } = {}
+): Promise<PrintPack | null> {
   if (!useDb) return null;
   try {
     const [row] = await db
@@ -152,7 +205,9 @@ export async function getPrintPack(slug: string): Promise<PrintPack | null> {
                 name: partner.businessName,
                 tagline: partner.tagline,
                 bio: partner.bio,
-                logoSrc: toMediaSrc(partner.logoUrl),
+                logoSrc: opts.embedImages
+                  ? await embedImage(toMediaSrc(partner.logoUrl))
+                  : toMediaSrc(partner.logoUrl),
                 shopUrl: partner.shopUrl,
                 pageUrl: `${origin}/partners/${partner.slug}`,
                 pageQr: await qrDataUrl(
@@ -181,6 +236,7 @@ export async function getPrintPack(slug: string): Promise<PrintPack | null> {
       questUrl,
       questQr: await qrDataUrl(questUrl, 600),
       origin,
+      logo: opts.embedImages ? await embedImage("/MMRefined2026.png") : null,
       pages,
     };
   } catch (e) {

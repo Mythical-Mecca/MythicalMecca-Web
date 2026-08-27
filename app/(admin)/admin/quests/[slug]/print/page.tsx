@@ -497,10 +497,30 @@ export default async function QuestPrintPackPage({
         </div>
 
         <p className="mb-4 text-sm text-[var(--mm-text-dim)]">
-          One A4 sheet per objective, sized for the printer&apos;s Save as PDF.
-          Print at 100% with margins set to none — the sheets carry their own.
-          Answers are never printed: these go on a wall.
+          One A4 sheet per objective. Download the PDF to send to a printer —
+          the page box, fonts and colour are fixed in the file, so it comes out
+          the same everywhere. What you see below is a preview of it. Answers
+          are never printed: these go on a wall.
         </p>
+
+        <div className="mb-4">
+          {/* A plain anchor, not fetch-and-blob: the browser streams the file
+              straight to disk and shows its own progress while the server
+              renders. `download` is redundant next to the Content-Disposition
+              the route already sets, but it keeps the filename if the header
+              is ever dropped by a proxy. */}
+          <a
+            href={
+              stationsOnly ? `${base}/pdf?only=stations` : `${base}/pdf`
+            }
+            download
+            className="mm-btn mm-btn-primary"
+          >
+            <Icon icon="mdi:file-pdf-box" width={18} />
+            Download PDF · {pages.length} sheet
+            {pages.length === 1 ? "" : "s"}
+          </a>
+        </div>
 
         <PrintPackToolbar pageCount={pages.length} />
       </div>

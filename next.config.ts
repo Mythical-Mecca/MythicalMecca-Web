@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The PDF renderer reads its faces and the emblem off disk at request time.
+  // Nothing imports them, so the tracer cannot see them and would ship a lambda
+  // that silently falls back to Helvetica — or throws on the missing logo.
+  outputFileTracingIncludes: {
+    "/admin/quests/[slug]/print/pdf": [
+      "./lib/pdf/fonts/**",
+      "./public/MMRefined2026.png",
+    ],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
