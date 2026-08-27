@@ -13,7 +13,6 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import type { PrintPack, PrintPage } from "@/lib/print-pack";
-import type { StepType, ClaimMode } from "@/lib/hunts";
 
 /**
  * The station pack as a real PDF.
@@ -79,25 +78,11 @@ const GOLD_TEXT = "#8a5406";
 const BAND = "#0b0f1c";
 const BAND_INK = "#f1e7d3";
 
-const TYPE_NOTE: Record<StepType, string> = {
-  qr_scan: "Adventurers scan the code above to check in here.",
-  riddle: "Adventurers solve this in the app — nothing to do at the stand.",
-  cipher: "Adventurers solve this in the app — nothing to do at the stand.",
-  crossword: "Adventurers solve this in the app — nothing to do at the stand.",
-  trivia_gate: "Adventurers answer this in the app.",
-  photo_proof: "Adventurers upload a photo in the app.",
-  geo_checkpoint: "Checks in automatically once an adventurer is close enough.",
-  unlock_code: "Adventurers type a code into the app.",
-};
-
-const CLAIM_NOTE: Record<ClaimMode, string> = {
-  live_code:
-    "Staffed stand. Keep the station screen open — adventurers read the rolling four-digit code from it, or show a pass for you to scan.",
-  sealed_tag: "Tap the NFC tag. Each tap signs itself, so nothing to staff.",
-  location_verified:
-    "Unstaffed tag. Anyone can scan it, so the check-in is confirmed by the adventurer's location instead.",
-  open: "Unstaffed tag. Scanning it is the check-in — nothing to staff here.",
-};
+/* No claim-mode or objective-type note anywhere on the sheet. These are pinned
+   up in public and double as signage — how a check-in is proven is our
+   business, not the wall's, and a line of operational note under the code only
+   invites reading where scanning was wanted. Kept in step with the HTML
+   preview, which carries the same omission. */
 
 const s = StyleSheet.create({
   page: {
@@ -296,16 +281,6 @@ function HeroCode({ page }: { page: PrintPage }) {
       >
         SCAN TO CHECK IN
       </Text>
-      <Text
-        style={{
-          fontSize: mm(3),
-          color: INK_DIM,
-          textAlign: "center",
-          marginTop: mm(2),
-        }}
-      >
-        {CLAIM_NOTE[page.claimMode]}
-      </Text>
     </View>
   );
 }
@@ -341,16 +316,6 @@ function Notes({ page }: { page: PrintPage }) {
           </Text>
         )}
       </View>
-      <Text
-        style={{
-          fontSize: mm(3.2),
-          color: INK_DIM,
-          textAlign: "center",
-          marginTop: mm(6),
-        }}
-      >
-        {TYPE_NOTE[page.type]}
-      </Text>
     </View>
   );
 }

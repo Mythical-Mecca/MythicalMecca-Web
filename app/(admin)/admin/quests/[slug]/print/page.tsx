@@ -5,33 +5,14 @@ import { tagHostWarning } from "@/lib/app-url";
 import { forwardReturn } from "@/lib/return-to";
 import { PrintPackToolbar } from "@/components/print-pack-toolbar";
 import { Icon } from "@/components/icon";
-import type { StepType, ClaimMode } from "@/lib/hunts";
 
 export const metadata = { title: "Station pack · Admin" };
 
-/**
- * What the person standing at this objective needs to know. Written for a
- * vendor or a marshal, not for a player — the sheet is pinned at the stand.
- */
-const TYPE_NOTE: Record<StepType, string> = {
-  qr_scan: "Adventurers scan the code above to check in here.",
-  riddle: "Adventurers solve this in the app — nothing to do at the stand.",
-  cipher: "Adventurers solve this in the app — nothing to do at the stand.",
-  crossword: "Adventurers solve this in the app — nothing to do at the stand.",
-  trivia_gate: "Adventurers answer this in the app.",
-  photo_proof: "Adventurers upload a photo in the app.",
-  geo_checkpoint: "Checks in automatically once an adventurer is close enough.",
-  unlock_code: "Adventurers type a code into the app.",
-};
-
-const CLAIM_NOTE: Record<ClaimMode, string> = {
-  live_code:
-    "Staffed stand. Keep the station screen open — adventurers read the rolling four-digit code from it, or show a pass for you to scan.",
-  sealed_tag: "Tap the NFC tag. Each tap signs itself, so nothing to staff.",
-  location_verified:
-    "Unstaffed tag. Anyone can scan it, so the check-in is confirmed by the adventurer's location instead.",
-  open: "Unstaffed tag. Scanning it is the check-in — nothing to staff here.",
-};
+/* Nothing here explains the claim mechanism or the objective type. These
+   sheets are pinned up in public and double as signage — how a check-in is
+   proven is our business, not the wall's, and a line of operational note under
+   the code only invites people to read it instead of scanning. The vendor
+   briefing belongs in the quest manager, where the person who needs it is. */
 
 /* ── sheet furniture ─────────────────────────────────────────────────────── */
 
@@ -146,12 +127,6 @@ function HeroCode({ page }: { page: PrintPage }) {
       >
         SCAN TO CHECK IN
       </p>
-      <p
-        className="mt-[2mm] text-center"
-        style={{ fontSize: "3mm", color: "var(--pp-ink-dim)" }}
-      >
-        {CLAIM_NOTE[page.claimMode]}
-      </p>
     </div>
   );
 }
@@ -200,12 +175,6 @@ function NotesPanel({ page }: { page: PrintPage }) {
           </p>
         )}
       </div>
-      <p
-        className="mt-[6mm] text-center"
-        style={{ fontSize: "3.2mm", color: "var(--pp-ink-dim)" }}
-      >
-        {TYPE_NOTE[page.type]}
-      </p>
     </div>
   );
 }
