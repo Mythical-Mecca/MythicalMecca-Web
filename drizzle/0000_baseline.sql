@@ -1,13 +1,18 @@
 CREATE TYPE "public"."app_status" AS ENUM('draft', 'pending', 'approved', 'rejected');--> statement-breakpoint
 CREATE TYPE "public"."chat_scope" AS ENUM('event');--> statement-breakpoint
+CREATE TYPE "public"."claim_mode" AS ENUM('live_code', 'sealed_tag', 'location_verified', 'open');--> statement-breakpoint
+CREATE TYPE "public"."claim_outcome" AS ENUM('ok', 'duplicate', 'bad_code', 'out_of_range', 'not_open', 'unknown_step', 'rate_limited', 'locked');--> statement-breakpoint
 CREATE TYPE "public"."event_origin" AS ENUM('hosted', 'partner', 'external', 'community');--> statement-breakpoint
 CREATE TYPE "public"."event_status" AS ENUM('draft', 'published', 'live', 'ended', 'cancelled', 'pending', 'rejected');--> statement-breakpoint
 CREATE TYPE "public"."file_entity" AS ENUM('avatar', 'event', 'partner_gallery', 'hunt_proof', 'misc');--> statement-breakpoint
 CREATE TYPE "public"."gallery_kind" AS ENUM('art', 'product');--> statement-breakpoint
 CREATE TYPE "public"."hunt_mode" AS ENUM('in_person', 'remote', 'hybrid');--> statement-breakpoint
-CREATE TYPE "public"."lfg_join_mode" AS ENUM('open', 'approval');--> statement-breakpoint
-CREATE TYPE "public"."lfg_member_status" AS ENUM('pending', 'approved', 'declined');--> statement-breakpoint
 CREATE TYPE "public"."log_level" AS ENUM('debug', 'info', 'warn', 'error', 'fatal');--> statement-breakpoint
+CREATE TYPE "public"."offering_kind" AS ENUM('product', 'service');--> statement-breakpoint
+CREATE TYPE "public"."partner_invite_status" AS ENUM('pending', 'accepted', 'revoked');--> statement-breakpoint
+CREATE TYPE "public"."partner_member_role" AS ENUM('owner', 'manager');--> statement-breakpoint
+CREATE TYPE "public"."partner_status" AS ENUM('draft', 'pending', 'approved', 'rejected');--> statement-breakpoint
+CREATE TYPE "public"."reveal_mode" AS ENUM('direct', 'clue');--> statement-breakpoint
 CREATE TYPE "public"."review_target" AS ENUM('site', 'partner');--> statement-breakpoint
 CREATE TYPE "public"."role" AS ENUM('member', 'partner', 'admin');--> statement-breakpoint
 CREATE TYPE "public"."step_type" AS ENUM('qr_scan', 'riddle', 'crossword', 'cipher', 'geo_checkpoint', 'photo_proof', 'trivia_gate', 'unlock_code');--> statement-breakpoint
@@ -110,7 +115,7 @@ CREATE TABLE "event_reviews" (
 --> statement-breakpoint
 CREATE TABLE "events" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"slug" text NOT NULL,
+	"slug" text,
 	"title" text NOT NULL,
 	"summary" text,
 	"body_md" text,
@@ -151,6 +156,14 @@ CREATE TABLE "files" (
 	CONSTRAINT "files_obscured_key_unique" UNIQUE("obscured_key")
 );
 --> statement-breakpoint
+CREATE TABLE "gallery_item_views" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"item_id" uuid NOT NULL,
+	"viewer_key" text NOT NULL,
+	"user_id" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "gallery_items" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"image_url" text NOT NULL,
@@ -158,6 +171,18 @@ CREATE TABLE "gallery_items" (
 	"uploaded_by" text,
 	"published" boolean DEFAULT true NOT NULL,
 	"sort" integer DEFAULT 0 NOT NULL,
+	"views" integer DEFAULT 0 NOT NULL,
+	"unique_views" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "hunt_claim_attempts" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"step_id" uuid,
+	"user_id" text,
+	"outcome" "claim_outcome" NOT NULL,
+	"claim_mode" "claim_mode",
+	"ip" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
@@ -171,6 +196,17 @@ CREATE TABLE "hunt_progress" (
 	"points_awarded" integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "hunt_stations" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"step_id" uuid NOT NULL,
+	"station_key" text NOT NULL,
+	"rotation_seconds" integer DEFAULT 60 NOT NULL,
+	"last_seen_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "hunt_stations_step_id_unique" UNIQUE("step_id")
+);
+--> statement-breakpoint
 CREATE TABLE "hunt_steps" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"hunt_id" uuid NOT NULL,
@@ -180,35 +216,12 @@ CREATE TABLE "hunt_steps" (
 	"prompt" text,
 	"points" integer DEFAULT 10 NOT NULL,
 	"config" jsonb,
-	"requires_prev" boolean DEFAULT true NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE "lfg_members" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"post_id" uuid NOT NULL,
-	"user_id" text NOT NULL,
-	"status" "lfg_member_status" DEFAULT 'pending' NOT NULL,
-	"note" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"decided_at" timestamp with time zone
-);
---> statement-breakpoint
-CREATE TABLE "lfg_posts" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"host_id" text NOT NULL,
-	"title" text NOT NULL,
-	"game_system" text NOT NULL,
-	"description" text,
-	"venue_text" text,
 	"partner_id" uuid,
-	"event_id" uuid,
-	"starts_at" timestamp with time zone NOT NULL,
-	"ends_at" timestamp with time zone,
-	"total_seats" integer,
-	"join_mode" "lfg_join_mode" DEFAULT 'open' NOT NULL,
-	"cancelled_at" timestamp with time zone,
+	"location_hint" text,
+	"parent_id" uuid,
+	"reveal_mode" "reveal_mode" DEFAULT 'direct' NOT NULL,
+	"claim_mode" "claim_mode" DEFAULT 'live_code' NOT NULL,
+	"claim_radius_m" integer,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -277,21 +290,66 @@ CREATE TABLE "partner_gallery_items" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "partner_invites" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"partner_id" uuid NOT NULL,
+	"email" text,
+	"invited_user_id" text,
+	"role" "partner_member_role" DEFAULT 'manager' NOT NULL,
+	"token_hash" text NOT NULL,
+	"status" "partner_invite_status" DEFAULT 'pending' NOT NULL,
+	"invited_by" text,
+	"expires_at" timestamp with time zone NOT NULL,
+	"accepted_at" timestamp with time zone,
+	"accepted_by" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "partner_invites_token_hash_unique" UNIQUE("token_hash")
+);
+--> statement-breakpoint
+CREATE TABLE "partner_members" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"partner_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
+	"role" "partner_member_role" DEFAULT 'manager' NOT NULL,
+	"invited_by" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "partner_offerings" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"partner_id" uuid NOT NULL,
+	"kind" "offering_kind" DEFAULT 'product' NOT NULL,
+	"name" text NOT NULL,
+	"description" text,
+	"price_cents" integer,
+	"currency" text DEFAULT 'ZAR' NOT NULL,
+	"image_url" text,
+	"external_url" text,
+	"active" boolean DEFAULT true NOT NULL,
+	"sort" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "partners" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" text,
 	"category_id" uuid,
 	"slug" text NOT NULL,
 	"business_name" text NOT NULL,
 	"tagline" text,
 	"bio" text,
-	"logo_file_id" uuid,
+	"logo_url" text,
+	"banner_url" text,
+	"shop_url" text,
 	"socials" jsonb,
 	"is_premium" boolean DEFAULT false NOT NULL,
+	"status" "partner_status" DEFAULT 'draft' NOT NULL,
+	"submitted_at" timestamp with time zone,
+	"reviewed_by" text,
+	"review_note" text,
 	"active" boolean DEFAULT true NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "partners_user_id_unique" UNIQUE("user_id"),
 	CONSTRAINT "partners_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
@@ -313,11 +371,12 @@ CREATE TABLE "reviews" (
 --> statement-breakpoint
 CREATE TABLE "scavenger_hunts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"event_id" uuid,
+	"event_id" uuid NOT NULL,
 	"slug" text NOT NULL,
 	"title" text NOT NULL,
 	"description" text,
 	"mode" "hunt_mode" DEFAULT 'hybrid' NOT NULL,
+	"sequential" boolean DEFAULT false NOT NULL,
 	"starts_at" timestamp with time zone,
 	"ends_at" timestamp with time zone,
 	"active" boolean DEFAULT true NOT NULL,
@@ -371,28 +430,37 @@ ALTER TABLE "events" ADD CONSTRAINT "events_partner_id_partners_id_fk" FOREIGN K
 ALTER TABLE "events" ADD CONSTRAINT "events_reviewed_by_user_id_fk" FOREIGN KEY ("reviewed_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "events" ADD CONSTRAINT "events_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "files" ADD CONSTRAINT "files_owner_id_user_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "gallery_item_views" ADD CONSTRAINT "gallery_item_views_item_id_gallery_items_id_fk" FOREIGN KEY ("item_id") REFERENCES "public"."gallery_items"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "gallery_item_views" ADD CONSTRAINT "gallery_item_views_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "gallery_items" ADD CONSTRAINT "gallery_items_uploaded_by_user_id_fk" FOREIGN KEY ("uploaded_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "hunt_claim_attempts" ADD CONSTRAINT "hunt_claim_attempts_step_id_hunt_steps_id_fk" FOREIGN KEY ("step_id") REFERENCES "public"."hunt_steps"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "hunt_claim_attempts" ADD CONSTRAINT "hunt_claim_attempts_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "hunt_progress" ADD CONSTRAINT "hunt_progress_hunt_id_scavenger_hunts_id_fk" FOREIGN KEY ("hunt_id") REFERENCES "public"."scavenger_hunts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "hunt_progress" ADD CONSTRAINT "hunt_progress_step_id_hunt_steps_id_fk" FOREIGN KEY ("step_id") REFERENCES "public"."hunt_steps"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "hunt_progress" ADD CONSTRAINT "hunt_progress_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "hunt_stations" ADD CONSTRAINT "hunt_stations_step_id_hunt_steps_id_fk" FOREIGN KEY ("step_id") REFERENCES "public"."hunt_steps"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "hunt_steps" ADD CONSTRAINT "hunt_steps_hunt_id_scavenger_hunts_id_fk" FOREIGN KEY ("hunt_id") REFERENCES "public"."scavenger_hunts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "lfg_members" ADD CONSTRAINT "lfg_members_post_id_lfg_posts_id_fk" FOREIGN KEY ("post_id") REFERENCES "public"."lfg_posts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "lfg_members" ADD CONSTRAINT "lfg_members_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "lfg_posts" ADD CONSTRAINT "lfg_posts_host_id_user_id_fk" FOREIGN KEY ("host_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "lfg_posts" ADD CONSTRAINT "lfg_posts_partner_id_partners_id_fk" FOREIGN KEY ("partner_id") REFERENCES "public"."partners"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "lfg_posts" ADD CONSTRAINT "lfg_posts_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "hunt_steps" ADD CONSTRAINT "hunt_steps_partner_id_partners_id_fk" FOREIGN KEY ("partner_id") REFERENCES "public"."partners"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "hunt_steps" ADD CONSTRAINT "hunt_steps_parent_id_hunt_steps_id_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."hunt_steps"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "page_hits" ADD CONSTRAINT "page_hits_actor_id_user_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "partner_applications" ADD CONSTRAINT "partner_applications_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "partner_applications" ADD CONSTRAINT "partner_applications_category_id_partner_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."partner_categories"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "partner_applications" ADD CONSTRAINT "partner_applications_reviewed_by_user_id_fk" FOREIGN KEY ("reviewed_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "partner_gallery_items" ADD CONSTRAINT "partner_gallery_items_partner_id_partners_id_fk" FOREIGN KEY ("partner_id") REFERENCES "public"."partners"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "partner_gallery_items" ADD CONSTRAINT "partner_gallery_items_file_id_files_id_fk" FOREIGN KEY ("file_id") REFERENCES "public"."files"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "partners" ADD CONSTRAINT "partners_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "partner_invites" ADD CONSTRAINT "partner_invites_partner_id_partners_id_fk" FOREIGN KEY ("partner_id") REFERENCES "public"."partners"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "partner_invites" ADD CONSTRAINT "partner_invites_invited_user_id_user_id_fk" FOREIGN KEY ("invited_user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "partner_invites" ADD CONSTRAINT "partner_invites_invited_by_user_id_fk" FOREIGN KEY ("invited_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "partner_invites" ADD CONSTRAINT "partner_invites_accepted_by_user_id_fk" FOREIGN KEY ("accepted_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "partner_members" ADD CONSTRAINT "partner_members_partner_id_partners_id_fk" FOREIGN KEY ("partner_id") REFERENCES "public"."partners"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "partner_members" ADD CONSTRAINT "partner_members_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "partner_members" ADD CONSTRAINT "partner_members_invited_by_user_id_fk" FOREIGN KEY ("invited_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "partner_offerings" ADD CONSTRAINT "partner_offerings_partner_id_partners_id_fk" FOREIGN KEY ("partner_id") REFERENCES "public"."partners"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "partners" ADD CONSTRAINT "partners_category_id_partner_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."partner_categories"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "partners" ADD CONSTRAINT "partners_logo_file_id_files_id_fk" FOREIGN KEY ("logo_file_id") REFERENCES "public"."files"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "partners" ADD CONSTRAINT "partners_reviewed_by_user_id_fk" FOREIGN KEY ("reviewed_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "reviews" ADD CONSTRAINT "reviews_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "reviews" ADD CONSTRAINT "reviews_reviewed_by_user_id_fk" FOREIGN KEY ("reviewed_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "scavenger_hunts" ADD CONSTRAINT "scavenger_hunts_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "scavenger_hunts" ADD CONSTRAINT "scavenger_hunts_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "scavenger_hunts" ADD CONSTRAINT "scavenger_hunts_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "activity_log_created_at_idx" ON "activity_log" USING btree ("created_at");--> statement-breakpoint
@@ -406,15 +474,22 @@ CREATE UNIQUE INDEX "event_reviews_unique" ON "event_reviews" USING btree ("even
 CREATE INDEX "events_starts_ends_idx" ON "events" USING btree ("starts_at","ends_at");--> statement-breakpoint
 CREATE INDEX "events_origin_status_idx" ON "events" USING btree ("origin","status");--> statement-breakpoint
 CREATE INDEX "events_partner_idx" ON "events" USING btree ("partner_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "gallery_item_views_viewer_idx" ON "gallery_item_views" USING btree ("item_id","viewer_key");--> statement-breakpoint
 CREATE INDEX "gallery_items_sort_idx" ON "gallery_items" USING btree ("sort");--> statement-breakpoint
+CREATE INDEX "hunt_claim_attempts_step_idx" ON "hunt_claim_attempts" USING btree ("step_id","created_at");--> statement-breakpoint
+CREATE INDEX "hunt_claim_attempts_user_idx" ON "hunt_claim_attempts" USING btree ("user_id","created_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "hunt_progress_unique" ON "hunt_progress" USING btree ("step_id","user_id");--> statement-breakpoint
 CREATE INDEX "hunt_progress_hunt_user_idx" ON "hunt_progress" USING btree ("hunt_id","user_id");--> statement-breakpoint
 CREATE INDEX "hunt_steps_hunt_idx" ON "hunt_steps" USING btree ("hunt_id","sort");--> statement-breakpoint
-CREATE UNIQUE INDEX "lfg_members_unique" ON "lfg_members" USING btree ("post_id","user_id");--> statement-breakpoint
-CREATE INDEX "lfg_members_user_idx" ON "lfg_members" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "lfg_posts_starts_idx" ON "lfg_posts" USING btree ("starts_at");--> statement-breakpoint
-CREATE INDEX "lfg_posts_host_idx" ON "lfg_posts" USING btree ("host_id");--> statement-breakpoint
-CREATE INDEX "lfg_posts_event_idx" ON "lfg_posts" USING btree ("event_id");--> statement-breakpoint
 CREATE INDEX "page_hits_path_created_idx" ON "page_hits" USING btree ("path","created_at");--> statement-breakpoint
+CREATE INDEX "partner_gallery_items_partner_idx" ON "partner_gallery_items" USING btree ("partner_id","sort");--> statement-breakpoint
+CREATE INDEX "partner_invites_partner_idx" ON "partner_invites" USING btree ("partner_id","status");--> statement-breakpoint
+CREATE INDEX "partner_invites_email_idx" ON "partner_invites" USING btree ("email","status");--> statement-breakpoint
+CREATE INDEX "partner_invites_user_idx" ON "partner_invites" USING btree ("invited_user_id","status");--> statement-breakpoint
+CREATE UNIQUE INDEX "partner_members_unique" ON "partner_members" USING btree ("partner_id","user_id");--> statement-breakpoint
+CREATE INDEX "partner_members_user_idx" ON "partner_members" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "partner_offerings_partner_idx" ON "partner_offerings" USING btree ("partner_id","sort");--> statement-breakpoint
+CREATE INDEX "partners_category_idx" ON "partners" USING btree ("category_id");--> statement-breakpoint
+CREATE INDEX "partners_public_idx" ON "partners" USING btree ("status","active");--> statement-breakpoint
 CREATE INDEX "reviews_target_idx" ON "reviews" USING btree ("target_type","target_id","status");--> statement-breakpoint
 CREATE INDEX "reviews_status_idx" ON "reviews" USING btree ("status");

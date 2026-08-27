@@ -5,71 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1785399559770,
+      "when": 1787835912918,
       "tag": "0000_baseline",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1785402978009,
-      "tag": "0001_drop_lfg",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1785535481105,
-      "tag": "0002_quest_stations",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1785535496052,
-      "tag": "0003_drop_requires_prev",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1785538422435,
-      "tag": "0004_claim_rate_limited",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1786203386278,
-      "tag": "0005_partner_multi_tenant",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1786205661431,
-      "tag": "0006_drop_partner_legacy_columns",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1786205661432,
-      "tag": "0007_gallery_views",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1786205661433,
-      "tag": "0008_claim_locked",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1786205661434,
-      "tag": "0009_quest_ordering_and_event_slug",
       "breakpoints": true
     }
   ]
