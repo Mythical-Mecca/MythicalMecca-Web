@@ -17,12 +17,18 @@ export default async function PartnersPage() {
   const groups = await getPartnersByCategory();
 
   return (
-    <>
+    /* The public layout leaves `main` unwrapped on purpose — the homepage runs
+       full-bleed sections that each bring their own container. Index pages like
+       this one therefore have to supply it themselves, and this one never did:
+       the headings, the hero and every card sat flush against the viewport
+       edge. Same width and gutter as the signed-in shell, so the page does not
+       jump when a member views it. */
+    <div className="mx-auto w-full max-w-6xl px-6 pt-8">
       <SectionHero
         section="partners"
         actions={
-          <Link href="/apply" className="mm-btn mm-btn-primary">
-            <Icon icon="game-icons:shop" width={18} /> Apply for a stall
+          <Link href="/apply" className="mm-btn mm-btn-glow">
+            <Icon icon="game-icons:shop" width={20} /> Apply for a stall
           </Link>
         }
       />
@@ -119,6 +125,6 @@ export default async function PartnersPage() {
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 }

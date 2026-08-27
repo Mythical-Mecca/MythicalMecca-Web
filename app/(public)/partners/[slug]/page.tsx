@@ -90,7 +90,9 @@ export default async function PartnerPage({
   const productItems = partner.gallery.filter((g) => g.kind === "product");
 
   return (
-    <div className="max-w-5xl pb-24">
+    /* Same omission as the index: a max-width with nothing to centre it and no
+       gutter, so the stall profile sat against the left edge of the window. */
+    <div className="mx-auto w-full max-w-5xl px-6 pt-8 pb-24">
       <Link
         href="/partners"
         className="text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"

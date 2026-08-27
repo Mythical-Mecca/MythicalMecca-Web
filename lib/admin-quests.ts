@@ -273,6 +273,11 @@ export async function paceFlags(
     for (let i = 1; i < rows.length; i++) {
       const prev = rows[i - 1]!;
       const row = rows[i]!;
+      // `hunt_progress.user_id` is NOT NULL, but selecting it alongside a join
+      // widens the inferred type to `string | null`. Skipping rather than
+      // casting: a row with no player is not a pace signal either way, and the
+      // map has to be keyed by a real id.
+      if (!row.userId) continue;
       if (row.userId !== prev.userId) continue;
       const gap = Math.round(
         (row.completedAt.getTime() - prev.completedAt.getTime()) / 1000

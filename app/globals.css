@@ -366,6 +366,34 @@ body::before {
     }
   }
 
+  /* The one call to action on a section page — apply for a stall, join the
+     hunt. Gold as light rather than as paint: a low wash, a lit edge and a
+     glow around it, so it reads as the brightest thing on the page without
+     becoming a solid slab of colour competing with the artwork behind it.
+
+     Squared off and larger than the pill buttons on purpose. It is not one of
+     a row of controls; it is the thing the page is asking you to do. */
+  .mm-btn-glow {
+    min-height: 56px;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    font-size: 1.02rem;
+    background: color-mix(in srgb, var(--mm-gold) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--mm-gold) 55%, transparent);
+    color: var(--mm-gold-hi);
+    box-shadow:
+      0 0 26px color-mix(in srgb, var(--mm-gold) 22%, transparent),
+      inset 0 0 22px color-mix(in srgb, var(--mm-gold) 9%, transparent);
+  }
+
+  .mm-btn-glow:hover {
+    background: color-mix(in srgb, var(--mm-gold) 20%, transparent);
+    border-color: color-mix(in srgb, var(--mm-gold) 80%, transparent);
+    box-shadow:
+      0 0 38px color-mix(in srgb, var(--mm-gold) 34%, transparent),
+      inset 0 0 26px color-mix(in srgb, var(--mm-gold) 14%, transparent);
+  }
+
   .mm-btn-ghost {
     background: color-mix(in srgb, var(--mm-surface) 52%, transparent);
     color: var(--mm-text);
