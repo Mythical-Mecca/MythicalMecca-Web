@@ -539,20 +539,27 @@ function QuestHeader({
 
       {player && (
         <div
-          className={`${rule} flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm`}
+          className={`${rule} flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3`}
         >
-          <span className="flex items-center gap-1.5 text-[var(--mm-text-dim)]">
-            <Icon
-              icon="game-icons:hood"
-              width={16}
-              className="text-[var(--mm-gold)]"
-            />
-            Playing as{" "}
-            <strong className="text-[var(--mm-text)]">{player.handle}</strong>
+          <span className="flex min-w-0 items-center gap-2.5">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--mm-elevated)] text-[var(--mm-gold)] ring-2 ring-[color-mix(in_srgb,var(--mm-gold)_45%,transparent)]">
+              <Icon icon="game-icons:hood" width={26} />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[10px] uppercase tracking-[0.18em] text-[var(--mm-text-dim)]">
+                Playing as
+              </span>
+              <span className="block truncate font-[family-name:var(--font-display)] text-lg leading-tight tracking-wide">
+                {player.handle}
+              </span>
+            </span>
           </span>
-          <form action={playerSignOut}>
+          {/* Handing your phone to a friend so they can start their own trail
+              is a real thing at a stand, so this stays a proper target — but
+              a quiet one, sized well below the name it sits next to. */}
+          <form action={playerSignOut} className="shrink-0">
             <input type="hidden" name="path" value={`/quests/${hunt.slug}`} />
-            <button className="min-h-8 text-[var(--mm-text-dim)] underline underline-offset-4 hover:text-[var(--mm-text)]">
+            <button className="inline-flex min-h-8 items-center rounded-full border border-[color-mix(in_srgb,var(--mm-border)_80%,transparent)] px-3 py-1 text-xs text-[var(--mm-text-dim)] transition-colors hover:border-[var(--mm-gold)] hover:text-[var(--mm-text)]">
               Not you?
             </button>
           </form>
