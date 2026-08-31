@@ -69,6 +69,15 @@ export interface AdminQuestDetail extends AdminQuestRow {
   objectiveList: AdminObjective[];
   /** Whether the attached event has coordinates — open-tag geofencing needs them. */
   eventHasCoords: boolean;
+  /** See scavengerHunts.allowList. */
+  allowListEnabled: boolean;
+  allowList: string[];
+  /**
+   * Which kind of identity the list is written in. Follows the event, so the
+   * editor asks for emails at an ordinary event and handles at a no-data one
+   * rather than making the admin remember which applies.
+   */
+  eventNoDataMode: boolean;
 }
 
 export async function listQuestsAdmin(): Promise<AdminQuestRow[]> {
@@ -114,6 +123,7 @@ export async function getQuestAdmin(
         h: scavengerHunts,
         eventTitle: events.title,
         eventSlug: events.slug,
+        eventNoDataMode: events.noDataMode,
         eventLat: events.lat,
         eventLng: events.lng,
       })
@@ -179,6 +189,9 @@ export async function getQuestAdmin(
       eventTitle: row.eventTitle,
       eventSlug: row.eventSlug,
       eventHasCoords: row.eventLat != null && row.eventLng != null,
+      allowListEnabled: row.h.allowListEnabled,
+      allowList: row.h.allowList ?? [],
+      eventNoDataMode: row.eventNoDataMode,
       objectives: objectiveList.length,
       players: Number(players[0]?.n ?? 0),
       objectiveList,

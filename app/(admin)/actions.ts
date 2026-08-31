@@ -882,6 +882,25 @@ export type QuestSettingsState = {
  * rejected value can be reported on the field that caused it — see
  * components/quest-settings-form.tsx.
  */
+/**
+ * Split a pasted allow list into normalised entries.
+ *
+ * Accepts commas, semicolons and newlines because all three are what comes
+ * out of a spreadsheet, a chat message and a mail client's To: field, and an
+ * admin should not have to know which one we wanted. Lower-cased and
+ * de-duplicated so the stored list is exactly what the check compares
+ * against — normalising on read instead would put the same rule in two
+ * places, and they would drift.
+ */
+function parseAllowList(raw: string): string[] {
+  const seen = new Set<string>();
+  for (const part of raw.split(/[\n,;]+/)) {
+    const v = part.trim().toLowerCase();
+    if (v) seen.add(v);
+  }
+  return [...seen];
+}
+
 export async function updateQuest(
   _prev: QuestSettingsState,
   formData: FormData
@@ -895,11 +914,14 @@ export async function updateQuest(
     startsAt: formData.get("startsAt") || undefined,
     endsAt: formData.get("endsAt") || undefined,
   });
+  const allowListEnabled = formData.get("allowListEnabled") === "1";
+  const allowList = parseAllowList(String(formData.get("allowList") ?? ""));
   const values = {
     title: String(formData.get("title") ?? ""),
     description: String(formData.get("description") ?? ""),
     startsAt: String(formData.get("startsAt") ?? ""),
     endsAt: String(formData.get("endsAt") ?? ""),
+    allowList: String(formData.get("allowList") ?? ""),
   };
   if (!parsed.success) {
     return { fieldErrors: fieldErrorsFrom(parsed.error.issues), values };
@@ -916,6 +938,19 @@ export async function updateQuest(
     };
   }
 
+  // Refused rather than saved, because the saved version of this mistake is a
+  // quest nobody can start and no error anywhere to explain why. The form
+  // warns as you type; this is the backstop for a submit that ignored it.
+  if (allowListEnabled && allowList.length === 0) {
+    return {
+      fieldErrors: {
+        allowList:
+          "An allow list with nobody on it closes the quest to everyone. Add at least one, or switch the list off.",
+      },
+      values,
+    };
+  }
+
   if (process.env.DATABASE_URL) {
     try {
       await db
@@ -925,6 +960,10 @@ export async function updateQuest(
           description: parsed.data.description ?? null,
           eventId: parsed.data.eventId,
           sequential: formData.get("sequential") === "1",
+          allowListEnabled,
+          // Kept even while the switch is off, so turning it back on restores
+          // the list instead of asking for it again.
+          allowList,
           startsAt: opens,
           endsAt: closes,
           updatedAt: new Date(),

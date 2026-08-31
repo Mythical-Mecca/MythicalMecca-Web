@@ -43,6 +43,13 @@
       "when": 1788186611816,
       "tag": "0005_collab_spam_quarantine",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788204522316,
+      "tag": "0006_quest_allow_list",
+      "breakpoints": true
     }
   ]
 }

@@ -605,6 +605,52 @@ export default async function HuntDetailPage({
   const player =
     who.kind === "player" ? await playerForEvent(hunt.eventId) : null;
 
+  /**
+   * Signed in, but not invited.
+   *
+   * Said here rather than left to the first check-in, because the alternative
+   * is walking a hall to a stand and finding out at the counter. The stands
+   * are withheld with it: this quest's objectives are not this reader's to
+   * know, and the list is the whole point.
+   */
+  if (!hunt.allowed) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+        <div className="-ml-1 mb-4">
+          <BackLink to={backTo} />
+        </div>
+        <div className="mm-card p-6 text-center">
+          <Icon
+            icon="mdi:account-lock-outline"
+            width={34}
+            className="mx-auto text-[var(--mm-gold)]"
+          />
+          <h1 className="mt-3 font-[family-name:var(--font-display)] text-2xl tracking-wide">
+            {hunt.title}
+          </h1>
+          <p className="mx-auto mt-2 max-w-sm text-[var(--mm-text-dim)]">
+            This one is invite-only, and{" "}
+            {player ? `"${player.handle}"` : "your account"} isn&apos;t on the
+            list. Whoever is running it can add you.
+          </p>
+          {player && (
+            <form action={playerSignOut} className="mt-5">
+              <input
+                type="hidden"
+                name="path"
+                value={`/quests/${hunt.slug}`}
+              />
+              <button className="mm-btn mm-btn-ghost">
+                <Icon icon="game-icons:hood" width={17} />
+                Sign in as someone else
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   const doneCount = hunt.steps.filter((s) => s.done).length;
   // Which medallion the cabinet opens on: whatever the player just tried,
   // else the first stand still standing. Not a ranking — a starting point.

@@ -9,6 +9,7 @@ import {
   paceFlags,
 } from "@/lib/admin-quests";
 import { listEvents } from "@/lib/admin";
+import { listMembers } from "@/lib/admin-users";
 import { getPartners } from "@/lib/content";
 import { setQuestActive, deleteQuest } from "@/app/(admin)/actions";
 import { ObjectiveTimeline } from "@/components/objective-timeline";
@@ -53,6 +54,7 @@ const OUTCOME_TONE: Record<string, string> = {
   locked: "var(--mm-gold)",
   rate_limited: "var(--mm-gold)",
   wrong_account: "var(--mm-gold)",
+  not_allowed: "var(--mm-gold)",
 };
 
 export default async function AdminQuestEditorPage({
@@ -83,12 +85,20 @@ export default async function AdminQuestEditorPage({
     label: "All quests",
   });
 
-  const [feed, flags, guesses, pace] = await Promise.all([
+  const [feed, flags, guesses, pace, members] = await Promise.all([
     questClaimFeed(quest.id),
     sharingFlags(quest.id),
     guessFlags(quest.id),
     paceFlags(quest.id),
+    // Only to autocomplete the allow list. A no-data event has no members to
+    // offer, and asking for them there would be the one query on this page
+    // that reads the table that event promised to stay out of.
+    quest.eventNoDataMode ? Promise.resolve([]) : listMembers(),
   ]);
+  const memberEmails = members
+    .map((m) => m.email)
+    .filter((e): e is string => !!e)
+    .sort();
 
   // The tag URLs are shown and copied from this page, so the warning belongs
   // here too — not only on the print sheet, which you might never open.
@@ -297,6 +307,10 @@ export default async function AdminQuestEditorPage({
           sequential={quest.sequential}
           startsAtLocal={toLocalInput(quest.startsAt)}
           endsAtLocal={toLocalInput(quest.endsAt)}
+          allowListEnabled={quest.allowListEnabled}
+          allowList={quest.allowList}
+          noDataMode={quest.eventNoDataMode}
+          memberEmails={memberEmails}
           events={events.map((e) => ({
             id: e.id,
             title: e.title,

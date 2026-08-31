@@ -66,7 +66,8 @@ export type ClaimOutcome =
   /** A prerequisite objective hasn't been cleared yet. */
   | "locked"
   /** A member account at a no-data event, or a player anywhere else. */
-  | "wrong_account";
+  | "wrong_account"
+  | "not_allowed";
 
 /**
  * `qr_scan` is the workhorse type for a venue quest: "get to the destination
@@ -128,6 +129,14 @@ export interface HuntView {
   eventId: string;
   /** True when this quest admits event players only. See events.noDataMode. */
   noDataMode: boolean;
+  /**
+   * False only when the quest runs on an allow list and this adventurer is
+   * not on it. True for everyone when the list is off, and true when nobody
+   * is signed in — a stranger gets the teaser, not a rejection.
+   */
+  allowed: boolean;
+  /** True when the quest is restricted at all, whoever is reading. */
+  allowListEnabled: boolean;
   open: boolean;
 }
 
@@ -160,6 +169,8 @@ interface RawHunt {
   id: string;
   slug: string;
   sequential: boolean;
+  allowListEnabled: boolean;
+  allowList: string[];
   title: string;
   description: string;
   mode: string;
@@ -263,6 +274,8 @@ async function rawHunt(slug: string): Promise<RawHunt | null> {
     eventLat: row.eventLat,
     eventLng: row.eventLng,
     noDataMode: row.noDataMode,
+    allowListEnabled: row.h.allowListEnabled,
+    allowList: row.h.allowList ?? [],
     open: isOpen(row.h),
     steps: await stepsFor(row.h.id),
   };
@@ -456,8 +469,60 @@ export async function getHunt(
     eventTitle: raw.eventTitle,
     eventId: raw.eventId,
     noDataMode: raw.noDataMode,
+    allowed: await onAllowList(raw, who),
+    allowListEnabled: raw.allowListEnabled,
     open: raw.open,
   };
+}
+
+/**
+ * The identity an allow list is written against: an email for a member, a
+ * handle for a player, both normalised the way the list is stored.
+ *
+ * Resolved here rather than carried on {@link Claimant} because it is needed
+ * only when a list is switched on, and threading an email through every claim
+ * path would put a member's address into places that have no business
+ * holding one.
+ */
+async function identityFor(who: Claimant): Promise<string | null> {
+  if (!useDb) return null;
+  try {
+    if (who.kind === "member") {
+      const [row] = await db
+        .select({ email: users.email })
+        .from(users)
+        .where(eq(users.id, who.userId))
+        .limit(1);
+      return row?.email?.trim().toLowerCase() || null;
+    }
+    const [row] = await db
+      .select({ handle: eventPlayers.handle })
+      .from(eventPlayers)
+      .where(eq(eventPlayers.id, who.playerId))
+      .limit(1);
+    return row?.handle?.trim().toLowerCase() || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * May this adventurer play?
+ *
+ * An enabled-but-empty list admits nobody, and an identity we cannot resolve
+ * is not on any list. Both fail closed: an allow list that silently stops
+ * enforcing is worse than one that locks its author out, because only the
+ * second gets noticed.
+ */
+async function onAllowList(
+  hunt: { allowListEnabled: boolean; allowList: string[] },
+  who: Claimant | undefined
+): Promise<boolean> {
+  if (!hunt.allowListEnabled) return true;
+  if (!who) return true; // Nobody signed in yet — that is the teaser's job.
+  if (hunt.allowList.length === 0) return false;
+  const me = await identityFor(who);
+  return me !== null && hunt.allowList.includes(me);
 }
 
 /**
@@ -683,6 +748,9 @@ export interface ClaimTarget {
    * rule the sign-in panel merely draws is no rule at all.
    */
   noDataMode: boolean;
+  /** See scavengerHunts.allowList — the claim has to honour it too. */
+  allowListEnabled: boolean;
+  allowList: string[];
   rotationSeconds: number;
   stationKey: string | null;
   alreadyDone: boolean;
@@ -746,6 +814,8 @@ export async function getClaimTarget(
       eventLat: row.eventLat,
       eventLng: row.eventLng,
       noDataMode: row.noDataMode,
+      allowListEnabled: row.h.allowListEnabled,
+      allowList: row.h.allowList ?? [],
       rotationSeconds: row.rotationSeconds ?? 60,
       stationKey: row.stationKey,
     };
@@ -927,6 +997,12 @@ export async function claimObjective(input: {
     return finish("wrong_account");
   }
 
+  // A tag URL is a public string, so a list the quest page merely draws is no
+  // list at all — the claim itself has to hold it.
+  if (!(await onAllowList(target, who))) {
+    return finish("not_allowed");
+  }
+
   if (!target.huntOpen) return finish("not_open");
   if (target.alreadyDone) return finish("duplicate");
   // Before any proof is examined: no point telling someone their code is wrong
@@ -1023,6 +1099,12 @@ export async function claimViaStation(input: {
   // on who the event admits.
   if (target.noDataMode !== (who.kind === "player")) {
     return finish("wrong_account");
+  }
+
+  // A tag URL is a public string, so a list the quest page merely draws is no
+  // list at all — the claim itself has to hold it.
+  if (!(await onAllowList(target, who))) {
+    return finish("not_allowed");
   }
 
   if (!target.huntOpen) return finish("not_open");

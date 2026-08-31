@@ -26,6 +26,8 @@ const FAILURE_COPY: Record<Exclude<Failure, "ok">, string> = {
     "Give it a moment and check in again. After a run of wrong codes the wait is a couple of minutes.",
   wrong_account:
     "This quest uses its own name and PIN, not a site account. Head back to the quest and sign in there.",
+  not_allowed:
+    "This quest is invite-only and you are not on the list. Talk to whoever is running it.",
   signed_out: "Your sign-in expired. Sign in again and this will still be here.",
 };
 

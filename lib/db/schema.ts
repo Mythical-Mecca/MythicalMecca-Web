@@ -827,6 +827,8 @@ export const claimOutcomeEnum = pgEnum("claim_outcome", [
   "locked",
   // A member account at a no-data event, or a player session anywhere else.
   "wrong_account",
+  // The quest runs on an allow list and this adventurer is not on it.
+  "not_allowed",
 ]);
 export const scavengerHunts = pgTable("scavenger_hunts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -852,6 +854,24 @@ export const scavengerHunts = pgTable("scavenger_hunts", {
    * waits for its parent and the rest can be done whenever.
    */
   sequential: boolean("sequential").notNull().default(false),
+  /**
+   * Who may play, when the quest is not open to everyone at its event.
+   *
+   * One normalised (trimmed, lower-cased) identity per entry — an email
+   * address at an ordinary event, a player handle at a no-data one. Which of
+   * the two follows from events.noDataMode rather than being stored, because
+   * that flag already decides which kind of account can exist here at all;
+   * storing the kind twice is a way for the two to disagree.
+   *
+   * Enabled with an empty list admits nobody. Deliberate: the other reading —
+   * empty means no restriction — makes the switch quietly stop enforcing,
+   * which is the failure you don't find out about.
+   */
+  allowListEnabled: boolean("allow_list_enabled").notNull().default(false),
+  allowList: jsonb("allow_list")
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   startsAt: timestamp("starts_at", { withTimezone: true }),
   endsAt: timestamp("ends_at", { withTimezone: true }),
   active: boolean("active").notNull().default(true),
