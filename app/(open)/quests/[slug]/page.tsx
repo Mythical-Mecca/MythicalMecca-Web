@@ -58,12 +58,12 @@ const inputCls = `mm-inset flex-1 ${inputPill}`;
 function StepBody({
   step,
   slug,
-  featured,
+  expanded,
 }: {
   step: PublicStep;
   slug: string;
-  /** The objective the player is standing at now — see the qr_scan branch. */
-  featured: boolean;
+  /** Say the whole thing here rather than on every card — see qr_scan. */
+  expanded: boolean;
 }) {
   switch (step.type) {
     case "riddle":
@@ -130,7 +130,7 @@ function StepBody({
         </div>
       );
     case "qr_scan":
-      return featured ? (
+      return expanded ? (
         <p className="mm-inset mt-3 flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm text-[var(--mm-text-dim)]">
           <Icon
             icon="mdi:qrcode-scan"
@@ -340,6 +340,7 @@ function ObjectiveCard({
   index,
   slug,
   featured,
+  expanded,
   flash,
   isFirst,
   prevDone,
@@ -347,7 +348,15 @@ function ObjectiveCard({
   step: PublicStep;
   index: number;
   slug: string;
+  /** Singled out as the one to do now. Only ever true on a sequential quest. */
   featured: boolean;
+  /**
+   * Carries the long-form instruction for its step type. Distinct from
+   * the featured flag: the wording is worth saying once and has to land
+   * somewhere, so it goes on the first open objective whether or not the
+   * quest ranks them. It is a place to put a sentence, not a marker.
+   */
+  expanded: boolean;
   flash: { ok: boolean; fail: boolean };
   /** The path starts at the first node, so it gets no incoming segment. */
   isFirst: boolean;
@@ -463,7 +472,7 @@ function ObjectiveCard({
                   Not quite — try again.
                 </p>
               )}
-              <StepBody step={step} slug={slug} featured={featured} />
+              <StepBody step={step} slug={slug} expanded={expanded} />
             </>
           )}
         </div>
@@ -597,8 +606,8 @@ function QuestHeader({
         )}
       </div>
 
-      {/* Where to walk. The one question someone has mid-hall, answered
-          without making them read the whole list. */}
+      {/* The rule of the trail: where to go next if the quest ranks its
+          objectives, and otherwise the fact that it doesn't. */}
       <div className={`${rule} px-4 py-3`}>
         {finished ? (
           <p className="flex items-center gap-2 font-medium text-[var(--mm-live)]">
@@ -609,7 +618,15 @@ function QuestHeader({
             />
             Trail complete — every stand visited.
           </p>
-        ) : next ? (
+        ) : !next ? (
+          <p className="text-sm text-[var(--mm-text-dim)]">
+            Nothing open right now — clear what a locked objective is waiting
+            on.
+          </p>
+        ) : hunt.sequential ? (
+          /* Where to walk. The one question someone has mid-hall on a trail
+             that must be walked in order, answered without making them read
+             the whole list. */
           <>
             <p className="flex items-start gap-2">
               <Icon
@@ -631,18 +648,18 @@ function QuestHeader({
                 )}
               </span>
             </p>
-            {/* The numbered list implies an order, so say whether the quest
-                actually enforces one. */}
             <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
-              {hunt.sequential
-                ? "Work through them in order."
-                : "Visit them in any order."}
+              Work through them in order.
             </p>
           </>
         ) : (
-          <p className="text-sm text-[var(--mm-text-dim)]">
-            Nothing open right now — clear what a locked objective is waiting
-            on.
+          <p className="flex items-center gap-2 text-[var(--mm-text-dim)]">
+            <Icon
+              icon="mdi:shuffle-variant"
+              width={18}
+              className="shrink-0 text-[var(--mm-gold)]"
+            />
+            Visit them in any order.
           </p>
         )}
       </div>
@@ -820,6 +837,11 @@ export default async function HuntDetailPage({
   // actually do, so locked objectives are skipped.
   const next = hunt.steps.find((s) => !s.done && !s.locked) ?? null;
   const nextId = next?.id ?? null;
+  // Only a quest that enforces an order has a "next". On a free-order trail
+  // every open objective is equally the next one, so singling the topmost out
+  // — gold border, halo, a NEXT UP banner — is the page inventing a sequence
+  // it has just finished telling the player does not exist.
+  const featuredId = hunt.sequential ? nextId : null;
   const finished = doneCount === hunt.steps.length && hunt.steps.length > 0;
 
   return (
@@ -883,7 +905,8 @@ export default async function HuntDetailPage({
             step={step}
             index={i}
             slug={slug}
-            featured={step.id === nextId}
+            featured={step.id === featuredId}
+            expanded={step.id === nextId}
             flash={{ ok: ok === step.id, fail: fail === step.id }}
             isFirst={i === 0}
             prevDone={i > 0 && hunt.steps[i - 1].done}
