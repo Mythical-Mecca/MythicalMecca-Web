@@ -17,7 +17,6 @@ export type NavItem = {
 const toMenuItem = (item: NavItem): NavMenuItem => ({
   href: item.href,
   title: item.label,
-  desc: item.sub ?? "",
   icon: item.icon ?? "mdi:circle-small",
   color: item.color ?? "#9aa3bd",
 });
@@ -25,7 +24,6 @@ const toMenuItem = (item: NavItem): NavMenuItem => ({
 const DASHBOARD_ITEM: NavMenuItem = {
   href: "/dashboard",
   title: "Dashboard",
-  desc: "Back to your home base",
   icon: "game-icons:castle",
   color: "#4aa8ff",
 };
@@ -91,7 +89,7 @@ export function DashboardShell({
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <NavMenu items={menuItems} title={area} subtitle="Jump to a section" />
+            <NavMenu items={menuItems} title={area} />
             <form
               action={async () => {
                 "use server";

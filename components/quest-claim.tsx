@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icon";
-import { submitClaim, type ClaimState } from "@/app/(app)/q/[token]/actions";
+import { submitClaim, type ClaimState } from "@/app/(open)/q/[token]/actions";
 import type { ClaimMode } from "@/lib/hunts";
 
 type Failure = NonNullable<ClaimState["outcome"]>;
@@ -24,6 +24,8 @@ const FAILURE_COPY: Record<Exclude<Failure, "ok">, string> = {
   unknown_step: "This tag isn't one of ours, or the objective has been removed.",
   rate_limited:
     "Give it a moment and check in again. After a run of wrong codes the wait is a couple of minutes.",
+  wrong_account:
+    "This quest uses its own name and PIN, not a site account. Head back to the quest and sign in there.",
   signed_out: "Your sign-in expired. Sign in again and this will still be here.",
 };
 

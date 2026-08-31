@@ -217,6 +217,26 @@ body::before {
   }
 
   /* ---------------------------------------------------------------------
+     A card that survives any background.
+
+     .mm-panel (below) bleeds to both edges on a phone and ramps to an
+     *opaque* --mm-bg at each end, which is only invisible while the page
+     behind it is flat --mm-bg. On the quest page — one smooth navy-to-gold
+     gradient — every one of those ramps painted a dark band across it, so a
+     column of cards read as a stack of horizontal lines.
+
+     This is the panel for those pages: a real card, tinted through --panel
+     the same way, with nothing that assumes the colour behind it.
+     --------------------------------------------------------------------- */
+  .mm-card {
+    --panel: var(--mm-surface);
+    background: color-mix(in srgb, var(--panel) 92%, transparent);
+    border: 1px solid color-mix(in srgb, var(--mm-border) 90%, transparent);
+    border-radius: var(--radius-card);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, white 7%, transparent);
+  }
+
+  /* ---------------------------------------------------------------------
      Full-bleed panel on a phone.
 
      Dark interfaces separate layers by lightness, not by shadow. A drop
@@ -287,14 +307,20 @@ body::before {
      first objective starts the path cleanly and the last one ends it
      instead of trailing off into nothing.
 
-     left: 2rem lands on the marker's centre — 1rem of panel padding plus
-     half of the 2rem marker. The marker carries a solid background and sits
-     a layer above, so it masks the line where they cross: that overlap is
-     what makes it read as a bead on a thread rather than a line with a
-     circle beside it.
+     The line lands on the marker's centre: --trail-inset (the card's padding)
+     plus half of --trail-node (the marker's diameter). Both are variables
+     because the marker is now a partner's avatar and its size is a design
+     decision, not a constant — hard-coded 2rem meant every node size change
+     silently slid the whole thread off the beads.
+
+     The marker carries a solid background and sits a layer above, so it masks
+     the line where they cross: that overlap is what makes it read as a bead
+     on a thread rather than a line with a circle beside it.
      --------------------------------------------------------------------- */
   .mm-trail {
     --trail-gap: 1.5rem;
+    --trail-node: 3.5rem;
+    --trail-inset: 1rem;
   }
 
   @media (min-width: 640px) {
@@ -307,7 +333,7 @@ body::before {
   .mm-trail-out::after {
     content: "";
     position: absolute;
-    left: 2rem;
+    left: calc(var(--trail-inset, 1rem) + var(--trail-node, 2rem) / 2);
     width: 2px;
     margin-left: -1px;
     border-radius: 2px;
@@ -316,7 +342,7 @@ body::before {
   /* Arriving: up out of the node, across the gap, to the card above. */
   .mm-trail-in::before {
     top: calc(-1 * var(--trail-gap));
-    height: calc(var(--trail-gap) + 2rem);
+    height: calc(var(--trail-gap) + var(--trail-node, 2rem));
     background: var(--trail-seg-in, var(--mm-divider));
   }
 
@@ -324,7 +350,7 @@ body::before {
      the card's top, so without this the line vanishes for the whole body of
      every objective and the trail reads as dashes. */
   .mm-trail-out::after {
-    top: 2rem;
+    top: var(--trail-node, 2rem);
     bottom: 0;
     background: var(--trail-seg-out, var(--mm-divider));
   }

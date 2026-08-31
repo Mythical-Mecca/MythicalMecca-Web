@@ -4,7 +4,7 @@ import { getQuestAdmin } from "@/lib/admin-quests";
 import { qrDataUrl } from "@/lib/qrcode";
 import { Icon } from "@/components/icon";
 import { tagHostWarning } from "@/lib/app-url";
-import { forwardReturn } from "@/lib/return-to";
+import { forwardReturn, withReturn } from "@/lib/return-to";
 
 export const metadata = { title: "Quest tags · Admin" };
 
@@ -120,7 +120,7 @@ export default async function QuestTagsPage({
                 </a>
                 {o.claimMode === "live_code" && (
                   <Link
-                    href={`/partner-hub/station/${o.id}`}
+                    href={withReturn(`/partner-hub/station/${o.id}`, { href: `/admin/quests/${quest.slug}/tags`, label: "the tag sheet" })}
                     className="mm-btn mm-btn-ghost text-xs"
                   >
                     <Icon icon="mdi:monitor-dashboard" width={14} /> Station

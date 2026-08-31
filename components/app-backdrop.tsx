@@ -34,8 +34,31 @@ function bgForPath(path: string): string {
  */
 const AMBIENT = { fps: 20, maxDpr: 1 } as const;
 
+/**
+ * A single quest, walked in a hall on a phone.
+ *
+ * No photograph, no aurora, no embers: the page is a checklist somebody reads
+ * in bad light while walking, and a detailed scene behind semi-transparent
+ * cards is the one thing that makes it harder. Navy through to a gold-warmed
+ * navy, and nothing else moving. The trailing slash keeps the quest BOARD on
+ * the usual treatment — only a quest itself goes plain.
+ */
+const QUEST_GRADIENT =
+  "linear-gradient(165deg, var(--mm-bg) 0%, color-mix(in oklab, var(--mm-bg) 88%, var(--mm-blue)) 45%, color-mix(in oklab, var(--mm-bg) 78%, var(--mm-gold)) 100%)";
+
 export function AppBackdrop() {
   const path = usePathname();
+
+  if (path.startsWith("/quests/")) {
+    return (
+      <div
+        aria-hidden
+        className="fixed inset-0 -z-10"
+        style={{ background: QUEST_GRADIENT }}
+      />
+    );
+  }
+
   const bg = bgForPath(path);
 
   return (

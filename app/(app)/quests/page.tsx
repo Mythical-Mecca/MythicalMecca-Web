@@ -2,13 +2,17 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { SectionHero } from "@/components/section-hero";
 import { listHunts } from "@/lib/hunts";
+import { asMember } from "@/lib/claimant";
 import { Icon } from "@/components/icon";
+import { withReturn } from "@/lib/return-to";
 
 export const metadata = { title: "Quests" };
 
 export default async function QuestBoardPage() {
   const session = await auth();
-  const hunts = await listHunts(session?.user?.id);
+  const hunts = await listHunts(
+    session?.user ? asMember(session.user.id) : undefined
+  );
 
   return (
     <>
@@ -41,7 +45,10 @@ export default async function QuestBoardPage() {
               return (
                 <Link
                   key={h.slug}
-                  href={`/quests/${h.slug}`}
+                  href={withReturn(`/quests/${h.slug}`, {
+                href: "/quests",
+                label: "Quest board",
+              })}
                   className="mm-glass group flex flex-col p-5 transition hover:border-[var(--mm-violet)]"
                 >
                   <div className="flex items-start justify-between gap-3">

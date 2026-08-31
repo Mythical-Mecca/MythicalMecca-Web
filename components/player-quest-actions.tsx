@@ -13,7 +13,7 @@ type Sheet = "scan" | "pass" | null;
  * Which one applies depends on how that particular stand is set up, and the
  * player shouldn't have to know or care — both are always one tap away.
  */
-export function PlayerQuestActions() {
+export function PlayerQuestActions({ questSlug }: { questSlug: string }) {
   const [sheet, setSheet] = useState<Sheet>(null);
 
   return (
@@ -48,7 +48,7 @@ export function PlayerQuestActions() {
 
       {sheet && (
         <Sheet onClose={() => setSheet(null)}>
-          {sheet === "scan" ? <ScanSheet /> : <PassSheet />}
+          {sheet === "scan" ? <ScanSheet /> : <PassSheet questSlug={questSlug} />}
         </Sheet>
       )}
     </>
@@ -218,14 +218,17 @@ interface PassData {
   name: string;
 }
 
-function PassSheet() {
+function PassSheet({ questSlug }: { questSlug: string }) {
   const [pass, setPass] = useState<PassData | null>(null);
   const [left, setLeft] = useState(0);
   const [error, setError] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/quest-pass", { cache: "no-store" });
+      const res = await fetch(
+        `/api/quest-pass?quest=${encodeURIComponent(questSlug)}`,
+        { cache: "no-store" }
+      );
       if (!res.ok) throw new Error();
       const data: PassData = await res.json();
       setPass(data);
@@ -234,7 +237,7 @@ function PassSheet() {
     } catch {
       setError(true);
     }
-  }, []);
+  }, [questSlug]);
 
   // Load once, then tick down and refresh as the pass rolls over so what's on
   // screen is always claimable.

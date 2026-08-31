@@ -28,10 +28,32 @@ function ErrorBanner({ msg }: { msg: string }) {
   );
 }
 
+/**
+ * Where the page was opened from, carried through the submit.
+ *
+ * Both steps redirect back to /apply, and a redirect keeps nothing from the
+ * URL that triggered it — so without these the back link reverts to its
+ * fallback the moment someone saves step 1.
+ */
+export type ReturnFields = { from?: string; fromLabel?: string };
+
+function ReturnInputs({ returnTo }: { returnTo?: ReturnFields }) {
+  if (!returnTo?.from) return null;
+  return (
+    <>
+      <input type="hidden" name="from" value={returnTo.from} />
+      {returnTo.fromLabel && (
+        <input type="hidden" name="fromLabel" value={returnTo.fromLabel} />
+      )}
+    </>
+  );
+}
+
 /** Step 1 — details. Saves a draft application, then advances to step 2. */
 export function ApplicationDetailsForm({
   categories = [],
   defaults,
+  returnTo,
 }: {
   categories?: { id: string; name: string }[];
   defaults?: {
@@ -39,12 +61,14 @@ export function ApplicationDetailsForm({
     description?: string;
     socials?: Record<string, string>;
   };
+  returnTo?: ReturnFields;
 }) {
   const [state, action, pending] = useActionState(startApplication, {});
   const s = defaults?.socials ?? {};
 
   return (
     <form action={action} className="space-y-7">
+      <ReturnInputs returnTo={returnTo} />
       <TextField
         name="businessName"
         label="Store name"
@@ -105,12 +129,17 @@ export function ApplicationDetailsForm({
 }
 
 /** Step 2 — demo images. Uploads attach to the saved draft, then submit. */
-export function ApplicationImagesForm() {
+export function ApplicationImagesForm({
+  returnTo,
+}: {
+  returnTo?: ReturnFields;
+}) {
   const [state, action, pending] = useActionState(submitDraftApplication, {});
   const [count, setCount] = useState(0);
 
   return (
     <form action={action} className="space-y-6">
+      <ReturnInputs returnTo={returnTo} />
       <ImageUploader
         name="images"
         entityType="partner_gallery"

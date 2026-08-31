@@ -5,6 +5,7 @@ import { countMyPartnerships } from "@/lib/partner-access";
 import { AppTopNav } from "@/components/app-top-nav";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { HOME_SECTIONS, PublicTopNav } from "@/components/public-top-nav";
+import { withReturn } from "@/lib/return-to";
 
 const Footer = () => (
   <footer className="flex flex-col items-center gap-3 border-t border-[var(--mm-border)] px-6 py-8 text-center text-xs text-[var(--mm-text-dim)]">
@@ -18,7 +19,10 @@ const Footer = () => (
           {s.label}
         </a>
       ))}
-      <Link href="/collab" className="inline-flex min-h-6 items-center hover:text-[var(--mm-text)]">
+      <Link
+        href={withReturn("/collab", { href: "/", label: "home" })}
+        className="inline-flex min-h-6 items-center hover:text-[var(--mm-text)]"
+      >
         Contact
       </Link>
     </nav>
@@ -30,7 +34,7 @@ const Footer = () => (
     >
       <Icon icon="mdi:discord" width={16} /> Join our Discord
     </a>
-    <span>Mythical Mecca — a hearth for the geek collective.</span>
+    <span>Mythical Mecca — a hearth for the geek community.</span>
   </footer>
 );
 

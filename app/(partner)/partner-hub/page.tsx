@@ -8,6 +8,7 @@ import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
 import { Flash } from "@/components/flash";
 import { PartnerStatusBadge } from "@/components/partner-status-badge";
+import { withReturn } from "@/lib/return-to";
 
 export const metadata = { title: "Partner Hub" };
 
@@ -105,7 +106,7 @@ export default async function PartnerHubPage({
             {liveStations.map((s) => (
               <Link
                 key={s.stepId}
-                href={`/partner-hub/station/${s.stepId}`}
+                href={withReturn(`/partner-hub/station/${s.stepId}`, { href: "/partner-hub", label: "Partner hub" })}
                 className="mm-btn mm-btn-primary flex w-full items-center justify-between py-4"
               >
                 <span className="flex min-w-0 flex-col items-start">
@@ -145,7 +146,7 @@ export default async function PartnerHubPage({
             {stations.map((s) => (
               <Link
                 key={s.stepId}
-                href={`/partner-hub/station/${s.stepId}`}
+                href={withReturn(`/partner-hub/station/${s.stepId}`, { href: "/partner-hub", label: "Partner hub" })}
                 className="flex items-center justify-between rounded-xl px-3 py-2 text-sm text-[var(--mm-text-dim)] transition hover:bg-[var(--mm-surface)] hover:text-[var(--mm-text)]"
               >
                 <span className="truncate">

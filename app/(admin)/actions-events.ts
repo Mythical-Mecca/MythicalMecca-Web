@@ -199,6 +199,12 @@ const EVENT_FIELDS = {
   startsAt: optionalStamp(),
   endsAt: optionalStamp(),
   capacity: optionalNumber(0, 1_000_000),
+  // A checkbox that is off submits nothing, and updateEvent leaves an absent
+  // field alone — so the flag could never be turned back off. Two explicit
+  // values always submit one.
+  noDataMode: z
+    .enum(["0", "1"], { message: "Pick one." })
+    .transform((v) => v === "1"),
   partnerId: z
     .string()
     .transform((v) => (v.trim() === "" ? null : v.trim()))

@@ -15,16 +15,21 @@ export const ACCENT = {
   dashboard: "#4aa8ff",
   profile: "#4aa8ff",
 
-  /** The three member sections. These match `SECTIONS` in lib/sections.ts. */
+  /**
+   * The three member sections. These match `SECTIONS` in lib/sections.ts.
+   *
+   * Events and quests share a green on purpose: they are the two halves of
+   * turning up to something, and the pages that list them sit side by side.
+   */
   events: "#5cc08c",
-  quests: "#9a6cff",
-  partners: "#E18D01",
+  quests: "#5cc08c",
+  partners: "#9a6cff",
 
   /** Marketplace operations — applying for and running a stall. */
-  marketplace: "#E18D01",
+  marketplace: "#ffffff",
 
   /** Admin-only areas that have no member-facing counterpart. */
-  admin: "#FFB13D",
+  admin: "#ffffff",
   gallery: "#e0b0ff",
   reviews: "#f0a6c8",
   logs: "#48c8d6",

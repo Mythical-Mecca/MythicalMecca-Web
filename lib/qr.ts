@@ -1,5 +1,6 @@
 import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
+import type { Claimant } from "@/lib/claimant";
 
 /**
  * Thrown when production has no signing secret. A distinct type so callers can
@@ -48,6 +49,25 @@ function sig(data: string): string {
     .update(data)
     .digest("hex")
     .slice(0, 32);
+}
+
+/**
+ * HMAC of an arbitrary string under the same secret as everything else here.
+ *
+ * Exported for the no-data event player session (lib/event-player.ts), which
+ * is a signed cookie rather than a QR code but has exactly the same needs: a
+ * value the server minted, verifiable without a lookup, worthless to forge.
+ * Sharing the secret keeps one thing to rotate rather than two.
+ */
+export function signValue(data: string): string {
+  return sig(data);
+}
+
+/** Constant-time check of a {@link signValue} signature. */
+export function verifyValue(data: string, given: string): boolean {
+  const a = Buffer.from(given);
+  const b = Buffer.from(sig(data));
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 const isLocalhost = (url: string) => /^https?:\/\/(localhost|127\.0\.0\.1)/i.test(url);
@@ -235,9 +255,20 @@ const PASS_ROTATION_SECONDS = 60;
 /** Marker so the scanner can tell a pass from any other QR in the wild. */
 const PASS_PREFIX = "MMPASS1";
 
-export function playerPass(userId: string, atMs = Date.now()): string {
+/**
+ * The kind is baked into the pass, not inferred at the far end.
+ *
+ * A member id and a player id are both opaque UUIDs, so a scanner handed a
+ * bare id would have to guess which table to look in — and guessing wrong at a
+ * no-data event is precisely the confusion between the two worlds this feature
+ * exists to prevent. One character settles it, inside the signature.
+ */
+const passSubject = (who: Claimant) =>
+  who.kind === "member" ? `u${who.userId}` : `p${who.playerId}`;
+
+export function playerPass(who: Claimant, atMs = Date.now()): string {
   const w = windowIndex(PASS_ROTATION_SECONDS, atMs);
-  const body = `${userId}:${w}`;
+  const body = `${passSubject(who)}:${w}`;
   return `${PASS_PREFIX}.${Buffer.from(`${body}:${sig(body)}`).toString(
     "base64url"
   )}`;
@@ -252,15 +283,15 @@ export function passSecondsRemaining(atMs = Date.now()): number {
 export function verifyPlayerPass(
   token: string,
   atMs = Date.now()
-): string | null {
+): Claimant | null {
   try {
     if (!token.startsWith(`${PASS_PREFIX}.`)) return null;
     const decoded = Buffer.from(
       token.slice(PASS_PREFIX.length + 1),
       "base64url"
     ).toString("utf8");
-    const [userId, w, given] = decoded.split(":");
-    if (!userId || !w || !given) return null;
+    const [subject, w, given] = decoded.split(":");
+    if (!subject || !w || !given) return null;
 
     const current = windowIndex(PASS_ROTATION_SECONDS, atMs);
     const minted = Number(w);
@@ -273,9 +304,14 @@ export function verifyPlayerPass(
     if (minted > current || current - minted > 1) return null;
 
     const a = Buffer.from(given);
-    const b = Buffer.from(sig(`${userId}:${w}`));
+    const b = Buffer.from(sig(`${subject}:${w}`));
     if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
-    return userId;
+
+    const id = subject.slice(1);
+    if (!id) return null;
+    if (subject[0] === "u") return { kind: "member", userId: id };
+    if (subject[0] === "p") return { kind: "player", playerId: id };
+    return null;
   } catch {
     return null;
   }

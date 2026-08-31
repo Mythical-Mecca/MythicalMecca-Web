@@ -4,10 +4,15 @@ import { Brand } from "@/components/brand";
 import { DevLoginTrigger } from "@/components/dev-login-trigger";
 
 /** The public site is a single page — these are in-page anchors, not routes. */
+/** In the order the sections appear down the page. */
 export const HOME_SECTIONS = [
   { href: "/#about", label: "About" },
-  { href: "/#events", label: "Events" },
   { href: "/#gallery", label: "Gallery" },
+  { href: "/#events", label: "Events" },
+  // The quests section only renders while something is running, so this anchor
+  // lands on the partners band the rest of the year. Kept because the months
+  // it does resolve are the months it matters.
+  { href: "/#quests", label: "Quests" },
   { href: "/#partners", label: "Partners" },
 ];
 

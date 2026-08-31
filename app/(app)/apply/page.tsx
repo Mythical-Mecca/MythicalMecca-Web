@@ -11,6 +11,8 @@ import {
 } from "@/components/partner-application-wizard";
 
 import { Icon } from "@/components/icon";
+import { BackLink } from "@/components/back-link";
+import { forwardReturn, parseReturn } from "@/lib/return-to";
 
 export const metadata = { title: "Partner application" };
 
@@ -53,13 +55,23 @@ function Stepper({ step }: { step: 1 | 2 }) {
 export default async function PartnerApplicationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sent?: string; step?: string }>;
+  searchParams: Promise<{
+    sent?: string;
+    step?: string;
+    from?: string;
+    fromLabel?: string;
+  }>;
 }) {
   const session = await auth();
   const user = session!.user;
   const application = await getMyApplication(user.id);
   const categories = await listApplicableCategories();
-  const { sent, step } = await searchParams;
+  const sp = await searchParams;
+  const { sent, step } = sp;
+  // This page opens from the partners directory, the home page, the profile
+  // and the dashboard. A back link hard-coded to the dashboard was right for
+  // exactly one of those and silently wrong for the rest.
+  const backTo = parseReturn(sp, { href: "/dashboard", label: "Back to dashboard" });
   // Membership, not the JWT role: a token still saying "member" would otherwise
   // invite an existing partner to apply all over again.
   const isPartner =
@@ -77,19 +89,33 @@ export default async function PartnerApplicationPage({
 
   return (
     <div className="max-w-3xl space-y-8">
+      <BackLink to={backTo} />
       <PageHeading
         size="md"
         title="Partner application"
-        subtitle="Apply for a stall in the Armory — show us what you make."
+        subtitle="Apply for access to our Partner Hub. This gives you a dedicated partner dashboard to work with."
         icon="game-icons:shop"
         accent="#9a6cff"
       />
 
+      {/* A partner who lands here has nothing else to do on this page: the
+          wizard below is hidden for them, so an alert on its own left them at
+          a dead end with the back button. The whole panel is the way onward. */}
       {isPartner && (
-        <div className="mm-glass flex items-center gap-2 border-[var(--mm-live)] p-4 text-sm text-[var(--mm-live)]">
-          <Icon icon="mdi:check-circle-outline" width={18} />
-          You already have Forge access — manage your stall from the Forge.
-        </div>
+        <Link
+          href="/partner-hub"
+          className="mm-glass group flex items-center gap-3 border-[var(--mm-live)] p-4 text-sm text-[var(--mm-live)] transition-colors hover:bg-[color-mix(in_srgb,var(--mm-live)_10%,transparent)]"
+        >
+          <Icon icon="mdi:check-circle-outline" width={18} className="shrink-0" />
+          <span className="min-w-0 flex-1">
+            You already have access to the Partner Hub. Go there now
+          </span>
+          <Icon
+            icon="mdi:arrow-right"
+            width={16}
+            className="shrink-0 transition-transform group-hover:translate-x-0.5"
+          />
+        </Link>
       )}
 
       {sent && (
@@ -164,6 +190,7 @@ export default async function PartnerApplicationPage({
                 add demo images.
               </p>
               <ApplicationDetailsForm
+                returnTo={{ from: sp.from, fromLabel: sp.fromLabel }}
                 categories={categories.map((c) => ({
                   id: c.id,
                   name: c.name,
@@ -186,7 +213,7 @@ export default async function PartnerApplicationPage({
                   Step 2 · Demo images
                 </h2>
                 <Link
-                  href="/apply?step=1"
+                  href={forwardReturn("/apply?step=1", sp)}
                   className="inline-flex items-center gap-1 text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
                 >
                   <Icon icon="mdi:arrow-left" width={15} /> Edit details
@@ -199,7 +226,9 @@ export default async function PartnerApplicationPage({
                 </span>
                 . Add at least one image, then submit.
               </p>
-              <ApplicationImagesForm />
+              <ApplicationImagesForm
+                returnTo={{ from: sp.from, fromLabel: sp.fromLabel }}
+              />
             </div>
           )}
         </section>

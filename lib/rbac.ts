@@ -28,12 +28,24 @@ export function roleAtLeast(
 
 /** First path segment → minimum role required. Consumed by proxy.ts. */
 export const ROUTE_RULES: { prefix: string; min: Role }[] = [
-  { prefix: "/admin", min: "admin" },
+  /**
+   * Only "signed in" — same reasoning as /partner-hub below.
+   *
+   * Roles are edited from /admin/users while people are signed in, and the
+   * role claim in the session cookie is only re-minted at sign-in: `auth()`
+   * refreshes the role it hands the server (lib/auth.ts) but a React Server
+   * Component can't write the refreshed cookie back. Gating on "admin" here
+   * would therefore lock a just-promoted admin out of the panel they were
+   * just given, until they signed out and in again. The real gate is
+   * `requireRole("admin")` in app/(admin)/layout.tsx, which reads the live
+   * role and runs on every admin page.
+   */
+  { prefix: "/admin", min: "member" },
   /**
    * Only "signed in" — deliberately NOT "partner".
    *
-   * proxy.ts reads the role straight off the JWT, and the Auth.js jwt callback
-   * only refreshes it on sign-in. Someone promoted to partner mid-session (by
+   * proxy.ts reads the role straight off the JWT, and the cookie's role claim
+   * is only re-minted at sign-in. Someone promoted to partner mid-session (by
    * accepting a team invite, or having an application approved) still carries a
    * `member` token, and gating here would lock them out of the hub they just
    * joined until they signed out. The real gate is a partner_members lookup in

@@ -20,6 +20,7 @@ export type EventOrigin = "hosted" | "partner" | "external" | "community";
 export const PUBLIC_EVENT_STATUSES = ["published", "live", "ended"] as const;
 
 export interface EventView {
+  id: string;
   slug: string;
   title: string;
   summary: string;
@@ -36,6 +37,8 @@ export interface EventView {
   sourceName: string | null;
   externalUrl: string | null;
   interestedCount: number;
+  /** True when this event collects nothing — see events.noDataMode. */
+  noDataMode: boolean;
 }
 
 export interface PartnerGalleryView {
@@ -87,6 +90,8 @@ const useDb = !!process.env.DATABASE_URL;
 // Dev sample data (rendered until a database is connected)
 // ---------------------------------------------------------------------------
 const eventDefaults = {
+  id: "00000000-0000-0000-0000-000000000000",
+  noDataMode: false,
   origin: "hosted" as EventOrigin,
   partnerSlug: null,
   partnerName: null,
@@ -252,6 +257,7 @@ function toEventView(r: EventRow): EventView {
     ? (r.e.status as EventView["status"])
     : "published";
   return {
+    id: r.e.id,
     // Every caller filters to public statuses AND a non-null slug, so this is
     // always present by the time a row reaches here.
     slug: r.e.slug ?? "",
@@ -268,6 +274,7 @@ function toEventView(r: EventRow): EventView {
     sourceName: r.e.sourceName,
     externalUrl: r.e.externalUrl,
     interestedCount: r.interestedCount,
+    noDataMode: r.e.noDataMode,
   };
 }
 

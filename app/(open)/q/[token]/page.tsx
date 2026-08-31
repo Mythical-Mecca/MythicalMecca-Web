@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { verifyTagToken } from "@/lib/qr";
-import { getClaimTarget } from "@/lib/hunts";
+import { claimantFor } from "@/lib/claimant";
+import { forClaimant, getClaimTarget } from "@/lib/hunts";
 import { QuestClaim } from "@/components/quest-claim";
+import { PlayerSignIn } from "@/components/player-sign-in";
 import { Icon } from "@/components/icon";
 
 export const metadata = { title: "Check in" };
@@ -21,16 +23,14 @@ export default async function TagLandingPage({
   params: Promise<{ token: string }>;
   searchParams: Promise<{ c?: string }>;
 }) {
-  const [{ token }, { c }, session] = await Promise.all([
-    params,
-    searchParams,
-    auth(),
-  ]);
+  const [{ token }, { c }] = await Promise.all([params, searchParams]);
 
   const stepId = verifyTagToken(token);
-  const target = stepId
-    ? await getClaimTarget(stepId, session?.user?.id)
-    : null;
+  // Resolved before anyone is identified: the objective's event is what says
+  // which kind of sign-in counts at this tag.
+  const base = stepId ? await getClaimTarget(stepId) : null;
+  const who = base ? await claimantFor(base.eventId, base.noDataMode) : null;
+  const target = base && who ? await forClaimant(base, who) : base;
 
   if (!target) {
     return (
@@ -55,6 +55,29 @@ export default async function TagLandingPage({
             Quest board
           </Link>
         </div>
+      </div>
+    );
+  }
+
+  // Everywhere but a no-data event, a check-in needs a member — this is the
+  // redirect the proxy used to perform, moved here now that /q has to stay
+  // reachable for players who have no member session to check.
+  if (!who && !target.noDataMode) redirect(`/login?from=/q/${token}`);
+
+  // A scanned tag at a no-data event is most people's first contact with it,
+  // so the panel that answers it is the one that gets them playing — not a
+  // sign-in screen for a site this event has nothing to do with.
+  if (!who && target.noDataMode) {
+    return (
+      <div className="mx-auto max-w-md px-6 py-6">
+        <p className="text-center text-xs uppercase tracking-widest text-[var(--mm-gold)]">
+          {target.huntTitle}
+        </p>
+        <PlayerSignIn
+          eventId={target.eventId}
+          eventTitle={target.huntTitle}
+          path={`/q/${token}`}
+        />
       </div>
     );
   }

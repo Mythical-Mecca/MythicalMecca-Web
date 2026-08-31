@@ -61,7 +61,10 @@ place. Rename the type, recreate it without the value, re-point the column with
 ## Tables (27)
 
 **Identity** — `user`, `account`, `session`, `verificationToken`
-Auth.js adapter tables plus Mythical Mecca columns on `user` (role, avatar).
+Auth.js adapter tables plus Mythical Mecca columns on `user` (role, avatar, and
+the ban: `banned_at` / `banned_reason` / `banned_by`). A ban keeps the row —
+it only stops the account signing in, so what the member posted stays
+attributable and the ban can be lifted from `/admin/users`.
 
 **Events** — `events`, `event_comments`, `event_reviews`, `event_interests`,
 `event_gallery_items`
@@ -79,10 +82,13 @@ the homepage and `featured_on_home` decides which categories appear there.
 A user may run several partner pages and a page may be run by several users, so
 access lives in **`partner_members`** (`owner` | `manager`), not on the partner
 row. That table — via [`lib/partner-access.ts`](../lib/partner-access.ts) — is
-the authoritative permission check, *not* `user.role`: the Auth.js `jwt`
-callback only reads the role at sign-in, so a freshly-promoted partner carries a
-stale `member` token until they sign out. Gating on it would lock an invited
-teammate out of the stall they just joined.
+the authoritative permission check, *not* `user.role`: partner access is
+per-page, and a global role can't express "manager of that one stall". The role
+itself is refreshed from the database about once a minute (`ROLE_REFRESH_MS` in
+[`lib/auth.ts`](../lib/auth.ts)), which is also how a ban ends a session that is
+already open — but the *cookie's* role claim is only re-minted at sign-in, so
+edge checks in `proxy.ts` still read a stale one. Route gates therefore live in
+the section layouts, not at the edge.
 
 `partners.status` (`draft` → `pending` → `approved` / `rejected`) is the review
 lifecycle; `partners.active` is the separate admin kill switch. Public queries

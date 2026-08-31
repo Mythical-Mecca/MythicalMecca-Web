@@ -10,6 +10,7 @@ import { getEventsPage, isEventLive } from "@/lib/content";
 import { formatDateTime } from "@/lib/format";
 import { SectionHero } from "@/components/section-hero";
 import { ACCENT } from "@/lib/accents";
+import { withReturn } from "@/lib/return-to";
 
 export const metadata = { title: "Events" };
 
@@ -36,7 +37,7 @@ export default async function EventsPage({
       <SectionHero
         section="events"
         actions={
-          <Link href="/events/submit" className="mm-btn mm-btn-primary">
+          <Link href={withReturn("/events/submit", { href: "/events", label: "Events" })} className="mm-btn mm-btn-primary">
             <Icon icon="mdi:plus" width={18} /> Submit an event
           </Link>
         }
@@ -51,12 +52,19 @@ export default async function EventsPage({
 
       {liveEvent && (
         <div>
-          <LiveEventCard event={liveEvent} />
+          <LiveEventCard
+            event={liveEvent}
+            returnTo={{ href: "/events", label: "Events" }}
+          />
         </div>
       )}
 
       {/* ---------------- Calendar — the page's centrepiece ---------------- */}
-      <EventCalendar events={calEvents} todayIso={nowIso} />
+      <EventCalendar
+        events={calEvents}
+        todayIso={nowIso}
+        returnTo={{ href: "/events", label: "Events" }}
+      />
 
       {/* ---------------- Upcoming, as a scannable list ---------------- */}
       {/* Not "Upcoming events" — that is already the page's H1, and repeating
@@ -66,7 +74,10 @@ export default async function EventsPage({
         title="Next gatherings"
         icon="game-icons:campfire"
         accent={ACCENT.events}
-        action={{ href: "/events/submit", label: "Submit an event" }}
+        action={{
+          href: withReturn("/events/submit", { href: "/events", label: "Events" }),
+          label: "Submit an event",
+        }}
       >
         {upcoming.length === 0 ? (
           <p className="text-sm text-[var(--mm-text-dim)]">
@@ -77,7 +88,10 @@ export default async function EventsPage({
             {upcoming.map((e) => (
               <li key={e.slug}>
                 <Link
-                  href={`/events/${e.slug}`}
+                  href={withReturn(`/events/${e.slug}`, {
+                href: "/events",
+                label: "Events",
+              })}
                   className="group flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0"
                 >
                   <span className="min-w-0">

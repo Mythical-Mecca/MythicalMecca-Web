@@ -4,11 +4,13 @@ import { authorizeStation } from "@/lib/station-access";
 import { verifyPlayerPass } from "@/lib/qr";
 import {
   claimViaStation,
-  displayName,
+  claimantName,
+  forClaimant,
   getClaimTarget,
   logClaimAttempt,
   recentStationCheckIns,
 } from "@/lib/hunts";
+import { claimantId } from "@/lib/claimant";
 import { logActivity } from "@/lib/logging";
 
 /**
@@ -39,24 +41,27 @@ export async function POST(
   const fwd = h.get("x-forwarded-for");
   const ip = fwd ? fwd.split(",")[0]!.trim() : h.get("x-real-ip");
 
-  const userId = verifyPlayerPass(pass);
-  if (!userId) {
-    // Expired or forged. Logged without a user, since we don't know who it was.
-    await logClaimAttempt({ stepId, userId: null, outcome: "bad_code", ip });
+  // The pass says which kind of adventurer it belongs to; whether that kind
+  // is welcome at this event is claimViaStation's call, not the scanner's.
+  const who = verifyPlayerPass(pass);
+  if (!who) {
+    // Expired or forged. Logged without a claimant, since we don't know who.
+    await logClaimAttempt({ stepId, who: null, outcome: "bad_code", ip });
     return NextResponse.json({ outcome: "bad_pass" });
   }
 
-  const target = await getClaimTarget(stepId, userId);
-  if (!target) return NextResponse.json({ outcome: "unknown_step" });
+  const base = await getClaimTarget(stepId);
+  if (!base) return NextResponse.json({ outcome: "unknown_step" });
+  const target = await forClaimant(base, who);
 
   const [outcome, name] = await Promise.all([
-    claimViaStation({ target, userId, ip }),
-    displayName(userId),
+    claimViaStation({ target, who, ip }),
+    claimantName(who),
   ]);
 
-  if (outcome === "ok") {
+  if (outcome === "ok" && who.kind === "member") {
     await logActivity({
-      actorId: userId,
+      actorId: claimantId(who),
       action: "quest.objective.claim",
       entityType: "hunt_step",
       entityId: stepId,

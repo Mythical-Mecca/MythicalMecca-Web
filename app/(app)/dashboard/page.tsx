@@ -6,12 +6,14 @@ import { Badge } from "@/components/badge";
 import { getMyPartner } from "@/lib/partner";
 import { getMyApplication } from "@/lib/member";
 import { listHunts } from "@/lib/hunts";
+import { asMember } from "@/lib/claimant";
 import { EventOriginBadge } from "@/components/event-origin-badge";
 import { LiveEventCard } from "@/components/live-event-card";
 import { Card, EmptyState } from "@/components/card";
 import { PageHeading } from "@/components/page-heading";
 import { Icon } from "@/components/icon";
 import { ACCENT } from "@/lib/accents";
+import { withReturn } from "@/lib/return-to";
 
 export const metadata = { title: "Dashboard" };
 
@@ -32,7 +34,7 @@ export default async function DashboardPage() {
 			getEventsDigest(3),
 			getMyPartner(session!.user.id),
 			getMyApplication(session!.user.id),
-			listHunts(session!.user.id),
+			listHunts(asMember(session!.user.id)),
 		]);
 	const openQuests = hunts.slice(0, 3);
 
@@ -56,7 +58,10 @@ export default async function DashboardPage() {
 			{/* ---------- Live now: time-critical, conditional ------------------- */}
 			{liveEvent && (
 				<div>
-					<LiveEventCard event={liveEvent} />
+					<LiveEventCard
+						event={liveEvent}
+						returnTo={{ href: "/dashboard", label: "dashboard" }}
+					/>
 				</div>
 			)}
 
@@ -67,15 +72,15 @@ export default async function DashboardPage() {
 					<Card title="Events" icon="game-icons:campfire" accent={ACCENT.events} action={{ href: "/events", label: "All events" }}>
 						{upcoming.length === 0 ? (
 							<EmptyState
-								href="/events/submit"
-								text="The calendar is quiet — know of a gathering the collective would love?"
+								href={withReturn("/events/submit", { href: "/dashboard", label: "dashboard" })}
+								text="The calendar is quiet — know of a gathering the community would love?"
 								cta="Submit an event"
 							/>
 						) : (
 							<ul className="divide-y divide-[var(--mm-divider)]">
 								{upcoming.map((e) => (
 									<li key={e.slug}>
-										<Link href={`/events/${e.slug}`} className="group flex items-center gap-3 py-2.5">
+										<Link href={withReturn(`/events/${e.slug}`, { href: "/dashboard", label: "dashboard" })} className="group flex items-center gap-3 py-2.5">
 											<span className="min-w-0 flex-1">
 												<span className="block truncate text-sm font-[family-name:var(--font-display)] opacity-90 group-hover:text-[var(--mm-gold)]">
 													{e.title}
@@ -106,7 +111,7 @@ export default async function DashboardPage() {
 								{openQuests.map((q) => {
 									const complete = q.steps > 0 && q.done === q.steps;
 									return (
-										<Link key={q.slug} href={`/quests/${q.slug}`} className="group flex items-center gap-3 py-2.5">
+										<Link key={q.slug} href={withReturn(`/quests/${q.slug}`, { href: "/dashboard", label: "dashboard" })} className="group flex items-center gap-3 py-2.5">
 											<span className="min-w-0 flex-1">
 												<span className="block truncate text-sm opacity-90 group-hover:text-[var(--mm-gold)]">{q.title}</span>
 												<span className="block text-[11px] text-[var(--mm-text-dim)]">

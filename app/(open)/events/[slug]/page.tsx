@@ -37,6 +37,8 @@ import {
   markInterested,
   unmarkInterested,
 } from "@/app/(app)/events/actions";
+import { parseReturn, withReturn } from "@/lib/return-to";
+import { BackLink } from "@/components/back-link";
 
 /**
  * The record's own name in the tab, the history entry and any bookmark. These
@@ -121,15 +123,20 @@ function EventTeaser({ event }: { event: EventView }) {
         )}
       </section>
 
-      <SignInCta
-        from={`/events/${event.slug}`}
-        headline={ended ? "See how it went" : "Pull up a chair"}
-        blurb={
-          ended
-            ? "Sign in to read the full write-up, the gallery and what people made of it."
-            : "Sign in for the full details, to say you're coming and to talk to whoever else is."
-        }
-      />
+      {/* A no-data event has nothing to sign into. Offering an account here
+          would contradict the one promise the flag makes, so the teaser ends
+          at the facts — and the quest page carries its own way in. */}
+      {!event.noDataMode && (
+        <SignInCta
+          from={`/events/${event.slug}`}
+          headline={ended ? "See how it went" : "Pull up a chair"}
+          blurb={
+            ended
+              ? "Sign in to read the full write-up, the gallery and what people made of it."
+              : "Sign in for the full details, to say you're coming and to talk to whoever else is."
+          }
+        />
+      )}
     </div>
   );
 }
@@ -139,10 +146,19 @@ export default async function EventPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ cerror?: string; rerror?: string }>;
+  searchParams: Promise<{
+    cerror?: string;
+    rerror?: string;
+    from?: string;
+    fromLabel?: string;
+  }>;
 }) {
   const { slug } = await params;
-  const { cerror, rerror } = await searchParams;
+  const sp = await searchParams;
+  const { cerror, rerror } = sp;
+  // Reachable from the dashboard, the events board, a partner's page, a quest
+  // and the calendar. The events board is only the right answer for one.
+  const backTo = parseReturn(sp, { href: "/events", label: "Events" });
   const event = await getEvent(slug);
   if (!event) notFound();
 
@@ -184,6 +200,9 @@ export default async function EventPage({
   return (
     <div className="flex flex-col pb-24 lg:grid lg:grid-cols-[minmax(0,48rem)_18rem] lg:items-start lg:gap-8">
       <article className="min-w-0 max-w-3xl lg:order-none">
+      <div className="mb-2 -ml-1">
+        <BackLink to={backTo} />
+      </div>
       <div className="mb-3 flex flex-wrap items-center gap-3">
         <EventOriginBadge origin={event.origin} />
         {live && (
@@ -197,7 +216,10 @@ export default async function EventPage({
         </span>
         {event.origin === "partner" && event.partnerSlug && (
           <Link
-            href={`/partners/${event.partnerSlug}`}
+            href={withReturn(`/partners/${event.partnerSlug}`, {
+              href: returnTo,
+              label: event.title,
+            })}
             className="inline-flex items-center gap-1 text-xs text-[var(--mm-gold)] hover:underline"
           >
             <Icon icon="game-icons:anvil" width={13} />
@@ -473,7 +495,10 @@ export default async function EventPage({
               {quests.map((q) => (
                 <Link
                   key={q.slug}
-                  href={`/quests/${q.slug}?from=${encodeURIComponent(returnTo)}`}
+                  href={withReturn(`/quests/${q.slug}`, {
+                    href: returnTo,
+                    label: event.title,
+                  })}
                   className="group flex items-center gap-3 rounded-xl p-2 transition hover:bg-[color-mix(in_srgb,var(--mm-surface)_70%,transparent)]"
                 >
                   <span

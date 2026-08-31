@@ -6,6 +6,9 @@ import { ImageUploader } from "@/components/image-uploader";
 import { TextField, FormSection } from "@/components/form";
 import { Icon } from "@/components/icon";
 import { Flash } from "@/components/flash";
+import { NotificationSettings } from "@/components/notification-settings";
+import { getPrefs } from "@/lib/notifications";
+import { withReturn } from "@/lib/return-to";
 
 export const metadata = { title: "Profile" };
 
@@ -16,9 +19,10 @@ export default async function ProfilePage({
 }) {
   const session = await auth();
   const user = session!.user;
-  const [profile, linked] = await Promise.all([
+  const [profile, linked, prefs] = await Promise.all([
     getMyProfile(user.id),
     getLinkedAccounts(user.id),
+    getPrefs(user.id),
   ]);
   const { saved, error, linked: justLinked } = await searchParams;
 
@@ -104,6 +108,8 @@ export default async function ProfilePage({
         </button>
       </form>
 
+      <NotificationSettings prefs={prefs} />
+
       <section className="mm-glass p-6">
         <h2 className="font-[family-name:var(--font-display)] text-lg tracking-wide">
           Connected accounts
@@ -152,7 +158,7 @@ export default async function ProfilePage({
           your own stall.
         </p>
         <Link
-          href="/apply"
+          href={withReturn("/apply", { href: "/profile", label: "Profile" })}
           className="mm-btn mm-btn-ghost mt-4 text-sm"
         >
           Apply / track application

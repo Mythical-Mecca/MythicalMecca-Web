@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "./icon";
 import { trapTab } from "@/lib/focus-trap";
+import { withReturn, type ReturnTo } from "@/lib/return-to";
 
 export type CalEvent = {
   slug: string;
@@ -32,9 +33,12 @@ export function EventCalendar({
   todayIso,
   linkEvents = true,
   headingLevel = "h2",
+  returnTo,
 }: {
   events: CalEvent[];
   todayIso: string;
+  /** Where the calendar is being shown, so an event can offer a way back. */
+  returnTo?: ReturnTo;
   /**
    * Event pills link to the event page by default. The public homepage renders
    * the calendar read-only — those pages are members-only, so a link there
@@ -204,7 +208,7 @@ export function EventCalendar({
               <li key={e.slug}>
                 {linkEvents ? (
                   <Link
-                    href={`/events/${e.slug}`}
+                    href={withReturn(`/events/${e.slug}`, returnTo)}
                     onClick={() => setOpenDay(null)}
                     className="flex items-center justify-between gap-3 rounded-xl p-3 transition hover:bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)]"
                   >

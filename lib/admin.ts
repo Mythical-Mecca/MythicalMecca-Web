@@ -101,6 +101,8 @@ export interface AdminEventRow {
   startsAt: string | null;
   endsAt: string | null;
   capacity: number | null;
+  /** True when the event collects nothing — see events.noDataMode. */
+  noDataMode: boolean;
   partnerId: string | null;
   partnerName: string | null;
   sourceName: string | null;
@@ -122,6 +124,7 @@ export async function listEventRows(): Promise<AdminEventRow[]> {
       lat: null,
       lng: null,
       capacity: null,
+      noDataMode: false,
       partnerId: null,
       partnerName: null,
       sourceName: null,
@@ -173,6 +176,7 @@ export async function listEventRows(): Promise<AdminEventRow[]> {
       startsAt: e.startsAt ? e.startsAt.toISOString() : null,
       endsAt: e.endsAt ? e.endsAt.toISOString() : null,
       capacity: e.capacity,
+      noDataMode: e.noDataMode,
       partnerId: e.partnerId,
       partnerName,
       sourceName: e.sourceName,
@@ -536,6 +540,7 @@ export async function getEventAdmin(
       startsAt: e.startsAt ? e.startsAt.toISOString() : null,
       endsAt: e.endsAt ? e.endsAt.toISOString() : null,
       capacity: e.capacity,
+      noDataMode: e.noDataMode,
       partnerId: e.partnerId,
       partnerName: row.partnerName,
       sourceName: e.sourceName,

@@ -10,10 +10,12 @@ import {
   partners,
   partnerMembers,
   users,
+  eventPlayers,
 } from "@/lib/db/schema";
 import { and, asc, desc, eq, gte, isNull, or, sql } from "drizzle-orm";
 import { newStationKey, verifyStationCode } from "@/lib/qr";
-import { isStoredMediaUrl } from "@/lib/media";
+import { isStoredMediaUrl, toMediaSrc } from "@/lib/media";
+import type { Claimant } from "@/lib/claimant";
 
 const useDb = !!process.env.DATABASE_URL;
 
@@ -26,6 +28,26 @@ export type StepType =
   | "photo_proof"
   | "trivia_gate"
   | "unlock_code";
+
+/** Which progress rows belong to this claimant. */
+const progressIs = (who: Claimant) =>
+  who.kind === "member"
+    ? eq(huntProgress.userId, who.userId)
+    : eq(huntProgress.playerId, who.playerId);
+
+/** Which claim-attempt rows belong to this claimant. */
+const attemptIs = (who: Claimant) =>
+  who.kind === "member"
+    ? eq(huntClaimAttempts.userId, who.userId)
+    : eq(huntClaimAttempts.playerId, who.playerId);
+
+/** The one column to write on an insert. */
+const claimantColumns = (who: Claimant | null) =>
+  who === null
+    ? {}
+    : who.kind === "member"
+      ? { userId: who.userId }
+      : { playerId: who.playerId };
 
 export type ClaimMode =
   | "live_code"
@@ -42,7 +64,9 @@ export type ClaimOutcome =
   | "unknown_step"
   | "rate_limited"
   /** A prerequisite objective hasn't been cleared yet. */
-  | "locked";
+  | "locked"
+  /** A member account at a no-data event, or a player anywhere else. */
+  | "wrong_account";
 
 /**
  * `qr_scan` is the workhorse type for a venue quest: "get to the destination
@@ -53,6 +77,12 @@ export const isVisitStep = (t: StepType) => t === "qr_scan";
 export interface Destination {
   partnerSlug: string | null;
   partnerName: string | null;
+  /**
+   * Display-ready: the Blob store is private, so this has already been through
+   * toMediaSrc. Null when the stand has no logo, or when the objective sends
+   * you somewhere that isn't a partner at all.
+   */
+  partnerLogo: string | null;
   locationHint: string | null;
 }
 
@@ -94,6 +124,10 @@ export interface HuntView {
    */
   eventSlug: string | null;
   eventTitle: string;
+  /** The owning event — a player session is scoped to exactly one of these. */
+  eventId: string;
+  /** True when this quest admits event players only. See events.noDataMode. */
+  noDataMode: boolean;
   open: boolean;
 }
 
@@ -119,6 +153,7 @@ interface RawStep {
   partnerId: string | null;
   partnerSlug: string | null;
   partnerName: string | null;
+  partnerLogo: string | null;
   locationHint: string | null;
 }
 interface RawHunt {
@@ -137,6 +172,9 @@ interface RawHunt {
   eventTitle: string;
   eventLat: number | null;
   eventLng: number | null;
+  eventId: string;
+  /** True when this quest's event admits event players only. */
+  noDataMode: boolean;
   open: boolean;
 }
 
@@ -165,12 +203,17 @@ const openPredicate = () => {
 
 async function stepsFor(huntId: string): Promise<RawStep[]> {
   const rows = await db
-    .select({ s: huntSteps, partnerSlug: partners.slug, partnerName: partners.businessName })
+    .select({
+      s: huntSteps,
+      partnerSlug: partners.slug,
+      partnerName: partners.businessName,
+      partnerLogo: partners.logoUrl,
+    })
     .from(huntSteps)
     .leftJoin(partners, eq(huntSteps.partnerId, partners.id))
     .where(eq(huntSteps.huntId, huntId))
     .orderBy(huntSteps.sort);
-  return rows.map(({ s, partnerSlug, partnerName }) => ({
+  return rows.map(({ s, partnerSlug, partnerName, partnerLogo }) => ({
     id: s.id,
     sort: s.sort,
     parentId: s.parentId,
@@ -185,6 +228,7 @@ async function stepsFor(huntId: string): Promise<RawStep[]> {
     partnerId: s.partnerId,
     partnerSlug,
     partnerName,
+    partnerLogo: toMediaSrc(partnerLogo),
     locationHint: s.locationHint,
   }));
 }
@@ -194,10 +238,12 @@ async function rawHunt(slug: string): Promise<RawHunt | null> {
   const [row] = await db
     .select({
       h: scavengerHunts,
+      eventId: events.id,
       eventSlug: events.slug,
       eventTitle: events.title,
       eventLat: events.lat,
       eventLng: events.lng,
+      noDataMode: events.noDataMode,
     })
     .from(scavengerHunts)
     .innerJoin(events, eq(scavengerHunts.eventId, events.id))
@@ -213,8 +259,10 @@ async function rawHunt(slug: string): Promise<RawHunt | null> {
     mode: row.h.mode,
     eventSlug: row.eventSlug,
     eventTitle: row.eventTitle,
+    eventId: row.eventId,
     eventLat: row.eventLat,
     eventLng: row.eventLng,
+    noDataMode: row.noDataMode,
     open: isOpen(row.h),
     steps: await stepsFor(row.h.id),
   };
@@ -283,6 +331,7 @@ function publicStep(
       ? {
           partnerSlug: s.partnerSlug,
           partnerName: s.partnerName,
+          partnerLogo: s.partnerLogo,
           locationHint: s.locationHint,
         }
       : null,
@@ -332,7 +381,7 @@ export interface HuntCard {
 }
 
 /** Open quests, with the viewer's progress folded in for the board. */
-export async function listHunts(userId?: string): Promise<HuntCard[]> {
+export async function listHunts(who?: Claimant): Promise<HuntCard[]> {
   if (!useDb) return [];
   try {
     const rows = await db
@@ -344,9 +393,11 @@ export async function listHunts(userId?: string): Promise<HuntCard[]> {
         eventSlug: events.slug,
         eventTitle: events.title,
         steps: sql<number>`(select count(*) from ${huntSteps} where ${huntSteps.huntId} = ${scavengerHunts.id})`,
-        done: userId
-          ? sql<number>`(select count(*) from ${huntProgress} where ${huntProgress.huntId} = ${scavengerHunts.id} and ${huntProgress.userId} = ${userId})`
-          : sql<number>`0`,
+        done: !who
+          ? sql<number>`0`
+          : who.kind === "member"
+            ? sql<number>`(select count(*) from ${huntProgress} where ${huntProgress.huntId} = ${scavengerHunts.id} and ${huntProgress.userId} = ${who.userId})`
+            : sql<number>`(select count(*) from ${huntProgress} where ${huntProgress.huntId} = ${scavengerHunts.id} and ${huntProgress.playerId} = ${who.playerId})`,
       })
       .from(scavengerHunts)
       .innerJoin(events, eq(scavengerHunts.eventId, events.id))
@@ -368,14 +419,14 @@ export async function listHunts(userId?: string): Promise<HuntCard[]> {
 
 async function completedStepIds(
   huntId: string,
-  userId: string
+  who: Claimant
 ): Promise<Set<string>> {
   if (!useDb) return new Set();
   try {
     const rows = await db
       .select({ stepId: huntProgress.stepId })
       .from(huntProgress)
-      .where(and(eq(huntProgress.huntId, huntId), eq(huntProgress.userId, userId)));
+      .where(and(eq(huntProgress.huntId, huntId), progressIs(who)));
     return new Set(rows.map((r) => r.stepId));
   } catch {
     return new Set();
@@ -384,11 +435,11 @@ async function completedStepIds(
 
 export async function getHunt(
   slug: string,
-  userId?: string
+  who?: Claimant
 ): Promise<HuntView | null> {
   const raw = await rawHunt(slug);
   if (!raw) return null;
-  const done = userId ? await completedStepIds(raw.id, userId) : new Set<string>();
+  const done = who ? await completedStepIds(raw.id, who) : new Set<string>();
   const steps = raw.steps.map((s) =>
     publicStep(s, done.has(s.id), blockedBy(s, raw.steps, done, raw.sequential))
   );
@@ -403,6 +454,8 @@ export async function getHunt(
     earnedPoints: steps.filter((s) => s.done).reduce((a, s) => a + s.points, 0),
     eventSlug: raw.eventSlug,
     eventTitle: raw.eventTitle,
+    eventId: raw.eventId,
+    noDataMode: raw.noDataMode,
     open: raw.open,
   };
 }
@@ -417,7 +470,7 @@ export async function getStepRaw(
   huntSlug: string,
   stepId: string,
   /** Resolves `lockedBy` for this player. Omit for callers that don't gate. */
-  userId?: string
+  who?: Claimant
 ): Promise<{
   step: RawStep;
   huntId: string;
@@ -429,10 +482,8 @@ export async function getStepRaw(
   if (!raw || !step) return null;
   // In-app objectives are claimed by POSTing an answer, which is as forgeable
   // as opening a tag URL — the ordering rule has to hold on this path too.
-  const done = userId ? await completedStepIds(raw.id, userId) : new Set<string>();
-  const lockedBy = userId
-    ? blockedBy(step, raw.steps, done, raw.sequential)
-    : null;
+  const done = who ? await completedStepIds(raw.id, who) : new Set<string>();
+  const lockedBy = who ? blockedBy(step, raw.steps, done, raw.sequential) : null;
   return { step, huntId: raw.id, huntOpen: raw.open, lockedBy };
 }
 
@@ -503,7 +554,7 @@ export function verifyStep(
 export async function recordCompletion(
   huntId: string,
   stepId: string,
-  userId: string,
+  who: Claimant,
   points: number,
   payload: Record<string, unknown>
 ): Promise<boolean> {
@@ -511,12 +562,41 @@ export async function recordCompletion(
   try {
     const inserted = await db
       .insert(huntProgress)
-      .values({ huntId, stepId, userId, pointsAwarded: points, payload })
+      .values({
+        huntId,
+        stepId,
+        ...claimantColumns(who),
+        pointsAwarded: points,
+        payload,
+      })
       .onConflictDoNothing()
       .returning({ id: huntProgress.id });
     return inserted.length > 0;
   } catch {
     return false;
+  }
+}
+
+/**
+ * The event a quest belongs to, and whether it admits players only.
+ *
+ * Enough to resolve who is signed in, without loading the trail. Every path
+ * that gates a quest needs this before it can decide what "signed in" means.
+ */
+export async function huntEventFor(
+  huntSlug: string
+): Promise<{ id: string; noDataMode: boolean } | null> {
+  if (!useDb) return null;
+  try {
+    const [row] = await db
+      .select({ id: events.id, noDataMode: events.noDataMode })
+      .from(scavengerHunts)
+      .innerJoin(events, eq(scavengerHunts.eventId, events.id))
+      .where(eq(scavengerHunts.slug, huntSlug))
+      .limit(1);
+    return row ?? null;
+  } catch {
+    return null;
   }
 }
 
@@ -540,25 +620,32 @@ export async function getLeaderboard(huntSlug: string): Promise<LeaderRow[]> {
   try {
     const huntId = await huntIdForSlug(huntSlug);
     if (!huntId) return [];
+    // Left joins, not inner: a row belongs to exactly one of the two, so an
+    // inner join on either would drop the other kind entirely. In practice a
+    // quest only ever sees one — a no-data event admits no members, and every
+    // other event admits no players — but the board shouldn't depend on that.
     const rows = await db
       .select({
         userId: users.id,
+        playerId: eventPlayers.id,
         name: users.name,
+        handle: eventPlayers.handle,
         points: sql<number>`sum(${huntProgress.pointsAwarded})`,
         steps: sql<number>`count(*)`,
       })
       .from(huntProgress)
-      .innerJoin(users, eq(users.id, huntProgress.userId))
+      .leftJoin(users, eq(users.id, huntProgress.userId))
+      .leftJoin(eventPlayers, eq(eventPlayers.id, huntProgress.playerId))
       .where(eq(huntProgress.huntId, huntId))
       // Group by id, NOT name: grouping by name merged every player sharing a
       // first name into one row, and collapsed everyone without a display name
       // into a single "Adventurer" whose summed score topped the board.
-      .groupBy(users.id, users.name)
+      .groupBy(users.id, users.name, eventPlayers.id, eventPlayers.handle)
       .orderBy(desc(sql`sum(${huntProgress.pointsAwarded})`))
       .limit(20);
     return rows.map((r) => ({
-      userId: r.userId,
-      name: r.name ?? "Adventurer",
+      userId: r.userId ?? r.playerId ?? "",
+      name: r.name ?? r.handle ?? "Adventurer",
       points: Number(r.points),
       steps: Number(r.steps),
     }));
@@ -574,6 +661,8 @@ export async function getLeaderboard(huntSlug: string): Promise<LeaderRow[]> {
 export interface ClaimTarget {
   stepId: string;
   huntId: string;
+  /** Whether the trail is strictly ordered — {@link forClaimant} needs it. */
+  sequential: boolean;
   huntSlug: string;
   huntTitle: string;
   huntOpen: boolean;
@@ -585,8 +674,15 @@ export interface ClaimTarget {
   partnerName: string | null;
   partnerSlug: string | null;
   locationHint: string | null;
+  eventId: string;
   eventLat: number | null;
   eventLng: number | null;
+  /**
+   * True when the quest's event admits players only. Resolved here because
+   * the claim itself has to honour it — a tag URL is a public string, so a
+   * rule the sign-in panel merely draws is no rule at all.
+   */
+  noDataMode: boolean;
   rotationSeconds: number;
   stationKey: string | null;
   alreadyDone: boolean;
@@ -603,7 +699,7 @@ export interface ClaimTarget {
 /** Everything the claim route needs, resolved from a tag token's step id. */
 export async function getClaimTarget(
   stepId: string,
-  userId?: string
+  who?: Claimant
 ): Promise<ClaimTarget | null> {
   if (!useDb) return null;
   try {
@@ -613,8 +709,10 @@ export async function getClaimTarget(
         h: scavengerHunts,
         partnerName: partners.businessName,
         partnerSlug: partners.slug,
+        eventId: events.id,
         eventLat: events.lat,
         eventLng: events.lng,
+        noDataMode: events.noDataMode,
         stationKey: huntStations.stationKey,
         rotationSeconds: huntStations.rotationSeconds,
       })
@@ -627,34 +725,12 @@ export async function getClaimTarget(
       .limit(1);
     if (!row) return null;
 
-    let alreadyDone = false;
-    if (userId) {
-      const [p] = await db
-        .select({ id: huntProgress.id })
-        .from(huntProgress)
-        .where(
-          and(eq(huntProgress.stepId, stepId), eq(huntProgress.userId, userId))
-        )
-        .limit(1);
-      alreadyDone = !!p;
-    }
-
-    // Only worth resolving for a signed-in player: the lock is per-person, and
-    // a signed-out visitor is stopped earlier anyway.
-    let lockedBy: string | null = null;
-    if (userId && !alreadyDone) {
-      const siblings = await stepsFor(row.h.id);
-      const self = siblings.find((o) => o.id === row.s.id);
-      if (self) {
-        const done = await completedStepIds(row.h.id, userId);
-        lockedBy = blockedBy(self, siblings, done, row.h.sequential);
-      }
-    }
-
-    return {
+    const base: ClaimTarget = {
       stepId: row.s.id,
       huntId: row.h.id,
-      lockedBy,
+      sequential: row.h.sequential,
+      lockedBy: null,
+      alreadyDone: false,
       huntSlug: row.h.slug,
       huntTitle: row.h.title,
       huntOpen: isOpen(row.h),
@@ -666,20 +742,63 @@ export async function getClaimTarget(
       partnerName: row.partnerName,
       partnerSlug: row.partnerSlug,
       locationHint: row.s.locationHint,
+      eventId: row.eventId,
       eventLat: row.eventLat,
       eventLng: row.eventLng,
+      noDataMode: row.noDataMode,
       rotationSeconds: row.rotationSeconds ?? 60,
       stationKey: row.stationKey,
-      alreadyDone,
     };
+
+    return who ? await forClaimant(base, who) : base;
   } catch {
     return null;
   }
 }
 
+/**
+ * Fill in the two per-person fields of a target that was resolved without
+ * knowing who was asking.
+ *
+ * Both claim paths have a chicken-and-egg problem: which kind of adventurer is
+ * signed in depends on the event, and the event isn't known until the step has
+ * been looked up. So they fetch the target first, resolve the claimant from
+ * `noDataMode`, then come back here — rather than running the whole join a
+ * second time.
+ */
+export async function forClaimant(
+  target: ClaimTarget,
+  who: Claimant
+): Promise<ClaimTarget> {
+  if (!useDb) return target;
+  try {
+    const [p] = await db
+      .select({ id: huntProgress.id })
+      .from(huntProgress)
+      .where(and(eq(huntProgress.stepId, target.stepId), progressIs(who)))
+      .limit(1);
+    if (p) return { ...target, alreadyDone: true, lockedBy: null };
+
+    // Only worth resolving for someone signed in: the lock is per-person, and
+    // a signed-out visitor is stopped earlier anyway.
+    const siblings = await stepsFor(target.huntId);
+    const self = siblings.find((o) => o.id === target.stepId);
+    if (!self) return target;
+    const done = await completedStepIds(target.huntId, who);
+    return {
+      ...target,
+      alreadyDone: false,
+      lockedBy: blockedBy(self, siblings, done, target.sequential),
+    };
+  } catch {
+    return target;
+  }
+}
+
 export async function logClaimAttempt(input: {
   stepId: string | null;
-  userId: string | null;
+  /** Null for a forged tag or pass, where there is nobody to attribute it to. */
+  who: Claimant | null;
   outcome: ClaimOutcome;
   claimMode?: ClaimMode | null;
   ip?: string | null;
@@ -688,7 +807,7 @@ export async function logClaimAttempt(input: {
   try {
     await db.insert(huntClaimAttempts).values({
       stepId: input.stepId,
-      userId: input.userId,
+      ...claimantColumns(input.who),
       outcome: input.outcome,
       claimMode: input.claimMode ?? null,
       ip: input.ip ?? null,
@@ -717,7 +836,7 @@ const BAD_ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
  */
 async function tooManyBadAttempts(
   stepId: string,
-  userId: string
+  who: Claimant
 ): Promise<boolean> {
   if (!useDb) return false;
   try {
@@ -728,7 +847,7 @@ async function tooManyBadAttempts(
       .where(
         and(
           eq(huntClaimAttempts.stepId, stepId),
-          eq(huntClaimAttempts.userId, userId),
+          attemptIs(who),
           eq(huntClaimAttempts.outcome, "bad_code"),
           gte(huntClaimAttempts.createdAt, since)
         )
@@ -758,19 +877,14 @@ const MIN_CLAIM_GAP_MS = 2000;
  * Every attempt is logged, throttled ones included, so a caller that keeps
  * hammering keeps pushing its own next allowed attempt out of reach.
  */
-async function claimingTooFast(userId: string): Promise<boolean> {
+async function claimingTooFast(who: Claimant): Promise<boolean> {
   if (!useDb) return false;
   try {
     const since = new Date(Date.now() - MIN_CLAIM_GAP_MS);
     const [row] = await db
       .select({ id: huntClaimAttempts.id })
       .from(huntClaimAttempts)
-      .where(
-        and(
-          eq(huntClaimAttempts.userId, userId),
-          gte(huntClaimAttempts.createdAt, since)
-        )
-      )
+      .where(and(attemptIs(who), gte(huntClaimAttempts.createdAt, since)))
       .limit(1);
     return !!row;
   } catch {
@@ -785,24 +899,33 @@ async function claimingTooFast(userId: string): Promise<boolean> {
  */
 export async function claimObjective(input: {
   target: ClaimTarget;
-  userId: string;
+  who: Claimant;
   code?: string;
   lat?: number;
   lng?: number;
   ip?: string | null;
 }): Promise<ClaimOutcome> {
-  const { target, userId } = input;
+  const { target, who } = input;
 
   const finish = async (outcome: ClaimOutcome) => {
     await logClaimAttempt({
       stepId: target.stepId,
-      userId,
+      who,
       outcome,
       claimMode: target.claimMode,
       ip: input.ip,
     });
     return outcome;
   };
+
+  // The event decides which kind of adventurer exists here, and it decides it
+  // for both directions: a member account is not welcome at a no-data event,
+  // and a player session is not welcome anywhere else. Checked before the
+  // quest window so that "you're the wrong kind of signed in" never arrives
+  // dressed as "this quest isn't running".
+  if (target.noDataMode !== (who.kind === "player")) {
+    return finish("wrong_account");
+  }
 
   if (!target.huntOpen) return finish("not_open");
   if (target.alreadyDone) return finish("duplicate");
@@ -811,11 +934,11 @@ export async function claimObjective(input: {
   if (target.lockedBy) return finish("locked");
   // Only once the objective is genuinely claimable: throttling a tap that was
   // going to be answered "you've already done this" is noise on the monitor.
-  if (await claimingTooFast(userId)) return finish("rate_limited");
+  if (await claimingTooFast(who)) return finish("rate_limited");
 
   switch (target.claimMode) {
     case "live_code": {
-      if (await tooManyBadAttempts(target.stepId, userId)) {
+      if (await tooManyBadAttempts(target.stepId, who)) {
         return finish("rate_limited");
       }
       if (!target.stationKey) return finish("bad_code");
@@ -863,7 +986,7 @@ export async function claimObjective(input: {
   const written = await recordCompletion(
     target.huntId,
     target.stepId,
-    userId,
+    who,
     target.points,
     { via: target.claimMode }
   );
@@ -879,20 +1002,28 @@ export async function claimObjective(input: {
  */
 export async function claimViaStation(input: {
   target: ClaimTarget;
-  userId: string;
+  who: Claimant;
   ip?: string | null;
 }): Promise<ClaimOutcome> {
-  const { target, userId } = input;
+  const { target, who } = input;
   const finish = async (outcome: ClaimOutcome) => {
     await logClaimAttempt({
       stepId: target.stepId,
-      userId,
+      who,
       outcome,
       claimMode: target.claimMode,
       ip: input.ip,
     });
     return outcome;
   };
+
+  // Same rule as the tag path. A pass is minted for whoever was signed in when
+  // it was drawn, so this is where a member's pass gets refused at a no-data
+  // event — the vendor's scanner is authenticated, but it isn't the authority
+  // on who the event admits.
+  if (target.noDataMode !== (who.kind === "player")) {
+    return finish("wrong_account");
+  }
 
   if (!target.huntOpen) return finish("not_open");
   if (target.alreadyDone) return finish("duplicate");
@@ -907,7 +1038,7 @@ export async function claimViaStation(input: {
   const written = await recordCompletion(
     target.huntId,
     target.stepId,
-    userId,
+    who,
     target.points,
     { via: "station_scan" }
   );
@@ -915,13 +1046,21 @@ export async function claimViaStation(input: {
 }
 
 /** Display name for the vendor's confirmation flash after a scan. */
-export async function displayName(userId: string): Promise<string> {
+export async function claimantName(who: Claimant): Promise<string> {
   if (!useDb) return "Adventurer";
   try {
+    if (who.kind === "player") {
+      const [p] = await db
+        .select({ handle: eventPlayers.handle })
+        .from(eventPlayers)
+        .where(eq(eventPlayers.id, who.playerId))
+        .limit(1);
+      return p?.handle ?? "Adventurer";
+    }
     const [u] = await db
       .select({ name: users.name })
       .from(users)
-      .where(eq(users.id, userId))
+      .where(eq(users.id, who.userId))
       .limit(1);
     return u?.name ?? "Adventurer";
   } catch {

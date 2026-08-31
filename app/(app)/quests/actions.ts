@@ -3,9 +3,10 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { claimantFor, claimantId } from "@/lib/claimant";
 import {
   getStepRaw,
+  huntEventFor,
   verifyStep,
   recordCompletion,
   logClaimAttempt,
@@ -17,12 +18,23 @@ import { logActivity } from "@/lib/logging";
  * claimed at a destination go through `/q/[token]` instead.
  */
 export async function completeStep(formData: FormData) {
-  const session = await auth();
   const huntSlug = String(formData.get("huntSlug") ?? "");
-  if (!session?.user) redirect(`/login?from=/quests/${huntSlug}`);
   const stepId = String(formData.get("stepId") ?? "");
 
-  const found = await getStepRaw(huntSlug, stepId, session.user.id);
+  // Which sign-in counts is the event's call, so the quest's event is resolved
+  // before anyone is turned away. A no-data event sends them to its own panel
+  // on the quest page rather than to /login, which admits nobody there.
+  const event = await huntEventFor(huntSlug);
+  const who = event ? await claimantFor(event.id, event.noDataMode) : null;
+  if (!who) {
+    redirect(
+      event?.noDataMode
+        ? `/quests/${huntSlug}?signin=1`
+        : `/login?from=/quests/${huntSlug}`
+    );
+  }
+
+  const found = await getStepRaw(huntSlug, stepId, who);
   if (!found) redirect(`/quests/${huntSlug}?serr=${stepId}`);
   const { step, huntId, huntOpen } = found;
 
@@ -34,12 +46,7 @@ export async function completeStep(formData: FormData) {
   // Ordering holds here too. Logged like any other refused claim so a run of
   // them shows up on the admin monitor.
   if (found.lockedBy) {
-    await logClaimAttempt({
-      stepId,
-      userId: session.user.id,
-      outcome: "locked",
-      ip: null,
-    });
+    await logClaimAttempt({ stepId, who, outcome: "locked", ip: null });
     redirect(`/quests/${huntSlug}?locked=${stepId}#step-${stepId}`);
   }
 
@@ -59,36 +66,28 @@ export async function completeStep(formData: FormData) {
   if (!verifyStep(step, submitted)) {
     // Logged like every other claim path, so a burst of wrong answers is
     // visible on the admin monitor rather than invisible.
-    await logClaimAttempt({
-      stepId,
-      userId: session.user.id,
-      outcome: "bad_code",
-      ip,
-    });
+    await logClaimAttempt({ stepId, who, outcome: "bad_code", ip });
     redirect(`/quests/${huntSlug}?fail=${stepId}#step-${stepId}`);
   }
 
-  const written = await recordCompletion(
-    huntId,
-    stepId,
-    session.user.id,
-    step.points,
-    submitted
-  );
+  const written = await recordCompletion(huntId, stepId, who, step.points, submitted);
 
   // `false` here means the row already existed — a double tap on a laggy
   // connection. That is a success from the player's point of view; telling
   // them it failed would send them retrying work that already saved.
   await logClaimAttempt({
     stepId,
-    userId: session.user.id,
+    who,
     outcome: written ? "ok" : "duplicate",
     ip,
   });
 
-  if (written) {
+  // Members only: an event player is scoped to one event by design, and
+  // writing their handle into the site-wide activity trail would carry it
+  // straight out of the event that promised to keep it.
+  if (written && who.kind === "member") {
     await logActivity({
-      actorId: session.user.id,
+      actorId: claimantId(who),
       action: "hunt.step.complete",
       entityType: "hunt_step",
       entityId: stepId,

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AuroraField } from "@/components/animations/aurora-field";
 import { Icon } from "@/components/icon";
 import { LogoMark } from "@/components/brand";
+import { Flash } from "@/components/flash";
 import { pageMetadata } from "@/lib/metadata";
 
 export const metadata = pageMetadata({
@@ -15,11 +16,11 @@ export const metadata = pageMetadata({
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ from?: string; error?: string }>;
 }) {
   const session = await auth();
   if (session?.user) redirect("/dashboard");
-  const { from } = await searchParams;
+  const { from, error } = await searchParams;
   // A bare startsWith("/") also admits "//evil.com", which browsers read as a
   // protocol-relative absolute URL.
   const safeFrom =
@@ -59,6 +60,17 @@ export default async function LoginPage({
         <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
           Sign your name in the guild ledger.
         </p>
+
+        {/* Auth.js sends a refused sign-in back here with a code. The only one
+            we turn away ourselves is a banned account — see the signIn
+            callback in lib/auth.ts. */}
+        {error && (
+          <Flash tone="error" className="mt-6 text-left">
+            {error === "AccessDenied"
+              ? "This account can't sign in. If you think that's a mistake, get in touch."
+              : "That sign-in didn't go through. Please try again."}
+          </Flash>
+        )}
 
         <div className="mt-8 space-y-3">
           <form

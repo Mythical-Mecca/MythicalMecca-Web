@@ -2,16 +2,24 @@ import Link from "next/link";
 import { Icon } from "@/components/icon";
 import { formatDateTime } from "@/lib/format";
 import type { EventView } from "@/lib/content";
+import { withReturn, type ReturnTo } from "@/lib/return-to";
 
 /**
  * Compact, inline "live now" event card. Shrinks to its content (not full
  * width) and links to the event detail. Shown on the dashboard and atop the
  * Events page whenever an event is currently in its live window.
  */
-export function LiveEventCard({ event }: { event: EventView }) {
+export function LiveEventCard({
+  event,
+  returnTo,
+}: {
+  event: EventView;
+  /** Where this card is being shown, so the event can offer a way back. */
+  returnTo?: ReturnTo;
+}) {
   return (
     <Link
-      href={`/events/${event.slug}`}
+      href={withReturn(`/events/${event.slug}`, returnTo)}
       className="inline-flex max-w-full items-center gap-4 rounded-2xl border border-[var(--mm-live)] p-4 transition hover:brightness-110"
       style={{
         background:

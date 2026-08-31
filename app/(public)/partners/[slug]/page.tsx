@@ -13,6 +13,8 @@ import { StarRating } from "@/components/star-rating";
 import { ReviewForm } from "@/components/review-form";
 import { formatDateTime } from "@/lib/format";
 import { pageMetadata } from "@/lib/metadata";
+import { parseReturn, withReturn } from "@/lib/return-to";
+import { BackLink } from "@/components/back-link";
 
 const FALLBACK = "Browse the stalls of the Mythical Mecca partner directory.";
 
@@ -48,10 +50,19 @@ export default async function PartnerPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ review?: string; preview?: string }>;
+  searchParams: Promise<{
+    review?: string;
+    preview?: string;
+    from?: string;
+    fromLabel?: string;
+  }>;
 }) {
   const { slug } = await params;
-  const { review, preview } = await searchParams;
+  const sp = await searchParams;
+  const { review, preview } = sp;
+  // Opened from the directory, the home page, an event that names the partner
+  // and the admin preview. The directory is right for one of those.
+  const backTo = parseReturn(sp, { href: "/partners", label: "Partners" });
   const session = await auth();
   const loggedIn = !!session?.user;
 
@@ -93,12 +104,9 @@ export default async function PartnerPage({
     /* Same omission as the index: a max-width with nothing to centre it and no
        gutter, so the stall profile sat against the left edge of the window. */
     <div className="mx-auto w-full max-w-5xl px-6 pt-8 pb-24">
-      <Link
-        href="/partners"
-        className="text-sm text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
-      >
-        ← Partners
-      </Link>
+      <div className="-ml-1">
+        <BackLink to={backTo} />
+      </div>
 
       {isPreview && (
         <div className="mt-4 flex items-center gap-2 rounded-xl border border-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-gold)_12%,transparent)] p-3 text-sm text-[var(--mm-gold)]">
@@ -289,7 +297,10 @@ export default async function PartnerPage({
             {upcomingEvents.map((e) => (
               <Link
                 key={e.slug}
-                href={`/events/${e.slug}`}
+                href={withReturn(`/events/${e.slug}`, {
+                href: `/partners/${partner.slug}`,
+                label: partner.businessName,
+              })}
                 className="mm-glass group flex flex-col p-5 transition hover:border-[var(--mm-violet)]"
               >
                 <h3 className="font-[family-name:var(--font-display)] text-lg group-hover:text-[var(--mm-gold)]">

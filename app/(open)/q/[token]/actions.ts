@@ -2,10 +2,11 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
 import { verifyTagToken } from "@/lib/qr";
+import { claimantFor, claimantId } from "@/lib/claimant";
 import {
   claimObjective,
+  forClaimant,
   getClaimTarget,
   logClaimAttempt,
   type ClaimOutcome,
@@ -30,35 +31,37 @@ export async function submitClaim(
   _prev: ClaimState,
   formData: FormData
 ): Promise<ClaimState> {
-  const session = await auth();
-  if (!session?.user) return { outcome: "signed_out" };
-
   const stepId = verifyTagToken(String(formData.get("token") ?? ""));
   const ip = await clientIp();
   if (!stepId) {
     await logClaimAttempt({
       stepId: null,
-      userId: session.user.id,
+      who: null,
       outcome: "unknown_step",
       ip,
     });
     return { outcome: "unknown_step" };
   }
 
-  const target = await getClaimTarget(stepId, session.user.id);
+  // The step comes first, because which kind of sign-in counts here is the
+  // event's decision and the event isn't known until the tag is resolved.
+  const target = await getClaimTarget(stepId);
   if (!target) {
     await logClaimAttempt({
       stepId: null,
-      userId: session.user.id,
+      who: null,
       outcome: "unknown_step",
       ip,
     });
     return { outcome: "unknown_step" };
   }
 
+  const who = await claimantFor(target.eventId, target.noDataMode);
+  if (!who) return { outcome: "signed_out" };
+
   const outcome = await claimObjective({
-    target,
-    userId: session.user.id,
+    target: await forClaimant(target, who),
+    who,
     code: String(formData.get("code") ?? "").trim() || undefined,
     lat: formData.get("lat") ? Number(formData.get("lat")) : undefined,
     lng: formData.get("lng") ? Number(formData.get("lng")) : undefined,
@@ -66,12 +69,17 @@ export async function submitClaim(
   });
 
   if (outcome === "ok") {
-    await logActivity({
-      actorId: session.user.id,
-      action: "quest.objective.claim",
-      entityType: "hunt_step",
-      entityId: stepId,
-    });
+    // Players are event-scoped and deliberately not part of the member
+    // activity trail — logging one there would put a name from a no-data
+    // event into the very audit log the event promised it wouldn't reach.
+    if (who.kind === "member") {
+      await logActivity({
+        actorId: claimantId(who),
+        action: "quest.objective.claim",
+        entityType: "hunt_step",
+        entityId: stepId,
+      });
+    }
     revalidatePath(`/quests/${target.huntSlug}`);
     revalidatePath("/dashboard");
   }

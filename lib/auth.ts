@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, accounts, sessions, verificationTokens } from "@/lib/db/schema";
 import { normalizeRole, type Role } from "@/lib/rbac";
+import { isAllowlistedAdmin } from "@/lib/admin-emails";
 
 /**
  * Pull a provider avatar (Google/Discord) into our own Blob the first time we
@@ -52,10 +53,26 @@ async function importSocialAvatar(userId?: string, src?: string | null) {
   }
 }
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
+/**
+ * How stale a JWT's role may be, in milliseconds.
+ *
+ * Roles and bans are edited from /admin/users while people are signed in, and
+ * a JWT session carries whatever was true when it was minted. So the token is
+ * re-checked against the database on the first session read after this window
+ * — one query a minute per active session, in exchange for a promotion or a
+ * ban landing on its own rather than at the banned member's convenience.
+ */
+const ROLE_REFRESH_MS = 60_000;
+
+/** The live role + ban state for a signed-in account, or null if it's gone. */
+async function readAccountState(userId: string) {
+  const [row] = await db
+    .select({ role: users.role, bannedAt: users.bannedAt })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return row ?? null;
+}
 
 /**
  * Local-only sign-in bypass (triggered by 5 clicks on the visitor logo).
@@ -123,6 +140,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
   },
   callbacks: {
+    /**
+     * A banned account is refused at the door, whichever provider it uses.
+     * Auth.js sends them to /login?error=AccessDenied.
+     */
+    async signIn({ user }) {
+      if (!user?.id || !process.env.DATABASE_URL) return true;
+      try {
+        const account = await readAccountState(user.id);
+        return !account?.bannedAt;
+      } catch {
+        return true; // don't lock the whole site out over a database blip
+      }
+    },
     async jwt({ token, user }) {
       // `user` is present on initial sign-in (from the Drizzle adapter row).
       if (user) {
@@ -131,10 +161,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       // Heal legacy "vendor" roles carried in older JWTs after the rename.
       if (token.role) token.role = normalizeRole(token.role as string);
-      // Bootstrap admins from the allowlist regardless of stored role.
-      if (token.email && ADMIN_EMAILS.includes(token.email.toLowerCase())) {
-        token.role = "admin";
+
+      // Re-read role and ban state from the database once per
+      // ROLE_REFRESH_MS. Returning null destroys the session — that is how a
+      // ban ends one that is already in flight.
+      const userId = (token.uid as string | undefined) ?? token.sub;
+      const checkedAt = token.roleCheckedAt ?? 0;
+      const stale = Date.now() - checkedAt > ROLE_REFRESH_MS;
+      if (userId && process.env.DATABASE_URL && stale) {
+        try {
+          const account = await readAccountState(userId);
+          if (!account || account.bannedAt) return null;
+          token.uid = userId;
+          token.role = normalizeRole(account.role);
+          token.roleCheckedAt = Date.now();
+        } catch (err) {
+          // A database blip must not sign everyone out: keep the role the
+          // token already carries and try again on the next read.
+          console.error("[auth] role refresh failed", err);
+        }
       }
+
+      // Bootstrap admins from the allowlist regardless of stored role.
+      if (isAllowlistedAdmin(token.email)) token.role = "admin";
       return token;
     },
     async session({ session, token }) {

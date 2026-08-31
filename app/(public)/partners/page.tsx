@@ -4,6 +4,7 @@ import { Badge } from "@/components/badge";
 import { Icon } from "@/components/icon";
 import { SectionHero } from "@/components/section-hero";
 import { pageMetadata } from "@/lib/metadata";
+import { withReturn } from "@/lib/return-to";
 
 export const metadata = pageMetadata({
   title: "Partners",
@@ -21,14 +22,23 @@ export default async function PartnersPage() {
        full-bleed sections that each bring their own container. Index pages like
        this one therefore have to supply it themselves, and this one never did:
        the headings, the hero and every card sat flush against the viewport
-       edge. Same width and gutter as the signed-in shell, so the page does not
-       jump when a member views it. */
-    <div className="mx-auto w-full max-w-6xl px-6 pt-8">
+       edge.
+
+       The gutter is wider than the signed-in shell's `px-6`. The cards here are
+       image-topped and run to the edge of their own box, so the same gutter
+       that suits a page of text left them looking wedged against the viewport.
+       Everything in the page shares this container, so the hero, the section
+       headings and the cards all still line up with each other. */
+    <div className="mx-auto w-full max-w-6xl px-8 pt-8">
       <SectionHero
         section="partners"
         actions={
-          <Link href="/apply" className="mm-btn mm-btn-glow">
-            <Icon icon="game-icons:shop" width={20} /> Apply for a stall
+          <Link
+            href={withReturn("/apply", { href: "/partners", label: "Partners" })}
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm text-[var(--mm-text)] transition-colors hover:text-[var(--mm-gold)]"
+          >
+            Sign up as a vendor / partner{" "}
+            <Icon icon="mdi:arrow-right" width={16} />
           </Link>
         }
       />
@@ -42,10 +52,11 @@ export default async function PartnersPage() {
           {groups.map((group) => (
             <section key={group.slug}>
               <div className="flex items-baseline gap-2.5">
-                <Icon
-                  icon={group.icon ?? "game-icons:anvil"}
-                  width={22}
-                  style={{ color: group.color ?? "var(--mm-gold)" }}
+                {/* See the note on the home page: a dot rather than each
+                    category own icon, so the list reads as one list. */}
+                <span
+                  aria-hidden
+                  className="h-2.5 w-2.5 shrink-0 self-center rounded-full bg-[var(--mm-blue)]"
                 />
                 <h2 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
                   {group.name}
@@ -68,7 +79,10 @@ export default async function PartnersPage() {
                   return (
                     <Link
                       key={p.slug}
-                      href={`/partners/${p.slug}`}
+                      href={withReturn(`/partners/${p.slug}`, {
+                        href: "/partners",
+                        label: "Partners",
+                      })}
                       className="mm-glass group overflow-hidden p-0 transition hover:border-[var(--mm-violet)]"
                     >
                       {hero ? (

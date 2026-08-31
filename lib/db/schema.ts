@@ -12,7 +12,9 @@ import {
   boolean,
   doublePrecision,
 } from "drizzle-orm/pg-core";
+import { check } from "drizzle-orm/pg-core";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type { AdapterAccountType } from "next-auth/adapters";
 
 // ---------------------------------------------------------------------------
@@ -46,6 +48,55 @@ export const users = pgTable("user", {
     .notNull()
     .defaultNow(),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  /**
+   * Set when an admin bans the account. A ban is enforced in the Auth.js
+   * callbacks (lib/auth.ts): sign-in is refused, and a session already in
+   * flight is destroyed the next time its role is refreshed. The row stays —
+   * banning is reversible and their history stays attributable.
+   */
+  bannedAt: timestamp("banned_at", { withTimezone: true }),
+  bannedReason: text("banned_reason"),
+  /** Self-reference, so the type needs a callback — see huntSteps.parentId. */
+  bannedBy: text("banned_by").references((): AnyPgColumn => users.id, {
+    onDelete: "set null",
+  }),
+});
+
+/**
+ * How a member wants to be reached, one row per person.
+ *
+ * A row is created the first time somebody saves their preferences; anyone
+ * without one is treated as the defaults below, so the table never has to be
+ * backfilled and a new member is not silently unreachable.
+ *
+ * Kept apart from `user` because the unsubscribe endpoint writes to it
+ * without a session — a signed link from an email is the only credential it
+ * has — and that endpoint has no business being able to touch a profile.
+ */
+export const notificationPreferences = pgTable("notification_preferences", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  /** The bell in the app. Cheap to deliver, so on by default. */
+  inApp: boolean("in_app").notNull().default(true),
+  /** Needs RESEND_API_KEY set before anything actually sends. */
+  email: boolean("email").notNull().default(true),
+  /**
+   * Off by default, and nothing reads it yet.
+   *
+   * We know a member Discord id when they signed in with Discord (it is the
+   * account row provider_account_id), but sending a DM needs a bot token and
+   * a guild in common, and this app only has outgoing channel webhooks. The
+   * column exists so the preference survives the day that changes; see the
+   * note on the profile toggle, which says as much to the member.
+   */
+  discord: boolean("discord").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const accounts = pgTable(
@@ -265,6 +316,20 @@ export const events = pgTable(
     endsAt: timestamp("ends_at", { withTimezone: true }),
     capacity: integer("capacity"),
     origin: eventOriginEnum("origin").notNull().default("hosted"),
+    /**
+     * "No data allowed" — an event that collects nothing about the people at
+     * it. Two consequences, both deliberate:
+     *
+     *  1. Its public pages drop the site chrome. No top nav, no sign-in call
+     *     to action, nothing offering a route into the member site.
+     *  2. Its quests refuse member accounts outright. The only way to play is
+     *     an event-scoped handle and PIN (see `eventPlayers`), which carries
+     *     no email, no name and no link to anything outside this event.
+     *
+     * The flag lives on the event rather than the quest because it describes
+     * the room, not the trail: every quest at a no-data event inherits it.
+     */
+    noDataMode: boolean("no_data_mode").notNull().default(false),
     // origin=partner: shows on the partner's public page
     partnerId: uuid("partner_id").references(() => partners.id, {
       onDelete: "set null",
@@ -354,6 +419,19 @@ export const collabSubmissions = pgTable("collab_submissions", {
   message: text("message").notNull(),
   payload: jsonb("payload"),
   handled: boolean("handled").notNull().default(false),
+  /** Coarse source address, for the per-address rate limit. */
+  ip: text("ip"),
+  /**
+   * Quarantined rather than refused.
+   *
+   * The heuristics that catch a bot also catch a partner who linked their
+   * Instagram, so a suspected message is still stored and still answerable —
+   * it just stays out of the inbox until somebody looks. Refusing outright
+   * would lose real mail to a rule nobody can see.
+   */
+  spam: boolean("spam").notNull().default(false),
+  /** Which rules fired, so a false positive can be understood and fixed. */
+  spamReason: text("spam_reason"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -747,6 +825,8 @@ export const claimOutcomeEnum = pgEnum("claim_outcome", [
   "rate_limited",
   // A prerequisite objective hasn't been cleared yet — see prerequisiteFor().
   "locked",
+  // A member account at a no-data event, or a player session anywhere else.
+  "wrong_account",
 ]);
 export const scavengerHunts = pgTable("scavenger_hunts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -785,6 +865,47 @@ export const scavengerHunts = pgTable("scavenger_hunts", {
     .notNull()
     .defaultNow(),
 });
+
+/**
+ * A player at a no-data event: a handle, a PIN, and nothing else.
+ *
+ * Deliberately NOT a row in `user`. Everything that lists members — the admin
+ * user table, chat, the partner pickers — reads that table, and a player who
+ * leaked into any of those would be exactly the thing this event promised
+ * wouldn't happen. Keeping them apart means the separation is structural
+ * rather than a filter somebody has to remember to write.
+ *
+ * Rows are scoped to one event and cascade with it. Handles are chosen by the
+ * player on the spot and are unique within the event, case-insensitively —
+ * "Grognak" and "grognak" are the same adventurer as far as a leaderboard
+ * read out loud is concerned.
+ */
+export const eventPlayers = pgTable(
+  "event_players",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    handle: text("handle").notNull(),
+    /** scrypt, with a per-row salt. See lib/event-player.ts. */
+    pinHash: text("pin_hash").notNull(),
+    /**
+     * A PIN is four digits, so ten thousand guesses exhausts it. These two
+     * columns are what make that expensive: wrong guesses accumulate and lock
+     * the handle for a spell, and a correct one clears the count.
+     */
+    failedPins: integer("failed_pins").notNull().default(0),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("event_players_handle_idx").on(t.eventId, sql`lower(${t.handle})`),
+  ]
+);
 
 export const huntSteps = pgTable(
   "hunt_steps",
@@ -863,6 +984,10 @@ export const huntClaimAttempts = pgTable(
       onDelete: "cascade",
     }),
     userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    /** Set instead of `userId` when the claim came from a no-data event. */
+    playerId: uuid("player_id").references(() => eventPlayers.id, {
+      onDelete: "cascade",
+    }),
     outcome: claimOutcomeEnum("outcome").notNull(),
     claimMode: claimModeEnum("claim_mode"),
     /** Coarse source address, for spotting one device claiming for a crowd. */
@@ -887,9 +1012,14 @@ export const huntProgress = pgTable(
     stepId: uuid("step_id")
       .notNull()
       .references(() => huntSteps.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    /**
+     * Exactly one of `userId` and `playerId` is set — see the check below.
+     * Nullable now that a no-data event's players aren't members.
+     */
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id").references(() => eventPlayers.id, {
+      onDelete: "cascade",
+    }),
     completedAt: timestamp("completed_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -897,8 +1027,19 @@ export const huntProgress = pgTable(
     pointsAwarded: integer("points_awarded").notNull().default(0),
   },
   (t) => [
+    // Two unique indexes rather than one over both columns: Postgres treats
+    // NULLs as distinct, so a single index across (step, user, player) would
+    // let a member claim an objective twice — every row's player_id being NULL
+    // makes every row unique. One index per claimant kind is what actually
+    // holds "one completion per objective per adventurer".
     uniqueIndex("hunt_progress_unique").on(t.stepId, t.userId),
+    uniqueIndex("hunt_progress_player_unique").on(t.stepId, t.playerId),
     index("hunt_progress_hunt_user_idx").on(t.huntId, t.userId),
+    index("hunt_progress_hunt_player_idx").on(t.huntId, t.playerId),
+    check(
+      "hunt_progress_one_claimant",
+      sql`num_nonnulls(${t.userId}, ${t.playerId}) = 1`
+    ),
   ]
 );
 

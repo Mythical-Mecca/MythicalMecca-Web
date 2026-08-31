@@ -10,7 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Mythical Mecca — the Adventurers' Guild",
     short_name: "Mythical Mecca",
     description:
-      "A homebase for the geek collective. Gather, quest, and find your people.",
+      "A homebase for the geek community. Gather, quest, and find your people.",
     start_url: "/",
     display: "standalone",
     background_color: "#0b0f1c",

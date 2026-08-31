@@ -13,7 +13,8 @@ export interface SectionTheme {
   accent: string;
   /** Eyebrow + section icon. */
   icon: string;
-  eyebrow: string;
+  /** Omit to lead with the title alone. */
+  eyebrow?: string;
   /** Title renders as: `{lead} <gradient>{highlight}</gradient>`. */
   lead: string;
   highlight: string;
@@ -31,17 +32,16 @@ export const SECTIONS: Record<SectionKey, SectionTheme> = {
     lead: "Upcoming",
     highlight: "events",
     subtitle:
-      "Feasts, tournaments, screenings and quests — every gathering the collective is running. Pull up a chair.",
+      "Feasts, tournaments, screenings and quests — every gathering the community is running. Pull up a chair.",
   },
   partners: {
     bg: "/MythicMechaBackground.webp",
     accent: ACCENT.partners,
     icon: "game-icons:anvil",
-    eyebrow: "Makers & merchants",
     lead: "Our",
     highlight: "partners",
     subtitle:
-      "Artisans from across the collective — makers, artists and shops setting out their wares. Want a stall? Apply to join.",
+      "Makers, artists and shops from across the community set out their wares here. Apply if you want a stall of your own.",
   },
   quests: {
     // MythicMechaBackground3 (woods) — trails & scavenger hunts.

@@ -17,10 +17,14 @@ export function SectionHero({
   size?: "default" | "large";
 }) {
   const s = SECTIONS[section];
+  // The icon rides on the eyebrow. Handed one without an eyebrow,
+  // <PageHeading> promotes it to a chip beside the title — which would put a
+  // new element on screen in place of the one a section chose to drop.
+  const icon = s.eyebrow ? s.icon : undefined;
   return (
     <PageHeading
       eyebrow={s.eyebrow}
-      icon={s.icon}
+      icon={icon}
       accent={s.accent}
       title={
         <>

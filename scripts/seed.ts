@@ -65,7 +65,7 @@ async function main() {
         slug: "cape-town-geek-fest-2026",
         title: "Cape Town Geek Fest 2026",
         summary: "The Mother City's biggest pop-culture festival — cosplay, gaming, artists.",
-        bodyMd: "Not one of ours, but the collective will be there in force.",
+        bodyMd: "Not one of ours, but the community will be there in force.",
         location: "CTICC, Cape Town",
         startsAt: new Date("2026-08-15T09:00:00Z"),
         endsAt: new Date("2026-08-16T18:00:00Z"),

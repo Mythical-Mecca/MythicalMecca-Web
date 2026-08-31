@@ -449,6 +449,27 @@ export default async function AdminEventPage({
                 className="sm:max-w-xs"
               />
 
+              <PickerField
+                label="What this event collects"
+                name="noDataMode"
+                icon="mdi:shield-lock-outline"
+                defaultValue={event.noDataMode ? "1" : "0"}
+                options={[
+                  {
+                    value: "0",
+                    label: "The usual",
+                    hint: "Members sign in with their account, the site's header is on every page, and quests run off member profiles.",
+                    icon: "mdi:account-multiple-outline",
+                  },
+                  {
+                    value: "1",
+                    label: "No data allowed",
+                    hint: "This event's pages drop the site header entirely, and its quests refuse member accounts — players pick a name and a PIN that exist only inside this event.",
+                    icon: "mdi:incognito",
+                  },
+                ]}
+              />
+
               <button type="submit" className="mm-btn mm-btn-primary">
                 <Icon icon="mdi:content-save-outline" width={16} /> Save changes
               </button>

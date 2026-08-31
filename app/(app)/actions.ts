@@ -8,6 +8,20 @@ import { users, partnerApplications, reviews } from "@/lib/db/schema";
 import { and, desc, eq } from "drizzle-orm";
 import { auth, signIn } from "@/lib/auth";
 import { logActivity } from "@/lib/logging";
+import { getPrefs, setPrefs } from "@/lib/notifications";
+import { withReturn } from "@/lib/return-to";
+
+/**
+ * The return target a wizard step carried through its submit, as hidden
+ * fields. Handed straight to withReturn, which drops anything that is not a
+ * safe same-origin path — the value reaches us through a form post, so it is
+ * attacker-controllable however it got into the page.
+ */
+function returnFrom(formData: FormData): { href: string; label: string } | null {
+  const href = String(formData.get("from") ?? "");
+  if (!href) return null;
+  return { href, label: String(formData.get("fromLabel") ?? "") };
+}
 
 export async function linkSocial(formData: FormData) {
   const session = await auth();
@@ -21,6 +35,32 @@ export async function linkSocial(formData: FormData) {
 const profileSchema = z.object({
   name: z.string().min(1).max(120),
 });
+
+/**
+ * Save the notification switches.
+ *
+ * getAll().pop() rather than get(): each switch posts a hidden "off" followed
+ * by "on" when it is ticked, so the last value is the answer. Reading the
+ * first would report every channel as disabled.
+ */
+export async function updateNotificationPrefs(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
+  const on = (name: string) =>
+    String(formData.getAll(name).pop() ?? "off") === "on";
+
+  await setPrefs(session.user.id, {
+    inApp: on("inApp"),
+    email: on("email"),
+    // Nothing sends on Discord yet and the control is disabled, so the form
+    // never carries it. Preserve whatever is stored rather than clearing it.
+    discord: (await getPrefs(session.user.id)).discord,
+  });
+
+  revalidatePath("/profile");
+  redirect("/profile?saved=1");
+}
 
 export async function updateProfile(formData: FormData) {
   const session = await auth();
@@ -136,7 +176,7 @@ export async function startApplication(
   }
 
   await logActivity({ actorId: session.user.id, action: "partner_application.draft" });
-  redirect("/apply?step=2");
+  redirect(withReturn("/apply?step=2", returnFrom(formData)));
 }
 
 const imagesSchema = z.object({
@@ -184,7 +224,7 @@ export async function submitDraftApplication(
     }
   }
   await logActivity({ actorId: session.user.id, action: "partner_application.submit" });
-  redirect("/apply?sent=1");
+  redirect(withReturn("/apply?sent=1", returnFrom(formData)));
 }
 
 // ---------------------------------------------------------------------------

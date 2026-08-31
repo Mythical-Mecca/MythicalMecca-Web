@@ -9,18 +9,8 @@ import { trapTab } from "@/lib/focus-trap";
 export type NavMenuItem = {
   href: string;
   title: string;
-  desc: string;
   icon: string;
   color: string;
-};
-
-export type NavMenuSection = {
-  title: string;
-  subtitle?: string;
-  icon: string;
-  /** Colour scheme applied to every item card in the section. */
-  color: string;
-  items: NavMenuItem[];
 };
 
 export type NavMenuTrigger = {
@@ -39,36 +29,27 @@ const EXIT_MS = 180;
 
 function ItemLink({
   item,
-  color: sectionColor,
   onNavigate,
 }: {
   item: NavMenuItem;
-  /** Section fallback. An item that carries its own colour keeps it, so a
-      concept is the same colour here as it is in the header and the sidebar. */
-  color: string;
   onNavigate: () => void;
 }) {
-  const color = item.color || sectionColor;
+  const { color } = item;
   return (
     <Link
       href={item.href}
       onClick={onNavigate}
       style={{ ["--c"]: color } as React.CSSProperties}
-      className="group flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--c)_9%,transparent)] bg-[color-mix(in_srgb,var(--c)_3%,transparent)] p-3 transition-colors duration-150 hover:border-[color-mix(in_srgb,var(--c)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--c)_8%,transparent)]"
+      className="group flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--c)_9%,transparent)] bg-[color-mix(in_srgb,var(--c)_3%,transparent)] p-3.5 transition-colors duration-150 hover:border-[color-mix(in_srgb,var(--c)_28%,transparent)] hover:bg-[color-mix(in_srgb,var(--c)_8%,transparent)]"
     >
       <span
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg"
         style={{ background: `${color}14`, color }}
       >
-        <Icon icon={item.icon} width={18} />
+        <Icon icon={item.icon} width={24} />
       </span>
-      <span className="min-w-0 leading-tight">
-        <span className="block truncate text-sm font-medium" style={{ color }}>
-          {item.title}
-        </span>
-        <span className="block truncate text-xs text-[var(--mm-text-dim)]">
-          {item.desc}
-        </span>
+      <span className="min-w-0 truncate text-base font-medium" style={{ color }}>
+        {item.title}
       </span>
     </Link>
   );
@@ -76,18 +57,14 @@ function ItemLink({
 
 export function NavMenu({
   items,
-  sections,
   trigger,
   title = "Navigate",
-  subtitle = "Where to, adventurer?",
   signOutAction,
   profileHref = "/profile",
 }: {
-  items?: NavMenuItem[];
-  sections?: NavMenuSection[];
+  items: NavMenuItem[];
   trigger?: NavMenuTrigger;
   title?: string;
-  subtitle?: string;
   /** When provided, renders the docked footer with Profile + Sign out. */
   signOutAction?: () => void | Promise<void>;
   profileHref?: string;
@@ -156,18 +133,22 @@ export function NavMenu({
   }, [open]);
 
   const footer = signOutAction && (
-    <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-[var(--mm-border)] bg-[var(--mm-surface)] px-6 py-4">
+    // Two halves of the footer rather than two buttons sitting in it. No
+    // padding on the container and no border of their own, so each fills its
+    // half to the panel's edge and the only line left is the one between them.
+    // The panel clips them to its own rounded corners.
+    <div className="grid shrink-0 grid-cols-2 border-t border-[var(--mm-border)] bg-[var(--mm-surface)]">
       <Link
         href={profileHref}
         onClick={close}
-        className="flex items-center justify-center gap-2 rounded-xl border border-[var(--mm-border)] px-4 py-2.5 text-sm font-semibold text-[var(--mm-text-dim)] transition-colors hover:border-[var(--mm-gold)] hover:text-[var(--mm-text)]"
+        className="flex items-center justify-center gap-2 px-4 py-4 text-sm font-semibold text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
       >
         <Icon icon="game-icons:visored-helm" width={17} /> Profile
       </Link>
-      <form action={signOutAction}>
+      <form action={signOutAction} className="border-l border-[var(--mm-border)]">
         <button
           type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--mm-border)] px-4 py-2.5 text-sm font-semibold text-[var(--mm-text-dim)] transition-colors hover:border-[var(--mm-danger)] hover:bg-[color-mix(in_srgb,var(--mm-danger)_12%,transparent)] hover:text-[var(--mm-danger)]"
+          className="flex h-full w-full items-center justify-center gap-2 px-4 py-4 text-sm font-semibold text-[var(--mm-text-dim)] transition-colors hover:bg-[color-mix(in_srgb,var(--mm-danger)_12%,transparent)] hover:text-[var(--mm-danger)]"
         >
           <Icon icon="mdi:logout" width={17} /> Sign out
         </button>
@@ -199,13 +180,22 @@ export function NavMenu({
         data-closing={closing}
         className="mm-pop relative flex max-h-[85dvh] w-full max-w-2xl flex-col overflow-hidden rounded-[20px] border border-[color-mix(in_srgb,var(--mm-gold)_28%,transparent)] bg-[var(--mm-surface)] shadow-2xl outline-none"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-[var(--mm-border)] px-6 py-4">
-          <div>
-            <h2 className="font-[family-name:var(--font-display)] text-lg tracking-wide">
-              {title}
-            </h2>
-            <p className="text-xs text-[var(--mm-text-dim)]">{subtitle}</p>
-          </div>
+        <div className="flex shrink-0 items-center gap-3 border-b border-[var(--mm-border)] px-6 py-4">
+          {/* A plain house rather than the castle: the castle means the Guild
+              Hall everywhere else in this menu, and this goes to the public
+              front page. Closes the menu on the way out, like every other
+              destination in here. */}
+          <Link
+            href="/"
+            onClick={close}
+            aria-label="Go to the home page"
+            className="rounded-lg bg-white p-1.5 text-[var(--mm-bg)] transition-colors hover:bg-white/80"
+          >
+            <Icon icon="mdi:home" width={20} />
+          </Link>
+          <h2 className="flex-1 font-[family-name:var(--font-display)] text-lg tracking-wide">
+            {title}
+          </h2>
           <button
             type="button"
             onClick={close}
@@ -217,59 +207,15 @@ export function NavMenu({
         </div>
 
         <div className="mm-scroll min-h-0 flex-1 overflow-y-auto px-6 py-5">
-          {sections ? (
-            <div className="space-y-6">
-              {sections
-                .filter((s) => s.items.length > 0)
-                .map((section) => (
-                  <section key={section.title}>
-                    <div className="mb-2.5 flex items-baseline gap-2.5">
-                      <span
-                        className="grid h-6 w-6 shrink-0 translate-y-1 place-items-center rounded-md"
-                        style={{
-                          background: `${section.color}1e`,
-                          color: section.color,
-                        }}
-                      >
-                        <Icon icon={section.icon} width={14} />
-                      </span>
-                      <h3
-                        className="text-xs font-semibold uppercase tracking-[0.18em]"
-                        style={{ color: section.color }}
-                      >
-                        {section.title}
-                      </h3>
-                      {section.subtitle && (
-                        <p className="truncate text-xs text-[var(--mm-text-dim)]">
-                          {section.subtitle}
-                        </p>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      {section.items.map((item) => (
-                        <ItemLink
-                          key={item.href}
-                          item={item}
-                          color={section.color}
-                          onNavigate={close}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {(items ?? []).map((item) => (
-                <ItemLink
-                  key={item.href}
-                  item={item}
-                  color={item.color}
-                  onNavigate={close}
-                />
-              ))}
-            </div>
-          )}
+          {/* One grid, two across at every width. Grouping headings cost a
+              row of chrome each and said little the card below them didn't;
+              the colours already carry which part of the site you are
+              heading into. */}
+          <div className="grid grid-cols-2 gap-2.5">
+            {items.map((item) => (
+              <ItemLink key={item.href} item={item} onNavigate={close} />
+            ))}
+          </div>
         </div>
 
         {footer}

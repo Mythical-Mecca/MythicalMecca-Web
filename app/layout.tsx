@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     template: "%s — Mythical Mecca",
   },
   description:
-    "A homebase for the geek collective. Gather, quest, and find your people.",
+    "A homebase for the geek community. Gather, quest, and find your people.",
 };
 
 export default function RootLayout({

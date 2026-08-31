@@ -68,7 +68,8 @@ export const config = {
     "/events",
     "/events/submit",
     "/quests",
-    // A scanned tag still needs a member: /q is where a claim happens.
-    "/q/:path*",
+    // NOT /q: a scanned tag is where a no-data event's player first arrives,
+    // and they have no member session to check. The page sends everyone else
+    // to /login itself — see app/(open)/q/[token]/page.tsx.
   ],
 };

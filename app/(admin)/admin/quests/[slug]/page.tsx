@@ -52,6 +52,7 @@ const OUTCOME_TONE: Record<string, string> = {
   unknown_step: "var(--mm-danger)",
   locked: "var(--mm-gold)",
   rate_limited: "var(--mm-gold)",
+  wrong_account: "var(--mm-gold)",
 };
 
 export default async function AdminQuestEditorPage({
