@@ -6,11 +6,12 @@ import { Icon } from "@/components/icon";
 import { LogoMark } from "@/components/brand";
 import { Flash } from "@/components/flash";
 import { pageMetadata } from "@/lib/metadata";
+import { continueHref, homeForUser } from "@/lib/home";
 
 export const metadata = pageMetadata({
   title: "Sign in",
   description:
-    "Sign in to Mythical Mecca to join events, follow quests and find your people.",
+    "Sign in to Mythical Mecca to run a stall or keep the hall.",
 });
 
 export default async function LoginPage({
@@ -19,12 +20,15 @@ export default async function LoginPage({
   searchParams: Promise<{ from?: string; error?: string }>;
 }) {
   const session = await auth();
-  if (session?.user) redirect("/dashboard");
   const { from, error } = await searchParams;
   // A bare startsWith("/") also admits "//evil.com", which browsers read as a
   // protocol-relative absolute URL.
   const safeFrom =
     from && from.startsWith("/") && !from.startsWith("//") ? from : null;
+
+  if (session?.user) redirect(await homeForUser(session.user, safeFrom));
+
+  const afterSignIn = continueHref(safeFrom);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6">
@@ -58,7 +62,7 @@ export default async function LoginPage({
           ENTER THE <span className="mm-gradient-text">HALL</span>
         </h1>
         <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
-          Sign your name in the guild ledger.
+          Stallholders and keepers sign in here.
         </p>
 
         {/* Auth.js sends a refused sign-in back here with a code. The only one
@@ -77,7 +81,7 @@ export default async function LoginPage({
             action={async () => {
               "use server";
               await signIn("discord", {
-                redirectTo: safeFrom ?? "/dashboard",
+                redirectTo: afterSignIn,
               });
             }}
           >
@@ -94,7 +98,7 @@ export default async function LoginPage({
             action={async () => {
               "use server";
               await signIn("google", {
-                redirectTo: safeFrom ?? "/dashboard",
+                redirectTo: afterSignIn,
               });
             }}
           >
@@ -108,8 +112,8 @@ export default async function LoginPage({
         </div>
 
         <p className="mt-6 text-xs text-[var(--mm-text-dim)]">
-          New adventurers are welcomed automatically · sign in with either and
-          link the other later.
+          Visitors can browse the site without an account. Sign in to apply
+          for a stall, run one, or keep the hall.
         </p>
       </div>
     </div>

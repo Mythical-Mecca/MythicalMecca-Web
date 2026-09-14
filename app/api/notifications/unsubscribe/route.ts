@@ -48,9 +48,8 @@ function page(body: string, status = 200) {
 
 const UNKNOWN = page(
   `<h1>That link has expired</h1>
-   <p>We could not read that unsubscribe link. You can change what we send you
-      from your profile at any time.</p>
-   <a class="btn" href="/profile">Open your profile</a>`,
+   <p>We could not read that unsubscribe link. It may have expired.</p>
+   <a class="btn" href="/">Back to the hall</a>`,
   400
 );
 
@@ -62,13 +61,13 @@ export async function GET(req: Request) {
   const label = CHANNEL_LABEL[claim.channel];
   return page(
     `<h1>Stop sending ${label}?</h1>
-     <p>You will still be able to see everything in the app, and you can turn
-        ${label} back on from your profile whenever you like.</p>
+     <p>You will still hear about gatherings on Discord, and this link will
+        not sign you back up.</p>
      <form method="post">
        <input type="hidden" name="t" value="${token.replace(/"/g, "&quot;")}">
        <button type="submit">Unsubscribe me</button>
      </form>
-     <p style="margin-top:1.5rem"><a class="quiet" href="/profile">Change my settings instead</a></p>`
+     <p style="margin-top:1.5rem"><a class="quiet" href="/">Back to the hall</a></p>`
   );
 }
 
@@ -92,17 +91,15 @@ export async function POST(req: Request) {
   if (!ok) {
     return page(
       `<h1>Something went wrong</h1>
-       <p>We could not save that just now. Please try again, or change it from
-          your profile.</p>
-       <a class="btn" href="/profile">Open your profile</a>`,
+       <p>We could not save that just now. Please try again.</p>
+       <a class="btn" href="/">Back to the hall</a>`,
       500
     );
   }
 
   return page(
     `<h1>Done</h1>
-     <p>We have stopped sending you ${CHANNEL_LABEL[claim.channel]}. Turn them
-        back on from your profile whenever you want them again.</p>
-     <a class="btn" href="/profile">Open your profile</a>`
+     <p>We have stopped sending you ${CHANNEL_LABEL[claim.channel]}.</p>
+     <a class="btn" href="/">Back to the hall</a>`
   );
 }

@@ -68,10 +68,8 @@ export default async function PartnerApplicationPage({
   const categories = await listApplicableCategories();
   const sp = await searchParams;
   const { sent, step } = sp;
-  // This page opens from the partners directory, the home page, the profile
-  // and the dashboard. A back link hard-coded to the dashboard was right for
-  // exactly one of those and silently wrong for the rest.
-  const backTo = parseReturn(sp, { href: "/dashboard", label: "Back to dashboard" });
+  // This page opens from the partners directory and the home page.
+  const backTo = parseReturn(sp, { href: "/", label: "Back to the hall" });
   // Membership, not the JWT role: a token still saying "member" would otherwise
   // invite an existing partner to apply all over again.
   const isPartner =

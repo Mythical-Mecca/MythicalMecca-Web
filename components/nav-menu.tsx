@@ -60,13 +60,14 @@ export function NavMenu({
   trigger,
   title = "Navigate",
   signOutAction,
-  profileHref = "/profile",
+  profileHref,
 }: {
   items: NavMenuItem[];
   trigger?: NavMenuTrigger;
   title?: string;
-  /** When provided, renders the docked footer with Profile + Sign out. */
+  /** When provided, renders the docked footer with Sign out. */
   signOutAction?: () => void | Promise<void>;
+  /** Optional second footer half. Omit to give Sign out the full width. */
   profileHref?: string;
 }) {
   // While idle the dialog is NOT in the DOM at all — it used to sit there
@@ -132,27 +133,33 @@ export function NavMenu({
     return () => returnTo?.focus?.();
   }, [open]);
 
-  const footer = signOutAction && (
-    // Two halves of the footer rather than two buttons sitting in it. No
-    // padding on the container and no border of their own, so each fills its
-    // half to the panel's edge and the only line left is the one between them.
-    // The panel clips them to its own rounded corners.
-    <div className="grid shrink-0 grid-cols-2 border-t border-[var(--mm-border)] bg-[var(--mm-surface)]">
-      <Link
-        href={profileHref}
-        onClick={close}
-        className="flex items-center justify-center gap-2 px-4 py-4 text-sm font-semibold text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+  const signOutButton = signOutAction && (
+    <form action={signOutAction} className={profileHref ? "border-l border-[var(--mm-border)]" : undefined}>
+      <button
+        type="submit"
+        className="flex h-full w-full items-center justify-center gap-2 px-4 py-4 text-sm font-semibold text-[var(--mm-text-dim)] transition-colors hover:bg-[color-mix(in_srgb,var(--mm-danger)_12%,transparent)] hover:text-[var(--mm-danger)]"
       >
-        <Icon icon="game-icons:visored-helm" width={17} /> Profile
-      </Link>
-      <form action={signOutAction} className="border-l border-[var(--mm-border)]">
-        <button
-          type="submit"
-          className="flex h-full w-full items-center justify-center gap-2 px-4 py-4 text-sm font-semibold text-[var(--mm-text-dim)] transition-colors hover:bg-[color-mix(in_srgb,var(--mm-danger)_12%,transparent)] hover:text-[var(--mm-danger)]"
+        <Icon icon="mdi:logout" width={17} /> Sign out
+      </button>
+    </form>
+  );
+
+  const footer = signOutAction && (
+    <div
+      className={`grid shrink-0 border-t border-[var(--mm-border)] bg-[var(--mm-surface)] ${
+        profileHref ? "grid-cols-2" : "grid-cols-1"
+      }`}
+    >
+      {profileHref && (
+        <Link
+          href={profileHref}
+          onClick={close}
+          className="flex items-center justify-center gap-2 px-4 py-4 text-sm font-semibold text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
         >
-          <Icon icon="mdi:logout" width={17} /> Sign out
-        </button>
-      </form>
+          <Icon icon="game-icons:visored-helm" width={17} /> Profile
+        </Link>
+      )}
+      {signOutButton}
     </div>
   );
 

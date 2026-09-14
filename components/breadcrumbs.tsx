@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { Icon } from "./icon";
 
 const LABELS: Record<string, string> = {
-  dashboard: "Dashboard",
   // sections
   events: "Events",
   quests: "Quests",
@@ -51,21 +50,19 @@ export interface CrumbRoot {
   icon: string;
 }
 
-const DASHBOARD_ROOT: CrumbRoot = {
-  href: "/dashboard",
-  label: "Dashboard",
-  icon: "game-icons:castle",
+const HOME_ROOT: CrumbRoot = {
+  href: "/",
+  label: "Home",
+  icon: "mdi:home",
 };
 
 /**
  * The trail, rooted at the area you are actually in.
  *
- * It used to root every trail at the member dashboard, so an admin editing an
- * event read "Dashboard › Admin › Events" — a trail whose first hop leaves the
- * area entirely. Each shell now passes its own root, and a leading crumb that
- * duplicates that root is dropped rather than rendered twice.
+ * Each shell passes its own root, and a leading crumb that duplicates that
+ * root is dropped rather than rendered twice.
  */
-export function Breadcrumbs({ root = DASHBOARD_ROOT }: { root?: CrumbRoot }) {
+export function Breadcrumbs({ root = HOME_ROOT }: { root?: CrumbRoot }) {
   const path = usePathname();
   if (!path || path === "/" || path === root.href) return null;
 
@@ -88,19 +85,28 @@ export function Breadcrumbs({ root = DASHBOARD_ROOT }: { root?: CrumbRoot }) {
   return (
     <nav
       aria-label="Breadcrumb"
-      className="flex flex-wrap items-center gap-1.5 text-sm text-[var(--mm-text-dim)]"
+      className="flex min-w-0 items-center gap-1.5 text-sm text-[var(--mm-text-dim)]"
     >
       <Link
         href={root.href}
-        className="inline-flex min-h-6 items-center gap-1 hover:text-[var(--mm-text)]"
+        className="inline-flex min-h-6 shrink-0 items-center gap-1 hover:text-[var(--mm-text)]"
       >
         <Icon icon={root.icon} width={15} /> {root.label}
       </Link>
       {crumbs.map((c) => (
-        <span key={c.href + c.label} className="flex items-center gap-1.5">
-          <Icon icon="mdi:chevron-right" width={15} className="opacity-50" />
+        <span
+          key={c.href + c.label}
+          className={`flex items-center gap-1.5 ${c.last ? "min-w-0" : "shrink-0"}`}
+        >
+          <Icon
+            icon="mdi:chevron-right"
+            width={15}
+            className="shrink-0 opacity-50"
+          />
           {c.last ? (
-            <span className="text-[var(--mm-text)]">{c.label}</span>
+            <span className="truncate text-[var(--mm-text)]" title={c.label}>
+              {c.label}
+            </span>
           ) : (
             <Link
               href={c.href}

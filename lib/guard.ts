@@ -10,6 +10,6 @@ import { roleAtLeast, type Role } from "@/lib/rbac";
 export async function requireRole(min: Role) {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (!roleAtLeast(session.user.role, min)) redirect("/dashboard?denied=1");
+  if (!roleAtLeast(session.user.role, min)) redirect("/");
   return session;
 }

@@ -29,7 +29,7 @@ const MAX_LABEL = 60;
  * string, so it is attacker-controllable even on an admin-only screen, and an
  * open redirect is an open redirect.
  */
-function isSafePath(v: string): boolean {
+export function isSafePath(v: string): boolean {
   if (!v || v.length > MAX_HREF) return false;
   if (!v.startsWith("/")) return false;
   if (v.startsWith("//") || v.startsWith("/\\")) return false;

@@ -6,6 +6,7 @@ import {
   listPartnerReviews,
 } from "@/lib/reviews";
 import { auth } from "@/lib/auth";
+import { isStaffUser } from "@/lib/home";
 import { getMembership } from "@/lib/partner-access";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
@@ -64,7 +65,9 @@ export default async function PartnerPage({
   // and the admin preview. The directory is right for one of those.
   const backTo = parseReturn(sp, { href: "/partners", label: "Partners" });
   const session = await auth();
-  const loggedIn = !!session?.user;
+  const canReview = session?.user
+    ? await isStaffUser(session.user.id, session.user.role)
+    : false;
 
   let partner = await getPartner(slug);
 
@@ -362,32 +365,22 @@ export default async function PartnerPage({
             </div>
           ) : (
             <p className="mt-4 text-sm text-[var(--mm-text-dim)]">
-              No reviews yet — be the first to share your experience.
+              No reviews yet.
             </p>
           )}
 
-          <div className="mm-glass mt-6 p-6">
-            <h3 className="mb-4 font-[family-name:var(--font-display)] text-lg">
-              Leave a review
-            </h3>
-            {loggedIn ? (
+          {canReview && (
+            <div className="mm-glass mt-6 p-6">
+              <h3 className="mb-4 font-[family-name:var(--font-display)] text-lg">
+                Leave a review
+              </h3>
               <ReviewForm
                 targetType="partner"
                 targetId={partner.id}
                 partnerSlug={slug}
               />
-            ) : (
-              <p className="text-sm text-[var(--mm-text-dim)]">
-                <Link
-                  href="/login"
-                  className="text-[var(--mm-gold)] hover:underline"
-                >
-                  Sign in to leave a review
-                </Link>{" "}
-                for this partner.
-              </p>
-            )}
-          </div>
+            </div>
+          )}
         </section>
       )}
 

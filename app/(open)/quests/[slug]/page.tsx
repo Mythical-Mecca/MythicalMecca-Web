@@ -20,6 +20,7 @@ import { StandsCabinet } from "@/components/stands-cabinet";
 import { Icon } from "@/components/icon";
 import { inputPill } from "@/components/form";
 import { pageMetadata } from "@/lib/metadata";
+import { SiteNav } from "@/components/site-nav";
 
 export async function generateMetadata({
   params,
@@ -443,22 +444,20 @@ function StandDetail({
   );
 }
 
-/** The signed-out view: enough to decide it's worth signing in for. */
+/** The public view: what this is, how long it runs, whose event it belongs to. */
 function QuestTeaser({
   hunt,
-  from,
   backTo,
 }: {
   hunt: HuntView;
-  from: string;
   backTo: ReturnTo;
 }) {
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
-      {/* The page carries no nav, so this is the only way back. It shows
-          itself only to a member or to somebody who arrived from elsewhere on
-          the site — a cold arrival from a shared link has nowhere to go back
-          to. See <BackLink>. */}
+    <div>
+      <SiteNav />
+      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+      {/* Back only when the visitor arrived from elsewhere on the site —
+          a cold arrival from a shared link has nowhere to go back to. */}
       <div className="-ml-1 mb-4">
         <BackLink to={backTo} />
       </div>
@@ -538,19 +537,14 @@ function QuestTeaser({
               </h2>
               <p className="mx-auto mt-1.5 max-w-sm text-sm text-[var(--mm-text-dim)]">
                 {hunt.open
-                  ? "Sign in to see the objectives and check in at each stand as you go."
-                  : "Sign in to see the trail and your progress so far."}
+                  ? "Check in at each stand as you go — the trail opens at the gathering."
+                  : "This trail runs with the event. Come back when it is on."}
               </p>
-              <Link
-                href={`/login?from=${encodeURIComponent(from)}`}
-                className="mm-btn mm-btn-primary mt-5"
-              >
-                <Icon icon="mdi:account" width={18} /> Sign in to continue
-              </Link>
             </>
           )}
         </div>
       </section>
+      </div>
     </div>
   );
 }
@@ -572,7 +566,7 @@ export default async function HuntDetailPage({
   const { slug } = await params;
   const sp = await searchParams;
   const { ok, fail, closed, locked } = sp;
-  const backTo = parseReturn(sp, { href: "/quests", label: "Quest board" });
+  const backTo = parseReturn(sp, { href: "/", label: "Home" });
   // The trail is fetched twice over: once to learn which event this is (and
   // therefore which kind of sign-in counts here), then again with whoever
   // that turns out to be, so progress is resolved for the right adventurer.
@@ -592,11 +586,7 @@ export default async function HuntDetailPage({
    */
   if (!who) {
     return (
-      <QuestTeaser
-        hunt={hunt}
-        backTo={backTo}
-        from={withReturn(`/quests/${slug}`, sp.from ? { href: sp.from, label: sp.fromLabel ?? "" } : null)}
-      />
+      <QuestTeaser hunt={hunt} backTo={backTo} />
     );
   }
 

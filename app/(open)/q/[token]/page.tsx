@@ -6,6 +6,7 @@ import { forClaimant, getClaimTarget } from "@/lib/hunts";
 import { QuestClaim } from "@/components/quest-claim";
 import { PlayerSignIn } from "@/components/player-sign-in";
 import { Icon } from "@/components/icon";
+import { auth } from "@/lib/auth";
 
 export const metadata = { title: "Check in" };
 
@@ -51,18 +52,42 @@ export default async function TagLandingPage({
             This tag isn&apos;t one of ours, or the objective it pointed at has
             been removed.
           </p>
-          <Link href="/quests" className="mm-btn mm-btn-ghost mt-6">
-            Quest board
+          <Link href="/" className="mm-btn mm-btn-ghost mt-6">
+            Back to the hall
           </Link>
         </div>
       </div>
     );
   }
 
-  // Everywhere but a no-data event, a check-in needs a member — this is the
-  // redirect the proxy used to perform, moved here now that /q has to stay
-  // reachable for players who have no member session to check.
-  if (!who && !target.noDataMode) redirect(`/login?from=/q/${token}`);
+  // Everywhere but a no-data event, a check-in needs a stallholder or keeper.
+  // Visitors who somehow signed in are not sent around the login loop.
+  if (!who && !target.noDataMode) {
+    const session = await auth();
+    if (session?.user) {
+      return (
+        <div className="mx-auto max-w-md px-6 py-6 sm:flex sm:min-h-[60vh] sm:items-center">
+          <div className="mm-glass w-full p-8 text-center">
+            <Icon
+              icon="mdi:storefront-outline"
+              width={40}
+              className="mx-auto text-[var(--mm-gold)]"
+            />
+            <h1 className="mt-4 font-[family-name:var(--font-display)] text-xl">
+              Stallholder check-in
+            </h1>
+            <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
+              This tag is for people running a stall or keeping the hall.
+            </p>
+            <Link href="/" className="mm-btn mm-btn-ghost mt-6">
+              Back to the hall
+            </Link>
+          </div>
+        </div>
+      );
+    }
+    redirect(`/login?from=/q/${token}`);
+  }
 
   // A scanned tag at a no-data event is most people's first contact with it,
   // so the panel that answers it is the one that gets them playing — not a

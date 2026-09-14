@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { Icon } from "@/components/icon";
-import { auth } from "@/lib/auth";
-import { countMyPartnerships } from "@/lib/partner-access";
-import { AppTopNav } from "@/components/app-top-nav";
+import { SiteNav } from "@/components/site-nav";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { HOME_SECTIONS, PublicTopNav } from "@/components/public-top-nav";
+import { HOME_SECTIONS } from "@/components/public-top-nav";
 import { withReturn } from "@/lib/return-to";
 
 const Footer = () => (
@@ -38,42 +36,21 @@ const Footer = () => (
   </footer>
 );
 
-export default async function PublicLayout({
+export default function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-
-  // Logged-in visitors get the full app shell so public pages stay connected.
-  // No <AppBackdrop> here — the public pages carry their own per-section
-  // imagery, so a fixed full-page backdrop would double up behind them.
-  if (session?.user) {
-    const hasPartner = (await countMyPartnerships(session.user.id)) > 0;
-    return (
-      <div className="flex min-h-dvh flex-col">
-        <a href="#main-content" className="mm-skip">
-          Skip to content
-        </a>
-        <AppTopNav role={session.user.role} hasPartner={hasPartner} />
-        <main id="main-content" tabIndex={-1} className="flex-1">
-          <div className="mx-auto max-w-6xl px-6 empty:hidden [&:not(:empty)]:pt-6">
-            <Breadcrumbs />
-          </div>
-          {children}
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-dvh flex-col">
       <a href="#main-content" className="mm-skip">
         Skip to content
       </a>
-      <PublicTopNav />
+      <SiteNav />
       <main id="main-content" tabIndex={-1} className="flex-1">
+        <div className="mx-auto max-w-6xl px-6 empty:hidden [&:not(:empty)]:pt-6">
+          <Breadcrumbs />
+        </div>
         {children}
       </main>
       <Footer />

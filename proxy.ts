@@ -45,31 +45,12 @@ export async function proxy(req: NextRequest) {
 
   const role = (token.role as Role | undefined) ?? "member";
   if (!roleAtLeast(role, rule.min)) {
-    return withSecurityHeaders(
-      NextResponse.redirect(new URL("/dashboard?denied=1", req.url))
-    );
+    return withSecurityHeaders(NextResponse.redirect(new URL("/", req.url)));
   }
 
   return withSecurityHeaders(NextResponse.next());
 }
 
 export const config = {
-  matcher: [
-    "/admin/:path*",
-    "/partner-hub/:path*",
-    "/dashboard/:path*",
-    "/profile/:path*",
-    "/apply/:path*",
-    "/community/:path*",
-    // Detail pages are publicly readable so a shared link previews as itself
-    // rather than as the sign-in screen — see app/(open)/layout.tsx. Only the
-    // browse boards and the submit form are gated here; the pages themselves
-    // decide what a signed-out reader may see.
-    "/events",
-    "/events/submit",
-    "/quests",
-    // NOT /q: a scanned tag is where a no-data event's player first arrives,
-    // and they have no member session to check. The page sends everyone else
-    // to /login itself — see app/(open)/q/[token]/page.tsx.
-  ],
+  matcher: ["/admin/:path*", "/partner-hub/:path*", "/apply/:path*"],
 };

@@ -1,6 +1,7 @@
 import "server-only";
 import { auth } from "@/lib/auth";
 import { playerForEvent } from "@/lib/event-player";
+import { isStaffUser } from "@/lib/home";
 
 /**
  * Who is clearing an objective — a member of the site, or a player who exists
@@ -54,5 +55,9 @@ export async function claimantFor(
     return player ? asPlayer(player.playerId) : null;
   }
   const session = await auth();
-  return session?.user ? asMember(session.user.id) : null;
+  if (!session?.user) return null;
+  // Member-account quests are for stallholders and keepers. Visitors play at
+  // no-data events via a player handle; they do not get a site dashboard.
+  if (!(await isStaffUser(session.user.id, session.user.role))) return null;
+  return asMember(session.user.id);
 }

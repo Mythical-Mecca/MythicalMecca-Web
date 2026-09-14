@@ -5,18 +5,15 @@ import { SECTIONS } from "@/lib/sections";
 import { AuroraField } from "./animations/aurora-field";
 import { ParticleField } from "./animations/particle-field";
 
-const DASHBOARD_BG = "/MMLandingPageBackground.webp";
 const DEFAULT_BG = "/MythicMechaBackground.webp";
 
 /**
  * Route → full-page background image, keyed off the section registry.
  */
 function bgForPath(path: string): string {
-  if (path.startsWith("/dashboard")) return DASHBOARD_BG;
   if (path.startsWith("/events")) return SECTIONS.events.bg;
   if (path.startsWith("/quests")) return SECTIONS.quests.bg;
-  // /partners is public now and lives outside this layout — no branch for it.
-  return DEFAULT_BG; // profile, apply, etc.
+  return DEFAULT_BG; // apply, etc.
 }
 
 /**

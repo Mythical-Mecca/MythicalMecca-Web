@@ -21,10 +21,10 @@ const toMenuItem = (item: NavItem): NavMenuItem => ({
   color: item.color ?? "#9aa3bd",
 });
 
-const DASHBOARD_ITEM: NavMenuItem = {
-  href: "/dashboard",
-  title: "Dashboard",
-  icon: "game-icons:castle",
+const PUBLIC_ITEM: NavMenuItem = {
+  href: "/",
+  title: "Public site",
+  icon: "mdi:home",
   color: "#4aa8ff",
 };
 
@@ -37,11 +37,9 @@ export function DashboardShell({
   nav: NavItem[];
   children: React.ReactNode;
 }) {
-  const menuItems = [...nav.map(toMenuItem), DASHBOARD_ITEM];
-  // The trail belongs to this area, not to the member dashboard — see
-  // <Breadcrumbs>. The first nav entry is always the area's own overview.
+  const menuItems = [...nav.map(toMenuItem), PUBLIC_ITEM];
   const crumbRoot: CrumbRoot = {
-    href: nav[0]?.href ?? "/dashboard",
+    href: nav[0]?.href ?? "/",
     label: area,
     icon: nav[0]?.icon ?? "mdi:view-dashboard-outline",
   };
@@ -52,7 +50,7 @@ export function DashboardShell({
         Skip to content
       </a>
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_92%,transparent)] px-4 py-6 md:flex">
-        <Brand href="/dashboard" className="px-2 text-sm" />
+        <Brand href="/" className="px-2 text-sm" />
         <p className="mt-1 px-2 text-[10px] uppercase tracking-[0.25em] text-[var(--mm-gold)]">
           {area}
         </p>
@@ -61,10 +59,10 @@ export function DashboardShell({
 
         <div className="mt-auto space-y-2">
           <Link
-            href="/dashboard"
+            href="/"
             className="flex min-h-11 items-center gap-2 rounded-lg px-3 text-xs text-[var(--mm-text-dim)] hover:text-[var(--mm-text)]"
           >
-            <Icon icon="mdi:arrow-left" width={15} /> Dashboard
+            <Icon icon="mdi:arrow-left" width={15} /> Public site
           </Link>
           <form
             action={async () => {
@@ -83,7 +81,7 @@ export function DashboardShell({
         {/* Mobile top bar — sidebar is hidden below md, so navigation lives here */}
         <header className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_92%,transparent)] px-5 py-3 md:hidden">
           <div className="flex min-w-0 items-center gap-3">
-            <Brand href="/dashboard" className="shrink-0 text-sm" />
+            <Brand href="/" className="shrink-0 text-sm" />
             <span className="truncate text-[10px] uppercase tracking-[0.25em] text-[var(--mm-gold)]">
               {area}
             </span>

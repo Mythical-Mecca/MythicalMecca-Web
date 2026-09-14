@@ -14,7 +14,7 @@ import {
   getReviewSummary,
   eventIdBySlug,
 } from "@/lib/events-social";
-import { listHuntsForEvent } from "@/lib/hunts";
+import { listHuntsForEvent, type EventHuntCard } from "@/lib/hunts";
 import { PickerField } from "@/components/picker-field";
 import { listChatMessages } from "@/lib/chat";
 import { EventChat } from "@/components/event-chat";
@@ -29,7 +29,6 @@ import { PageHeading } from "@/components/page-heading";
 import { Card } from "@/components/card";
 import { inputPill } from "@/components/form";
 import { formatDateTime, formatDate } from "@/lib/format";
-import { SignInCta } from "@/components/sign-in-cta";
 import { pageMetadata } from "@/lib/metadata";
 import {
   addComment,
@@ -39,6 +38,7 @@ import {
 } from "@/app/(app)/events/actions";
 import { parseReturn, withReturn } from "@/lib/return-to";
 import { BackLink } from "@/components/back-link";
+import { isStaffUser } from "@/lib/home";
 
 /**
  * The record's own name in the tab, the history entry and any bookmark. These
@@ -71,10 +71,82 @@ export async function generateMetadata({
   });
 }
 
-/** The signed-out view: the facts of the event, and the way in. */
-function EventTeaser({ event }: { event: EventView }) {
+/**
+ * Quests attached to this event.
+ *
+ * Shared by the public teaser and the signed-in rail so a forwarded event
+ * link and a member opening the same page both see the same trails.
+ */
+function EventQuests({
+  quests,
+  returnTo,
+  className,
+}: {
+  quests: EventHuntCard[];
+  returnTo: { href: string; label: string };
+  className?: string;
+}) {
+  if (quests.length === 0) return null;
+
+  return (
+    <aside className={className}>
+      <Card
+        title="Quests"
+        icon="game-icons:treasure-map"
+        accent="#9a6cff"
+        bodyClassName="p-3"
+      >
+        <div className="space-y-1.5">
+          {quests.map((q) => (
+            <Link
+              key={q.slug}
+              href={withReturn(`/quests/${q.slug}`, returnTo)}
+              className="group flex items-center gap-3 rounded-xl p-2 transition hover:bg-[color-mix(in_srgb,var(--mm-surface)_70%,transparent)]"
+            >
+              <span
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg"
+                style={{
+                  background: "color-mix(in srgb, #9a6cff 18%, transparent)",
+                  color: "#9a6cff",
+                }}
+              >
+                <Icon icon="game-icons:treasure-map" width={18} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-[family-name:var(--font-display)] group-hover:text-[var(--mm-gold)]">
+                  {q.title}
+                </span>
+                <span className="mt-0.5 line-clamp-1 block text-[11px] text-[var(--mm-text-dim)]">
+                  {q.open
+                    ? q.description ||
+                      `${q.steps} ${q.steps === 1 ? "objective" : "objectives"}`
+                    : "Opens when the event does"}
+                </span>
+              </span>
+              <Icon
+                icon="mdi:arrow-right"
+                width={15}
+                className="shrink-0 text-[var(--mm-text-dim)]"
+              />
+            </Link>
+          ))}
+        </div>
+      </Card>
+    </aside>
+  );
+}
+
+/** The public listing: the facts of the event and its quests. */
+function EventTeaser({
+  event,
+  quests,
+}: {
+  event: EventView;
+  quests: EventHuntCard[];
+}) {
   const live = isEventLive(event);
   const ended = isEventEnded(event);
+  const returnTo = { href: `/events/${event.slug}`, label: event.title };
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
@@ -123,19 +195,12 @@ function EventTeaser({ event }: { event: EventView }) {
         )}
       </section>
 
-      {/* A no-data event has nothing to sign into. Offering an account here
-          would contradict the one promise the flag makes, so the teaser ends
-          at the facts — and the quest page carries its own way in. */}
-      {!event.noDataMode && (
-        <SignInCta
-          from={`/events/${event.slug}`}
-          headline={ended ? "See how it went" : "Pull up a chair"}
-          blurb={
-            ended
-              ? "Sign in to read the full write-up, the gallery and what people made of it."
-              : "Sign in for the full details, to say you're coming and to talk to whoever else is."
-          }
-        />
+      <EventQuests quests={quests} returnTo={returnTo} className="mt-6" />
+
+      {event.bodyMd && (
+        <div className="mm-glass mm-panel mt-6 p-5 text-sm">
+          <SimpleProse text={event.bodyMd} />
+        </div>
       )}
     </div>
   );
@@ -156,23 +221,26 @@ export default async function EventPage({
   const { slug } = await params;
   const sp = await searchParams;
   const { cerror, rerror } = sp;
-  // Reachable from the dashboard, the events board, a partner's page, a quest
-  // and the calendar. The events board is only the right answer for one.
-  const backTo = parseReturn(sp, { href: "/events", label: "Events" });
+  // Reachable from the home calendar, a partner's page, and a quest.
+  const backTo = parseReturn(sp, { href: "/", label: "Home" });
   const event = await getEvent(slug);
   if (!event) notFound();
 
-  const session = await auth();
+  const [session, quests] = await Promise.all([
+    auth(),
+    listHuntsForEvent(event.id),
+  ]);
 
   /**
-   * Signed out, this is the listing — not the room.
-   *
-   * Comments, reviews and chat are members talking to each other under their
-   * real names; the gallery is theirs too. The facts of the event are public
-   * by nature, so those are what a forwarded link shows.
+   * Visitors — and a signed-in applicant — get the public listing. Comments,
+   * reviews and chat are for stallholders and keepers talking under their
+   * names. The facts of the event and the quests walking its floor are public.
    */
-  if (!session?.user) {
-    return <EventTeaser event={event} />;
+  const staff = session?.user
+    ? await isStaffUser(session.user.id, session.user.role)
+    : false;
+  if (!session?.user || !staff) {
+    return <EventTeaser event={event} quests={quests} />;
   }
 
   const [comments, reviews, summary, gallery, interested] = await Promise.all([
@@ -180,7 +248,7 @@ export default async function EventPage({
     getReviews(slug),
     getReviewSummary(slug),
     getEventGallery(slug),
-    event.origin === "external" && session?.user
+    event.origin === "external"
       ? hasMarkedInterested(slug, session.user.id)
       : Promise.resolve(false),
   ]);
@@ -188,12 +256,9 @@ export default async function EventPage({
   const ended = isEventEnded(event);
   const isExternal = event.origin === "external";
   const eventId = await eventIdBySlug(slug);
-  const [chatHistory, quests] = await Promise.all([
-    eventId && session?.user
-      ? listChatMessages("event", eventId)
-      : Promise.resolve([]),
-    eventId ? listHuntsForEvent(eventId) : Promise.resolve([]),
-  ]);
+  const chatHistory = eventId
+    ? await listChatMessages("event", eventId)
+    : [];
 
   const returnTo = `/events/${event.slug}`;
 
@@ -479,58 +544,15 @@ export default async function EventPage({
       </article>
 
       {/* ---------------- Quests — right rail on desktop ---------------- */}
-      {quests.length > 0 && (
-        // On a phone this used to sit below the body copy, the gallery and the
-        // chat — around 1500px down, so the quest looked like it wasn't
-        // attached at all. At an event it's the most actionable thing here, so
-        // on small screens it leads. The desktop right rail is unchanged.
-        <aside className="order-first mb-6 lg:order-none lg:mt-0 lg:mb-0 lg:sticky lg:top-24">
-          <Card
-            title="Quests"
-            icon="game-icons:treasure-map"
-            accent="#9a6cff"
-            bodyClassName="p-3"
-          >
-            <div className="space-y-1.5">
-              {quests.map((q) => (
-                <Link
-                  key={q.slug}
-                  href={withReturn(`/quests/${q.slug}`, {
-                    href: returnTo,
-                    label: event.title,
-                  })}
-                  className="group flex items-center gap-3 rounded-xl p-2 transition hover:bg-[color-mix(in_srgb,var(--mm-surface)_70%,transparent)]"
-                >
-                  <span
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg"
-                    style={{
-                      background: "color-mix(in srgb, #9a6cff 18%, transparent)",
-                      color: "#9a6cff",
-                    }}
-                  >
-                    <Icon icon="game-icons:treasure-map" width={18} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-[family-name:var(--font-display)] group-hover:text-[var(--mm-gold)]">
-                      {q.title}
-                    </span>
-                    {q.description && (
-                      <span className="mt-0.5 line-clamp-1 block text-[11px] text-[var(--mm-text-dim)]">
-                        {q.description}
-                      </span>
-                    )}
-                  </span>
-                  <Icon
-                    icon="mdi:arrow-right"
-                    width={15}
-                    className="shrink-0 text-[var(--mm-text-dim)]"
-                  />
-                </Link>
-              ))}
-            </div>
-          </Card>
-        </aside>
-      )}
+      {/* On a phone this used to sit below the body copy, the gallery and the
+          chat — around 1500px down, so the quest looked like it wasn't
+          attached at all. At an event it's the most actionable thing here, so
+          on small screens it leads. The desktop right rail is unchanged. */}
+      <EventQuests
+        quests={quests}
+        returnTo={{ href: returnTo, label: event.title }}
+        className="order-first mb-6 lg:order-none lg:mt-0 lg:mb-0 lg:sticky lg:top-24"
+      />
     </div>
   );
 }

@@ -1,8 +1,7 @@
 import { auth } from "@/lib/auth";
-import { countMyPartnerships } from "@/lib/partner-access";
-import { AppTopNav } from "@/components/app-top-nav";
-import { PublicTopNav } from "@/components/public-top-nav";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { PublicTopNav } from "@/components/public-top-nav";
+import { SiteNav } from "@/components/site-nav";
 
 /**
  * The header for a publicly readable page, chosen by who is reading it.
@@ -13,38 +12,29 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
  * deliberately opted out of. What's left is the event and the way into its
  * quest.
  *
- * Otherwise: members get the app nav they have everywhere else, and everyone
- * else gets the public one, so a shared link still looks like part of the site
- * rather than a page floating on its own.
+ * Otherwise visitors get the public nav, and stallholders / keepers get the
+ * staff one — except on `focus` routes (a quest being walked, a tag just
+ * scanned), where a signed-in reader gets no chrome because the page already
+ * carries its own way back.
  */
 export async function OpenChrome({
   noDataMode,
   variant = "page",
 }: {
   noDataMode: boolean;
-  /**
-   * `focus` is a route that is a task rather than a place to browse from — a
-   * quest being walked, a tag just scanned. It carries its own header and its
-   * own way back, so a signed-in member gets no nav at all; a signed-out
-   * reader still gets the public one, because for them this is the landing
-   * page of a link somebody sent. Mirrors <AppShell>'s focus routes.
-   */
   variant?: "page" | "focus";
 }) {
   if (noDataMode) return null;
 
-  const session = await auth();
-  if (!session?.user) return <PublicTopNav />;
-  if (variant === "focus") return null;
+  if (variant === "focus") {
+    const session = await auth();
+    if (session?.user) return null;
+    return <PublicTopNav />;
+  }
 
-  // Counted from partner_members rather than read off the JWT role, which goes
-  // stale until the next sign-in — see the note in <AppTopNav>.
-  const hasPartner = (await countMyPartnerships(session.user.id)) > 0;
   return (
     <>
-      <AppTopNav role={session.user.role} hasPartner={hasPartner} />
-      {/* Two nav layers, not four. The header carries the sections; this
-          carries where you are inside one. */}
+      <SiteNav />
       <div className="mx-auto w-full max-w-6xl px-6 pt-6 empty:hidden">
         <Breadcrumbs />
       </div>

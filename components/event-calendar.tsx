@@ -31,7 +31,6 @@ const pillClass =
 export function EventCalendar({
   events,
   todayIso,
-  linkEvents = true,
   headingLevel = "h2",
   returnTo,
 }: {
@@ -39,12 +38,6 @@ export function EventCalendar({
   todayIso: string;
   /** Where the calendar is being shown, so an event can offer a way back. */
   returnTo?: ReturnTo;
-  /**
-   * Event pills link to the event page by default. The public homepage renders
-   * the calendar read-only — those pages are members-only, so a link there
-   * would just bounce a visitor to /login.
-   */
-  linkEvents?: boolean;
   /**
    * The month title's rank. It is the calendar's own heading, so it has to sit
    * one level below whatever heading introduces the calendar — h2 inside a page
@@ -206,34 +199,18 @@ export function EventCalendar({
             );
             return (
               <li key={e.slug}>
-                {linkEvents ? (
-                  <Link
-                    href={withReturn(`/events/${e.slug}`, returnTo)}
-                    onClick={() => setOpenDay(null)}
-                    className="flex items-center justify-between gap-3 rounded-xl p-3 transition hover:bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)]"
-                  >
-                    <span className="min-w-0">{body}</span>
-                    <Icon
-                      icon="mdi:chevron-right"
-                      width={18}
-                      className="shrink-0 text-[var(--mm-gold)]"
-                    />
-                  </Link>
-                ) : (
-                  // Signed-out on the public one-pager: the details are still
-                  // worth reading, but the event page is members-only, so say
-                  // so instead of bouncing them to /login unannounced.
-                  <div className="rounded-xl p-3">
-                    {body}
-                    <Link
-                      href="/login"
-                      className="mt-2 inline-flex items-center gap-1.5 text-xs text-[var(--mm-gold)] hover:underline"
-                    >
-                      <Icon icon="mdi:lock-outline" width={13} />
-                      Sign in for details
-                    </Link>
-                  </div>
-                )}
+                <Link
+                  href={withReturn(`/events/${e.slug}`, returnTo)}
+                  onClick={() => setOpenDay(null)}
+                  className="flex items-center justify-between gap-3 rounded-xl p-3 transition hover:bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)]"
+                >
+                  <span className="min-w-0">{body}</span>
+                  <Icon
+                    icon="mdi:chevron-right"
+                    width={18}
+                    className="shrink-0 text-[var(--mm-gold)]"
+                  />
+                </Link>
               </li>
             );
           })}

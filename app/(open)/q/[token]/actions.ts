@@ -81,7 +81,6 @@ export async function submitClaim(
       });
     }
     revalidatePath(`/quests/${target.huntSlug}`);
-    revalidatePath("/dashboard");
   }
 
   return { outcome };

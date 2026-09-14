@@ -1,14 +1,12 @@
 import { AppBackdrop } from "@/components/app-backdrop";
 
 /**
- * Members-only pages that are nonetheless publicly *readable* — a shared quest
- * or event link, or the landing page of a scanned tag.
+ * Publicly readable event, quest, and tag pages.
  *
  * These used to sit under `(app)`, whose layout calls `requireRole`, so a link
  * sent to a friend bounced to /login and every share preview in WhatsApp and
  * Discord unfurled as "Sign in — Mythical Mecca" no matter which quest it
- * pointed at. The gate didn't disappear — it moved into the pages, which show
- * a teaser and ask for a sign in before revealing anything a member earns.
+ * pointed at. The pages themselves decide what a visitor may see.
  *
  * The header is NOT here, deliberately. A no-data event's pages carry no site
  * chrome at all, and which pages those are can't be known from this layout —

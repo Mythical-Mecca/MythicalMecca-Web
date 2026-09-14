@@ -39,10 +39,10 @@ export function DevLoginTrigger({ children }: { children: React.ReactNode }) {
                 },
                 body: new URLSearchParams({
                   csrfToken,
-                  callbackUrl: "/dashboard",
+                  callbackUrl: "/auth/continue",
                 }),
               });
-              window.location.assign("/dashboard");
+              window.location.assign("/auth/continue");
             } catch {
               firing.current = false;
             }

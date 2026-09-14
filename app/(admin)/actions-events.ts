@@ -21,7 +21,7 @@ import { announceEvent } from "@/lib/discord";
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (!roleAtLeast(session.user.role, "admin")) redirect("/dashboard");
+  if (!roleAtLeast(session.user.role, "admin")) redirect("/");
   return session;
 }
 

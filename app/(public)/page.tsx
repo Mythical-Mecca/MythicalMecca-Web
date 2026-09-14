@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { ParticleField } from "@/components/animations/particle-field";
-import { BackToDashboard } from "@/components/back-to-dashboard";
 import { Icon } from "@/components/icon";
-import { auth } from "@/lib/auth";
 import {
   getEventsPage,
   getGalleryImages,
@@ -27,8 +25,8 @@ export const metadata = pageMetadata({
 /*
  * The public one-pager. Everything a visitor needs to decide whether Mythical
  * Mecca is for them lives here — what we are, what's on, what the hall looks
- * like, and who trades with us. Every other route is members-only, so for a
- * signed-out visitor this page never links into the app; it links to /login.
+ * like, and who trades with us. Sign-in lives on the menu, for stallholders
+ * and keepers; this page never pushes an account.
  *
  * News, guilds, lists, the arcade and LFG are out of the launch scope and
  * deliberately absent from this page (LFG runs in Discord for now).
@@ -87,13 +85,11 @@ const PILLARS = [
 
 export default async function HomePage() {
   const [
-    session,
     { all: events, live, upcoming: allUpcoming },
     gallery,
     partnerGroups,
     quests,
   ] = await Promise.all([
-    auth(),
     getEventsPage(),
     getGalleryImages(),
     // Grouped under admin-controlled category headings, ordered by category
@@ -102,11 +98,6 @@ export default async function HomePage() {
     // Only quests whose window is open right now — see openPredicate().
     listHunts(),
   ]);
-  const loggedIn = !!session?.user;
-
-  // Event pages are publicly readable — they moved into the (open) route
-  // group and render a teaser for a signed-out reader — so this no longer
-  // detours anybody through /login. It carries the return either way.
   const eventHref = (slug: string) =>
     withReturn(`/events/${slug}`, { href: "/", label: "home" });
 
@@ -154,24 +145,10 @@ export default async function HomePage() {
             gaming, anime, cosplay and making, under one roof.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            {loggedIn ? (
-              <Link href="/dashboard" className="mm-btn mm-btn-primary">
-                <Icon icon="game-icons:castle" width={18} /> Enter the Guild Hall
-              </Link>
-            ) : (
-              <Link href="/login" className="mm-btn mm-btn-primary">
-                <Icon icon="mdi:account" width={18} /> Sign in
-              </Link>
-            )}
-            <a href="#events" className="mm-btn mm-btn-ghost">
+            <a href="#events" className="mm-btn mm-btn-primary">
               <Icon icon="game-icons:campfire" width={18} /> See what&apos;s on
             </a>
           </div>
-          {loggedIn && (
-            <div className="mt-5 flex justify-center">
-              <BackToDashboard />
-            </div>
-          )}
         </div>
       </section>
 
@@ -443,12 +420,11 @@ export default async function HomePage() {
                 </div>
               )}
 
-              {/* Full month view — read-only for signed-out visitors */}
+              {/* Full month view — event pages are public */}
               <div className="mt-6">
                 <EventCalendar
                   events={calEvents}
                   todayIso={nowIso}
-                  linkEvents={loggedIn}
                   headingLevel="h3"
                 />
               </div>
@@ -469,16 +445,10 @@ export default async function HomePage() {
                 No new events
               </h3>
               <p className="mx-auto mt-3 max-w-md text-[var(--mm-text-dim)]">
-                {loggedIn
-                  ? "We have not booked the next one yet. Turn on notifications and you will hear from us the day we do."
-                  : "We have not booked the next one yet. Sign in and you will hear from us the day we do, or join the Discord where the talk carries on between gatherings."}
+                We have not booked the next one yet. Join the Discord where the
+                talk carries on between gatherings.
               </p>
               <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-                {!loggedIn && (
-                  <Link href="/login" className="mm-btn mm-btn-primary">
-                    <Icon icon="mdi:account" width={18} /> Sign in or register
-                  </Link>
-                )}
                 <a
                   href={DISCORD}
                   target="_blank"
@@ -698,20 +668,10 @@ export default async function HomePage() {
             Pull up a <span className="mm-gradient-text">chair</span>
           </h2>
           <p className="mt-4 text-[var(--mm-text-dim)]">
-            Sign in to join events and take up quests. Say hello on Discord
-            first if you would rather.
+            Say hello on Discord — that&apos;s where the talk carries on
+            between gatherings.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href={loggedIn ? "/dashboard" : "/login"}
-              className="mm-btn mm-btn-primary"
-            >
-              <Icon
-                icon={loggedIn ? "game-icons:castle" : "mdi:account"}
-                width={18}
-              />{" "}
-              {loggedIn ? "Enter the Guild Hall" : "Enter the hall"}
-            </Link>
             <a
               href={DISCORD}
               target="_blank"

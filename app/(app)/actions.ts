@@ -4,11 +4,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { users, partnerApplications, reviews } from "@/lib/db/schema";
+import { partnerApplications, reviews } from "@/lib/db/schema";
 import { and, desc, eq } from "drizzle-orm";
-import { auth, signIn } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { logActivity } from "@/lib/logging";
-import { getPrefs, setPrefs } from "@/lib/notifications";
 import { withReturn } from "@/lib/return-to";
 
 /**
@@ -21,80 +20,6 @@ function returnFrom(formData: FormData): { href: string; label: string } | null 
   const href = String(formData.get("from") ?? "");
   if (!href) return null;
   return { href, label: String(formData.get("fromLabel") ?? "") };
-}
-
-export async function linkSocial(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-  const provider = String(formData.get("provider"));
-  if (provider !== "google" && provider !== "discord") redirect("/profile");
-  // Signing in while authenticated links the new provider to this profile.
-  await signIn(provider, { redirectTo: "/profile?linked=1" });
-}
-
-const profileSchema = z.object({
-  name: z.string().min(1).max(120),
-});
-
-/**
- * Save the notification switches.
- *
- * getAll().pop() rather than get(): each switch posts a hidden "off" followed
- * by "on" when it is ticked, so the last value is the answer. Reading the
- * first would report every channel as disabled.
- */
-export async function updateNotificationPrefs(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-
-  const on = (name: string) =>
-    String(formData.getAll(name).pop() ?? "off") === "on";
-
-  await setPrefs(session.user.id, {
-    inApp: on("inApp"),
-    email: on("email"),
-    // Nothing sends on Discord yet and the control is disabled, so the form
-    // never carries it. Preserve whatever is stored rather than clearing it.
-    discord: (await getPrefs(session.user.id)).discord,
-  });
-
-  revalidatePath("/profile");
-  redirect("/profile?saved=1");
-}
-
-export async function updateProfile(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-
-  const parsed = profileSchema.safeParse({
-    name: formData.get("name"),
-  });
-  if (!parsed.success) redirect("/profile?error=1");
-
-  const avatarUrl = String(formData.get("avatarUrl") ?? "").trim();
-  const bannerUrl = String(formData.get("bannerUrl") ?? "").trim();
-
-  if (process.env.DATABASE_URL) {
-    try {
-      await db
-        .update(users)
-        .set({
-          name: parsed.data.name,
-          // only overwrite when a new image was uploaded
-          ...(avatarUrl ? { avatarUrl } : {}),
-          ...(bannerUrl ? { bannerUrl } : {}),
-        })
-        .where(eq(users.id, session.user.id));
-    } catch {
-      redirect("/profile?error=1");
-    }
-  }
-  await logActivity({
-    actorId: session.user.id,
-    action: "profile.update",
-  });
-  revalidatePath("/profile");
-  redirect("/profile?saved=1");
 }
 
 const SOCIAL_KEYS = [

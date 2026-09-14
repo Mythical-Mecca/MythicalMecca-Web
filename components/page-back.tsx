@@ -6,11 +6,10 @@ import { Icon } from "./icon";
 /**
  * Generic "go back" pill — steps back through history when possible, otherwise
  * routes to a sensible fallback. Use inside content areas across every shell
- * (public / app / admin / partner). For the dashboard-specific pill, use
- * `BackToDashboard` instead.
+ * (public / apply / admin / partner).
  */
 export function PageBack({
-  fallback = "/dashboard",
+  fallback = "/",
   label = "Back",
 }: {
   fallback?: string;

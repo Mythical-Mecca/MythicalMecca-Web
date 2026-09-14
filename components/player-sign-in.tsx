@@ -72,7 +72,7 @@ export function PlayerSignIn({
             autoCapitalize="words"
             placeholder="Sheldor the Conqueror"
             aria-invalid={state.field === "handle" || undefined}
-            className="mt-2 w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-3.5 text-base focus:border-[var(--mm-violet)]"
+            className="mt-2 w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-3.5 text-center text-base focus:border-[var(--mm-violet)]"
           />
         </label>
 
@@ -101,6 +101,7 @@ export function PlayerSignIn({
         )}
 
         <button
+          type="submit"
           disabled={pending}
           className="mm-btn mm-btn-primary w-full justify-center py-4 text-base disabled:opacity-50"
         >
@@ -112,18 +113,14 @@ export function PlayerSignIn({
               ? "Start the quest"
               : "Back to my quest"}
         </button>
-      </form>
-
-      <p className="mt-4 text-center text-sm text-[var(--mm-text-dim)]">
-        {joining ? "Already started today?" : "First time here?"}{" "}
         <button
           type="button"
           onClick={() => setMode(joining ? "return" : "join")}
-          className="underline underline-offset-4 hover:text-[var(--mm-text)]"
+          className="mm-btn w-full justify-center py-4 text-base bg-[color-mix(in_srgb,var(--mm-blue)_92%,transparent)] text-[#160f0a] hover:bg-[#6cb8ff] hover:shadow-[0_0_26px_rgba(74,168,255,0.45)]"
         >
           {joining ? "Sign back in" : "Pick a name instead"}
         </button>
-      </p>
+      </form>
     </Shell>
   );
 }

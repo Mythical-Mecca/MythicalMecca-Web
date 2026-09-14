@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { users, partnerApplications, accounts } from "@/lib/db/schema";
+import { partnerApplications } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { toMediaSrc } from "@/lib/media";
 
@@ -47,42 +47,3 @@ export async function getMyApplication(
   }
 }
 
-export interface MyProfile {
-  name: string | null;
-  avatarUrl: string | null;
-  bannerUrl: string | null;
-}
-
-/** OAuth providers currently linked to this account (e.g. ["google","discord"]). */
-export async function getLinkedAccounts(userId: string): Promise<string[]> {
-  if (!useDb) return [];
-  try {
-    const rows = await db
-      .select({ provider: accounts.provider })
-      .from(accounts)
-      .where(eq(accounts.userId, userId));
-    return rows.map((r) => r.provider);
-  } catch {
-    return [];
-  }
-}
-
-export async function getMyProfile(userId: string): Promise<MyProfile | null> {
-  if (!useDb) return null;
-  try {
-    const rows = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    const r = rows[0];
-    if (!r) return null;
-    return {
-      name: r.name,
-      avatarUrl: toMediaSrc(r.avatarUrl),
-      bannerUrl: toMediaSrc(r.bannerUrl),
-    };
-  } catch {
-    return null;
-  }
-}

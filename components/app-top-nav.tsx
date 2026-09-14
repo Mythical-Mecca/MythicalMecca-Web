@@ -2,44 +2,16 @@ import { signOut } from "@/lib/auth";
 import { roleAtLeast, type Role } from "@/lib/rbac";
 import { NavMenu, type NavMenuItem } from "@/components/nav-menu";
 import { Brand } from "@/components/brand";
-import { SectionNav } from "@/components/section-nav";
 import { ACCENT } from "@/lib/accents";
+import Link from "next/link";
+import { Icon } from "@/components/icon";
 
 async function signOutAction() {
   "use server";
   await signOut({ redirectTo: "/" });
 }
 
-/**
- * News, guilds, lists, the arcade and LFG are cut from the launch scope — their
- * code and tables are gone (LFG lives in Discord for now). Old URLs redirect to
- * a live section via next.config.ts.
- */
 const ITEMS = {
-  dashboard: {
-    href: "/dashboard",
-    title: "Dashboard",
-    icon: "game-icons:castle",
-    color: ACCENT.dashboard,
-  },
-  profile: {
-    href: "/profile",
-    title: "Profile",
-    icon: "game-icons:visored-helm",
-    color: ACCENT.profile,
-  },
-  events: {
-    href: "/events",
-    title: "Events",
-    icon: "game-icons:campfire",
-    color: ACCENT.events,
-  },
-  quests: {
-    href: "/quests",
-    title: "Quests",
-    icon: "game-icons:treasure-map",
-    color: ACCENT.quests,
-  },
   partners: {
     href: "/partners",
     title: "Partners",
@@ -74,10 +46,6 @@ const ITEMS = {
 function buildItems(role: Role, hasPartner: boolean): NavMenuItem[] {
   const isPartner = hasPartner || roleAtLeast(role, "admin");
   return [
-    ITEMS.dashboard,
-    ITEMS.profile,
-    ITEMS.events,
-    ITEMS.quests,
     ITEMS.partners,
     isPartner ? ITEMS.partnerHub : ITEMS.apply,
     ...(roleAtLeast(role, "admin") ? [ITEMS.admin] : []),
@@ -92,6 +60,11 @@ export function AppTopNav({
   hasPartner?: boolean;
 }) {
   const menuItems = buildItems(role, hasPartner);
+  const brandHref = roleAtLeast(role, "admin")
+    ? "/admin"
+    : hasPartner
+      ? "/partner-hub"
+      : "/";
 
   return (
     <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_45%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_88%,transparent)]">
@@ -99,11 +72,27 @@ export function AppTopNav({
         aria-label="Primary"
         className="mx-auto flex max-w-6xl items-center gap-4 px-6 py-3.5"
       >
-        <Brand href="/dashboard" className="shrink-0" />
-        {/* The three sections live here on md+, so the only thing hidden behind
-            the menu button is the account tier — profile, stall, admin, sign
-            out. Below md there isn't room for them and the menu carries all. */}
-        <SectionNav />
+        <Brand href={brandHref} className="shrink-0" />
+        <ul className="hidden items-center gap-1 md:flex">
+          <li>
+            <Link
+              href="/"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 text-sm text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+            >
+              <Icon icon="mdi:home" width={17} />
+              Home
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/partners"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 text-sm text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+            >
+              <Icon icon="game-icons:anvil" width={17} />
+              Partners
+            </Link>
+          </li>
+        </ul>
         <div className="ml-auto shrink-0">
           <NavMenu
             items={menuItems}

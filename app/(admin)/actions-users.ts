@@ -43,7 +43,7 @@ type ErrorCode = (typeof ERRORS)[keyof typeof ERRORS];
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  if (!roleAtLeast(session.user.role, "admin")) redirect("/dashboard?denied=1");
+  if (!roleAtLeast(session.user.role, "admin")) redirect("/");
   return session;
 }
 

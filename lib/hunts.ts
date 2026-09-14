@@ -351,27 +351,52 @@ function publicStep(
   };
 }
 
-/** Open quests tied to an event, for the event detail page. */
+export interface EventHuntCard {
+  slug: string;
+  title: string;
+  description: string;
+  steps: number;
+  /** False when the trail is scheduled but not claimable yet. */
+  open: boolean;
+}
+
+/**
+ * Active quests tied to an event, for the event detail page.
+ *
+ * Upcoming trails are included: the event page is how you find the hunt
+ * before the doors open. Ended or deactivated ones stay off the list.
+ */
 export async function listHuntsForEvent(
   eventId: string
-): Promise<{ slug: string; title: string; description: string; steps: number }[]> {
+): Promise<EventHuntCard[]> {
   if (!useDb) return [];
   try {
+    const now = new Date();
     const rows = await db
       .select({
         slug: scavengerHunts.slug,
         title: scavengerHunts.title,
         description: scavengerHunts.description,
+        active: scavengerHunts.active,
+        startsAt: scavengerHunts.startsAt,
+        endsAt: scavengerHunts.endsAt,
         steps: sql<number>`(select count(*) from ${huntSteps} where ${huntSteps.huntId} = ${scavengerHunts.id})`,
       })
       .from(scavengerHunts)
-      .where(and(eq(scavengerHunts.eventId, eventId), openPredicate()))
+      .where(
+        and(
+          eq(scavengerHunts.eventId, eventId),
+          eq(scavengerHunts.active, true),
+          or(isNull(scavengerHunts.endsAt), gte(scavengerHunts.endsAt, now))
+        )
+      )
       .orderBy(scavengerHunts.createdAt);
     return rows.map((r) => ({
       slug: r.slug,
       title: r.title,
       description: r.description ?? "",
       steps: Number(r.steps ?? 0),
+      open: isOpen(r),
     }));
   } catch {
     return [];

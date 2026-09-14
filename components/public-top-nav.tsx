@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { signOut } from "@/lib/auth";
 import { Icon } from "@/components/icon";
 import { Brand } from "@/components/brand";
 import { DevLoginTrigger } from "@/components/dev-login-trigger";
@@ -16,12 +17,26 @@ export const HOME_SECTIONS = [
   { href: "/#partners", label: "Partners" },
 ];
 
+async function signOutAction() {
+  "use server";
+  await signOut({ redirectTo: "/" });
+}
+
 /**
- * The signed-out header. Lives here rather than inline in the public layout
+ * The public header. Lives here rather than inline in the public layout
  * because publicly readable detail pages — a shared quest or event — sit in a
  * different route group and need the same header when nobody is signed in.
+ *
+ * Signed-in visitors (someone mid-application) keep this chrome: Sign in
+ * becomes Sign out, and Apply stays reachable. Staff get <AppTopNav> instead.
  */
-export function PublicTopNav() {
+export function PublicTopNav({
+  signedIn = false,
+  showApply = false,
+}: {
+  signedIn?: boolean;
+  showApply?: boolean;
+}) {
   return (
     <header className="sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_90%,transparent)]">
       <nav
@@ -52,13 +67,36 @@ export function PublicTopNav() {
               </a>
             ))}
           </nav>
-          <Link
-            href="/login"
-            className="mm-btn mm-btn-primary text-sm max-sm:px-3"
-          >
-            <Icon icon="mdi:account" width={16} />
-            <span className="max-sm:hidden">Sign in</span>
-          </Link>
+          {signedIn ? (
+            <>
+              {showApply && (
+                <Link
+                  href="/apply"
+                  className="mm-btn mm-btn-ghost text-sm max-sm:px-3"
+                >
+                  <Icon icon="game-icons:shop" width={16} />
+                  <span className="max-sm:hidden">Apply</span>
+                </Link>
+              )}
+              <form action={signOutAction}>
+                <button
+                  type="submit"
+                  className="mm-btn mm-btn-ghost text-sm max-sm:px-3"
+                >
+                  <Icon icon="mdi:logout" width={16} />
+                  <span className="max-sm:hidden">Sign out</span>
+                </button>
+              </form>
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="mm-btn mm-btn-primary text-sm max-sm:px-3"
+            >
+              <Icon icon="mdi:account" width={16} />
+              <span className="max-sm:hidden">Sign in</span>
+            </Link>
+          )}
         </div>
       </nav>
     </header>

@@ -52,16 +52,7 @@ export const ROUTE_RULES: { prefix: string; min: Role }[] = [
    * app/(partner)/layout.tsx, which is always current.
    */
   { prefix: "/partner-hub", min: "member" },
-  { prefix: "/dashboard", min: "member" },
-  { prefix: "/profile", min: "member" },
   { prefix: "/apply", min: "member" },
-  // Two authenticated sections. /partners used to be listed here, but it is
-  // public now — and the rule was dead anyway: proxy.ts's matcher never
-  // included /partners, so this table was never consulted for it.
-  { prefix: "/events", min: "member" },
-  { prefix: "/quests", min: "member" },
-  // Tag landing route — scanned from a QR code or NFC tag on the floor.
-  { prefix: "/q/", min: "member" },
 ];
 
 export function ruleForPath(pathname: string) {

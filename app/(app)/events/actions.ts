@@ -7,7 +7,6 @@ import { db } from "@/lib/db";
 import {
   eventComments,
   eventReviews,
-  events,
   eventInterests,
   chatMessages,
 } from "@/lib/db/schema";
@@ -16,7 +15,6 @@ import { auth } from "@/lib/auth";
 import { eventIdBySlug } from "@/lib/events-social";
 import { getEvent, isEventStarted } from "@/lib/content";
 import { canAccessChatScope, type ChatMessageView } from "@/lib/chat";
-import { slugify } from "@/lib/slug";
 import { logActivity } from "@/lib/logging";
 
 const commentSchema = z.object({
@@ -114,60 +112,6 @@ export async function addReview(formData: FormData) {
   });
   revalidatePath(`/events/${slug}`);
   redirect(`/events/${slug}#reviews`);
-}
-
-const communityEventSchema = z.object({
-  title: z.string().min(2).max(200),
-  summary: z.string().max(400).optional(),
-  bodyMd: z.string().max(8000).optional(),
-  location: z.string().max(200).optional(),
-  startsAt: z.string().min(1),
-  endsAt: z.string().optional(),
-});
-
-/** Member-submitted community event → admin approval queue. */
-export async function submitCommunityEvent(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) redirect("/login?from=/events/submit");
-
-  const parsed = communityEventSchema.safeParse({
-    title: formData.get("title"),
-    summary: formData.get("summary") || undefined,
-    bodyMd: formData.get("bodyMd") || undefined,
-    location: formData.get("location") || undefined,
-    startsAt: formData.get("startsAt"),
-    endsAt: formData.get("endsAt") || undefined,
-  });
-  if (!parsed.success) redirect("/events/submit?error=1");
-
-  const startsAt = new Date(parsed.data.startsAt);
-  const endsAt = parsed.data.endsAt ? new Date(parsed.data.endsAt) : startsAt;
-  const slug = `${slugify(parsed.data.title)}-${Date.now().toString(36)}`;
-
-  if (process.env.DATABASE_URL) {
-    try {
-      await db.insert(events).values({
-        slug,
-        title: parsed.data.title,
-        summary: parsed.data.summary,
-        bodyMd: parsed.data.bodyMd,
-        location: parsed.data.location,
-        startsAt,
-        endsAt,
-        origin: "community",
-        status: "pending",
-        createdBy: session.user.id,
-      });
-    } catch {
-      redirect("/events/submit?error=1");
-    }
-  }
-  await logActivity({
-    actorId: session.user.id,
-    action: "event.community_submit",
-    entityType: "event",
-  });
-  redirect("/events?submitted=1");
 }
 
 const chatSchema = z.object({

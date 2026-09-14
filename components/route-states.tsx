@@ -45,8 +45,8 @@ export function RouteSkeleton() {
 export function RouteError({
   error,
   reset,
-  area = "/dashboard",
-  areaLabel = "Back to your dashboard",
+  area = "/",
+  areaLabel = "Back to the hall",
 }: {
   error: Error & { digest?: string };
   reset: () => void;

@@ -35,6 +35,84 @@ export async function generateMetadata({
 
 const ACCENT = "#9a6cff";
 
+const TOOL_ITEM =
+  "inline-flex min-h-11 min-w-11 flex-1 items-center justify-center gap-2 px-3 text-sm text-[var(--mm-text)] transition-colors hover:bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)] hover:text-[var(--mm-gold)] sm:flex-none sm:px-4";
+
+/**
+ * Header tools for one quest: a single segmented bar for the three places you
+ * can go, and a separate live switch so taking it offline doesn't sit in the
+ * same pile as "open the tag sheet".
+ */
+function QuestToolbar({
+  slug,
+  active,
+  tagsHref,
+  printHref,
+}: {
+  slug: string;
+  active: boolean;
+  tagsHref: string;
+  printHref: string;
+}) {
+  return (
+    <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+      <div
+        role="toolbar"
+        aria-label="Quest tools"
+        className="flex overflow-hidden rounded-full border border-[color-mix(in_srgb,var(--mm-border)_85%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_55%,transparent)]"
+      >
+        <Link href={`/quests/${slug}`} className={TOOL_ITEM}>
+          <Icon icon="mdi:eye-outline" width={16} />
+          View
+        </Link>
+        <Link
+          href={tagsHref}
+          className={`${TOOL_ITEM} border-l border-[color-mix(in_srgb,var(--mm-divider)_80%,transparent)]`}
+        >
+          <Icon icon="mdi:qrcode" width={16} />
+          <span className="sm:hidden">Tags</span>
+          <span className="hidden sm:inline">Tag sheet</span>
+        </Link>
+        <Link
+          href={printHref}
+          className={`${TOOL_ITEM} border-l border-[color-mix(in_srgb,var(--mm-divider)_80%,transparent)]`}
+        >
+          <Icon icon="mdi:printer-outline" width={16} />
+          <span className="sm:hidden">Pack</span>
+          <span className="hidden sm:inline">Station pack</span>
+        </Link>
+      </div>
+      <form action={setQuestActive} className="sm:shrink-0">
+        <input type="hidden" name="slug" value={slug} />
+        <input type="hidden" name="active" value={active ? "0" : "1"} />
+        <button
+          type="submit"
+          aria-label={active ? "Take quest offline" : "Go live"}
+          className={`inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 text-sm font-medium transition-colors sm:w-auto ${
+            active
+              ? "border border-[color-mix(in_srgb,var(--mm-live)_40%,transparent)] bg-[color-mix(in_srgb,var(--mm-live)_12%,transparent)] text-[var(--mm-live)] hover:bg-[color-mix(in_srgb,var(--mm-live)_20%,transparent)]"
+              : "mm-btn mm-btn-primary"
+          }`}
+        >
+          {active ? (
+            <>
+              <span className="mm-dot-live" />
+              Live
+              <span className="hidden text-[var(--mm-text-dim)] sm:inline">·</span>
+              <span className="hidden sm:inline">Take offline</span>
+            </>
+          ) : (
+            <>
+              <Icon icon="mdi:broadcast" width={16} />
+              Go live
+            </>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 /** `datetime-local` wants `YYYY-MM-DDTHH:mm` in local time. */
 function toLocalInput(d: Date | null): string {
   if (!d) return "";
@@ -112,55 +190,24 @@ export default async function AdminQuestEditorPage({
 
   return (
     <div className="space-y-8">
-      <PageHeading
-        size="md"
-        title={quest.title}
-        subtitle={`${quest.objectives} objectives · ${quest.players} adventurers`}
-        icon="game-icons:treasure-map"
-        accent={ACCENT}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href={`/quests/${quest.slug}`} className="mm-btn mm-btn-ghost">
-              <Icon icon="mdi:eye-outline" width={16} /> View
-            </Link>
-            {/* Two different printed things: a sheet of small codes to cut up
-                and stick on stands, and a full A4 poster per objective. */}
-            <Link
-              href={forwardReturn(`/admin/quests/${quest.slug}/tags`, sp)}
-              className="mm-btn mm-btn-ghost"
-            >
-              <Icon icon="mdi:qrcode" width={16} /> Tag sheet
-            </Link>
-            <Link
-              href={forwardReturn(`/admin/quests/${quest.slug}/print`, sp)}
-              className="mm-btn mm-btn-ghost"
-            >
-              <Icon icon="mdi:printer-outline" width={16} /> Station pack
-            </Link>
-            <form action={setQuestActive}>
-              <input type="hidden" name="slug" value={quest.slug} />
-              <input
-                type="hidden"
-                name="active"
-                value={quest.active ? "0" : "1"}
-              />
-              <button
-                className={`mm-btn ${
-                  quest.active ? "mm-btn-ghost" : "mm-btn-primary"
-                }`}
-              >
-                <Icon
-                  icon={quest.active ? "mdi:pause" : "mdi:broadcast"}
-                  width={16}
-                />
-                {quest.active ? "Take offline" : "Go live"}
-              </button>
-            </form>
-          </div>
-        }
-      />
-
-      <BackLink to={backTo} />
+      <div className="space-y-3">
+        <BackLink to={backTo} />
+        <PageHeading
+          size="md"
+          title={quest.title}
+          subtitle={`${quest.objectives} objectives · ${quest.players} adventurers`}
+          icon="game-icons:treasure-map"
+          accent={ACCENT}
+          actions={
+            <QuestToolbar
+              slug={quest.slug}
+              active={quest.active}
+              tagsHref={forwardReturn(`/admin/quests/${quest.slug}/tags`, sp)}
+              printHref={forwardReturn(`/admin/quests/${quest.slug}/print`, sp)}
+            />
+          }
+        />
+      </div>
 
       {saved && <Flash>Saved.</Flash>}
       {/* Only the whole-record actions land here now — going live, deleting,
