@@ -8,7 +8,9 @@ import { PlayerSignIn } from "@/components/player-sign-in";
 import { playerSignOut } from "@/app/(open)/player-actions";
 import {
   getHunt,
+  prizeStanding,
   type HuntView,
+  type PrizeTier,
   type PublicStep,
   type StepType,
 } from "@/lib/hunts";
@@ -228,13 +230,19 @@ function HoardCase({
   total,
   left,
   finished,
+  tiers,
 }: {
   earned: number;
   total: number;
   /** Stands still to clear. */
   left: number;
   finished: boolean;
+  tiers: PrizeTier[];
 }) {
+  // What the score is worth, and what the next one would be. The ladder is
+  // the reason to keep walking after the first few stands, so it sits on the
+  // hoard rather than in a footnote.
+  const standing = tiers.length ? prizeStanding(tiers, earned) : null;
   return (
     <div className="relative mt-3 h-[172px] overflow-hidden rounded-[26px] bg-[linear-gradient(165deg,#22182c_0%,#14172c_55%,#0d1226_100%)] shadow-[0_18px_40px_-16px_rgba(0,0,0,0.8),0_0_0_1px_color-mix(in_srgb,var(--mm-gold)_40%,transparent),inset_0_1px_0_color-mix(in_srgb,white_10%,transparent)] sm:h-[210px]">
       <svg
@@ -303,11 +311,32 @@ function HoardCase({
             </span>
           </p>
         </div>
-        <p className="shrink-0 text-sm text-[var(--mm-text-dim)]">
-          {finished
-            ? "Claimed"
-            : `${left} ${left === 1 ? "stand" : "stands"} to go`}
-        </p>
+        <div className="shrink-0 text-right text-sm text-[var(--mm-text-dim)]">
+          {standing ? (
+            <>
+              <p className="font-medium text-[var(--mm-text)]">
+                {standing.entries === 0
+                  ? "No entries yet"
+                  : `${standing.entries} ${
+                      standing.entries === 1 ? "entry" : "entries"
+                    } in the draw`}
+              </p>
+              <p className="text-xs">
+                {standing.next
+                  ? `${standing.next.points} for ${standing.next.entries}`
+                  : finished
+                    ? "Top of the ladder"
+                    : `${left} ${left === 1 ? "stand" : "stands"} to go`}
+              </p>
+            </>
+          ) : (
+            <p>
+              {finished
+                ? "Claimed"
+                : `${left} ${left === 1 ? "stand" : "stands"} to go`}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -372,15 +401,26 @@ function StandDetail({
   step,
   slug,
   flash,
+  nested = false,
 }: {
   step: PublicStep;
   slug: string;
   flash: { ok: boolean; fail: boolean };
+  /**
+   * One token of several at the same stand. The stand's own header already
+   * said where it is, so the destination line is dropped and the title steps
+   * down a size.
+   */
+  nested?: boolean;
 }) {
   return (
     <div id={`step-${step.id}`}>
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-balance text-[1.15rem] font-semibold leading-snug">
+        <h3
+          className={`text-balance font-semibold leading-snug ${
+            nested ? "text-base" : "text-[1.15rem]"
+          }`}
+        >
           {step.title}
         </h3>
         <span
@@ -420,9 +460,11 @@ function StandDetail({
         </p>
       ) : (
         <>
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <Destination step={step} />
-          </div>
+          {!nested && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+              <Destination step={step} />
+            </div>
+          )}
           {step.prompt && (
             <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
               {step.prompt}
@@ -440,6 +482,131 @@ function StandDetail({
           <StepBody step={step} slug={slug} expanded />
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * Objectives, folded into the stands they happen at.
+ *
+ * The data model is one row per objective and that is right — each token is
+ * claimed, logged and refused on its own. But the person holding the phone
+ * is looking for a vendor, and the vendor is one place with two things to do
+ * there. So the page groups on the partner and shows each stand once, with
+ * its tokens inside it.
+ *
+ * The key is the partner. An objective that names no partner (a riddle, a
+ * photo drop) stands alone. Locked objectives group by the destination they
+ * *would* reveal — the vendor is already on the board from its first token,
+ * and hiding the second behind a separate padlock would just make the same
+ * stand appear twice.
+ */
+interface StandGroup {
+  key: string;
+  label: string;
+  location: string | null;
+  partnerSlug: string | null;
+  logo: string | null;
+  initial: string | null;
+  icon: string;
+  steps: PublicStep[];
+}
+
+function groupByStand(steps: PublicStep[]): StandGroup[] {
+  const groups: StandGroup[] = [];
+  const byKey = new Map<string, StandGroup>();
+  for (const step of steps) {
+    const d = step.destination;
+    const key = d?.partnerSlug ? `partner:${d.partnerSlug}` : `step:${step.id}`;
+    let g = byKey.get(key);
+    if (!g) {
+      g = {
+        key,
+        label: d?.partnerName ?? step.title,
+        location: d?.locationHint ?? null,
+        partnerSlug: d?.partnerSlug ?? null,
+        logo: null,
+        initial: null,
+        icon: STEP_ICON[step.type],
+        steps: [],
+      };
+      byKey.set(key, g);
+      groups.push(g);
+    }
+    g.steps.push(step);
+    // The face is shown as soon as any token at the stand is open — the
+    // stand is on the board by then, and its logo is no longer a clue.
+    if (!step.locked && d) {
+      g.logo = g.logo ?? d.partnerLogo;
+      g.initial =
+        g.initial ?? (d.partnerName?.trim().charAt(0).toUpperCase() || null);
+    }
+  }
+  return groups;
+}
+
+/** One stand, opened: where it is, then each token with its own control. */
+function GroupDetail({
+  group,
+  slug,
+  ok,
+  fail,
+}: {
+  group: StandGroup;
+  slug: string;
+  ok: string | undefined;
+  fail: string | undefined;
+}) {
+  const flashFor = (step: PublicStep) => ({
+    ok: ok === step.id,
+    fail: fail === step.id,
+  });
+
+  // A stand with one token is just that token — no header to introduce it.
+  if (group.steps.length === 1) {
+    const step = group.steps[0];
+    return <StandDetail step={step} slug={slug} flash={flashFor(step)} />;
+  }
+
+  const banked = group.steps.filter((st) => st.done).length;
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-balance text-[1.15rem] font-semibold leading-snug">
+            {group.label}
+          </h3>
+          {group.location && (
+            <p className="mt-0.5 flex items-center gap-1.5 text-sm text-[var(--mm-text-dim)]">
+              <Icon icon="mdi:map-marker-outline" width={15} className="shrink-0" />
+              {group.location}
+            </p>
+          )}
+        </div>
+        <span className="shrink-0 text-sm tabular-nums text-[var(--mm-text-dim)]">
+          {banked}/{group.steps.length} tokens
+        </span>
+      </div>
+      {group.partnerSlug && (
+        <Link
+          href={`/partners/${group.partnerSlug}`}
+          className="mt-1 inline-flex min-h-6 items-center gap-1 text-sm text-[var(--mm-gold)] hover:underline"
+        >
+          About this stand
+          <Icon icon="mdi:chevron-right" width={14} />
+        </Link>
+      )}
+
+      <ol className="mt-3 divide-y divide-[color-mix(in_srgb,var(--mm-divider)_75%,transparent)]">
+        {group.steps.map((step, i) => (
+          <li key={step.id} className="py-3 first:pt-0 last:pb-0">
+            <p className="mb-1 text-[11px] uppercase tracking-[0.16em] text-[var(--mm-text-dim)]">
+              Token {i + 1}
+            </p>
+            <StandDetail step={step} slug={slug} flash={flashFor(step)} nested />
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
@@ -527,6 +694,7 @@ function QuestTeaser({
             <PlayerSignIn
               eventId={hunt.eventId}
               eventTitle={hunt.eventTitle}
+              signupUrl={hunt.eventUrl}
               path={`/quests/${hunt.slug}`}
               bare
             />
@@ -642,12 +810,17 @@ export default async function HuntDetailPage({
   }
 
   const doneCount = hunt.steps.filter((s) => s.done).length;
+  const groups = groupByStand(hunt.steps);
+  const standsLeft = groups.filter((g) => !g.steps.every((st) => st.done)).length;
   // Which medallion the cabinet opens on: whatever the player just tried,
-  // else the first stand still standing. Not a ranking — a starting point.
+  // else the first stand with something still to do. Not a ranking — a
+  // starting point.
   const openIndex = Math.max(
     0,
-    hunt.steps.findIndex((st) =>
-      ok || fail ? st.id === (ok ?? fail) : !st.done && !st.locked
+    groups.findIndex((g) =>
+      ok || fail
+        ? g.steps.some((st) => st.id === (ok ?? fail))
+        : g.steps.some((st) => !st.done && !st.locked)
     )
   );
   const finished = doneCount === hunt.steps.length && hunt.steps.length > 0;
@@ -662,8 +835,9 @@ export default async function HuntDetailPage({
       <HoardCase
         earned={hunt.earnedPoints}
         total={hunt.totalPoints}
-        left={hunt.steps.length - doneCount}
+        left={standsLeft}
         finished={finished}
+        tiers={hunt.prizeTiers}
       />
 
       <header className="mt-3">
@@ -727,32 +901,30 @@ export default async function HuntDetailPage({
 
       <StandsCabinet
         note={hunt.sequential ? "In order" : "Any order"}
+        helpNote="Stuck, or a code that won't take? Find the Mythical Mecca stand and ask — we're around all day."
         initial={openIndex}
-        stands={hunt.steps.map((step) => ({
-          id: step.id,
-          label: step.title,
-          state: step.done
-            ? ("done" as const)
-            : step.locked
-              ? ("locked" as const)
-              : ("open" as const),
-          points: step.points,
-          // A locked stand shows no face: its destination is a clue that has
-          // not been earned, and the shopfront is the answer to it.
-          logo: step.locked ? null : (step.destination?.partnerLogo ?? null),
-          initial: step.locked
-            ? null
-            : (step.destination?.partnerName?.trim().charAt(0).toUpperCase() ??
-              null),
-          icon: STEP_ICON[step.type],
-        }))}
-        details={hunt.steps.map((step) => (
-          <StandDetail
-            key={step.id}
-            step={step}
-            slug={slug}
-            flash={{ ok: ok === step.id, fail: fail === step.id }}
-          />
+        stands={groups.map((g) => {
+          const done = g.steps.filter((st) => st.done).length;
+          const allLocked = g.steps.every((st) => st.locked);
+          return {
+            id: g.key,
+            label: g.label,
+            location: g.location,
+            state:
+              done === g.steps.length
+                ? ("done" as const)
+                : allLocked
+                  ? ("locked" as const)
+                  : ("open" as const),
+            points: g.steps.reduce((a, st) => a + st.points, 0),
+            tokens: { done, total: g.steps.length },
+            logo: allLocked ? null : g.logo,
+            initial: allLocked ? null : g.initial,
+            icon: g.icon,
+          };
+        })}
+        details={groups.map((g) => (
+          <GroupDetail key={g.key} group={g} slug={slug} ok={ok} fail={fail} />
         ))}
       />
 

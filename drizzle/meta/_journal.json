@@ -57,6 +57,13 @@
       "when": 1789425265007,
       "tag": "0007_hidden_objectives",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789490202112,
+      "tag": "0008_quest_prize_tiers",
+      "breakpoints": true
     }
   ]
 }

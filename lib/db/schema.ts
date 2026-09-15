@@ -872,6 +872,17 @@ export const scavengerHunts = pgTable("scavenger_hunts", {
     .$type<string[]>()
     .notNull()
     .default(sql`'[]'::jsonb`),
+  /**
+   * What the points buy. Each tier is "this many points earns this many
+   * prize-draw entries", ascending, and a player holds the highest tier they
+   * have reached — 40 points on a {10:1, 20:2, 30:3, 40:5} ladder is five
+   * entries, not eleven. Empty means the quest has no draw and the page says
+   * nothing about one.
+   */
+  prizeTiers: jsonb("prize_tiers")
+    .$type<{ points: number; entries: number }[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   startsAt: timestamp("starts_at", { withTimezone: true }),
   endsAt: timestamp("ends_at", { withTimezone: true }),
   active: boolean("active").notNull().default(true),

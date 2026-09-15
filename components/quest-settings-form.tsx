@@ -44,6 +44,7 @@ export function QuestSettingsForm({
   allowList,
   noDataMode,
   memberEmails,
+  prizeTiers,
 }: {
   slug: string;
   title: string;
@@ -59,6 +60,7 @@ export function QuestSettingsForm({
   noDataMode: boolean;
   /** Existing members, to autocomplete against. Empty at a no-data event. */
   memberEmails: string[];
+  prizeTiers: { points: number; entries: number }[];
 }) {
   const [state, formAction, pending] = useActionState<
     QuestSettingsState,
@@ -240,6 +242,23 @@ export function QuestSettingsForm({
           )}
         </div>
       )}
+
+      {/* The prize ladder. Written the way the organiser says it — "10 is 1
+          entry, 20 is 2" — one rung per line. */}
+      <TextareaField
+        label="Prize draw"
+        name="prizeTiers"
+        rows={4}
+        defaultValue={
+          v.prizeTiers ??
+          prizeTiers.map((t) => `${t.points} = ${t.entries}`).join("\n")
+        }
+        icon="mdi:ticket-outline"
+        hint="optional"
+        error={fieldError.prizeTiers}
+        placeholder={"10 = 1\n20 = 2\n30 = 3\n40 = 5"}
+        description="One rung per line: points, then the draw entries they earn. A player holds the highest rung they have reached. Leave empty for no draw."
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <DateTimeField

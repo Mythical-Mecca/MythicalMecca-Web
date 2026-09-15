@@ -436,7 +436,7 @@ export default async function AdminQuestEditorPage({
           href: sectionHref(quest.slug, t.key, sp),
           label: t.label,
           icon: t.icon,
-          tone: t.tone,
+          tone: "tone" in t ? t.tone : undefined,
           count: COUNTS[t.key],
         }))}
         active={sectionHref(quest.slug, tab, sp)}
@@ -478,6 +478,7 @@ export default async function AdminQuestEditorPage({
             allowList={quest.allowList}
             noDataMode={quest.eventNoDataMode}
             memberEmails={memberEmails}
+            prizeTiers={quest.prizeTiers}
             events={events.map((e) => ({
               id: e.id,
               title: e.title,

@@ -75,6 +75,8 @@ export interface AdminQuestDetail extends AdminQuestRow {
   /** See scavengerHunts.allowList. */
   allowListEnabled: boolean;
   allowList: string[];
+  /** See scavengerHunts.prizeTiers. */
+  prizeTiers: { points: number; entries: number }[];
   /**
    * Which kind of identity the list is written in. Follows the event, so the
    * editor asks for emails at an ordinary event and handles at a no-data one
@@ -195,6 +197,7 @@ export async function getQuestAdmin(
       eventHasCoords: row.eventLat != null && row.eventLng != null,
       allowListEnabled: row.h.allowListEnabled,
       allowList: row.h.allowList ?? [],
+      prizeTiers: row.h.prizeTiers ?? [],
       eventNoDataMode: row.eventNoDataMode,
       objectives: objectiveList.length,
       players: Number(players[0]?.n ?? 0),

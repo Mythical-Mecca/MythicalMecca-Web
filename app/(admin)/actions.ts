@@ -901,6 +901,29 @@ function parseAllowList(raw: string): string[] {
   return [...seen];
 }
 
+/**
+ * "10 = 1" per line into a sorted, de-duplicated ladder. Accepts =, :, → or a
+ * dash between the two numbers, because that is what people type. Returns the
+ * first line it could not read so the form can point at it.
+ */
+function parsePrizeTiers(
+  raw: string
+): { tiers: { points: number; entries: number }[] } | { bad: string } {
+  const byPoints = new Map<number, number>();
+  for (const line of raw.split(/\r?\n/)) {
+    const t = line.trim();
+    if (!t) continue;
+    const m = t.match(/^(\d+)\s*(?:=|:|→|->|-|–)\s*(\d+)$/);
+    if (!m) return { bad: t };
+    byPoints.set(Number(m[1]), Number(m[2]));
+  }
+  return {
+    tiers: [...byPoints]
+      .map(([points, entries]) => ({ points, entries }))
+      .sort((a, b) => a.points - b.points),
+  };
+}
+
 export async function updateQuest(
   _prev: QuestSettingsState,
   formData: FormData
@@ -916,13 +939,24 @@ export async function updateQuest(
   });
   const allowListEnabled = formData.get("allowListEnabled") === "1";
   const allowList = parseAllowList(String(formData.get("allowList") ?? ""));
+  const tiersRaw = String(formData.get("prizeTiers") ?? "");
+  const tiers = parsePrizeTiers(tiersRaw);
   const values = {
     title: String(formData.get("title") ?? ""),
     description: String(formData.get("description") ?? ""),
     startsAt: String(formData.get("startsAt") ?? ""),
     endsAt: String(formData.get("endsAt") ?? ""),
     allowList: String(formData.get("allowList") ?? ""),
+    prizeTiers: tiersRaw,
   };
+  if ("bad" in tiers) {
+    return {
+      fieldErrors: {
+        prizeTiers: `Couldn't read "${tiers.bad}" — write each rung as points = entries, like 10 = 1.`,
+      },
+      values,
+    };
+  }
   if (!parsed.success) {
     return { fieldErrors: fieldErrorsFrom(parsed.error.issues), values };
   }
@@ -964,6 +998,7 @@ export async function updateQuest(
           // Kept even while the switch is off, so turning it back on restores
           // the list instead of asking for it again.
           allowList,
+          prizeTiers: tiers.tiers,
           startsAt: opens,
           endsAt: closes,
           updatedAt: new Date(),

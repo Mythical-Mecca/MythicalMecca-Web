@@ -7,8 +7,18 @@ export interface Stand {
   id: string;
   /** What goes under the medallion. A locked stand still owns its title. */
   label: string;
+  /** The stall number or hall — what the easy-mode list is for. */
+  location: string | null;
   state: "done" | "open" | "locked";
+  /** Everything this stand pays, across all its tokens. */
   points: number;
+  /**
+   * The tokens on offer at this stand and how many are banked. A vendor
+   * quest pays two — one for talking to them, one for buying — and the
+   * medallion has to say "one of two" rather than pretending the stand is
+   * either done or not.
+   */
+  tokens: { done: number; total: number };
   /**
    * The face. Both are null for a locked stand — its destination is a clue
    * that hasn't been earned, and a picture of the shopfront is the answer.
@@ -23,12 +33,17 @@ export interface Stand {
  * The stands, as a cabinet of medallions.
  *
  * A list answers "what is next"; a grid answers "what have I got" — and on a
- * free-order quest the second is the real question. It also fits a ten-stand
- * trail on one screen, which neither the column of cards nor a scrolling row
- * managed.
+ * free-order quest the second is the real question. It also fits a
+ * twenty-stand trail on one screen, which neither the column of cards nor a
+ * scrolling row managed.
+ *
+ * One medallion per *stand*, not per objective. The people running the event
+ * think in vendors — "click on each clue and there are two tokens" — and a
+ * grid with every vendor's face on it twice reads as forty errands instead
+ * of twenty visits.
  *
  * Only the overview lives here. Every stand's detail — where it is, what it
- * pays, the form or the scan instruction — is rendered on the server and
+ * pays, the forms and the scan instruction — is rendered on the server and
  * handed down in `details`, so the claim forms stay server actions and none
  * of that logic crosses into the browser.
  */
@@ -37,6 +52,7 @@ export function StandsCabinet({
   details,
   initial,
   note,
+  helpNote,
 }: {
   stands: Stand[];
   /** Parallel to `stands`. Server-rendered; this only chooses which shows. */
@@ -44,51 +60,185 @@ export function StandsCabinet({
   initial: number;
   /** Whether the quest ranks its stands — the grid itself cannot say. */
   note: string;
+  /** Where to go when stuck. Shown on the easy-mode list. */
+  helpNote: string;
 }) {
   const [picked, setPicked] = useState(initial);
+  // Easy mode: the same stands as a plain list of names and stall numbers.
+  // Some people walk a hall off a list, not a game board, and a phone held
+  // up beside a floor map wants the words, not the faces.
+  const [easy, setEasy] = useState(false);
   const current = stands[picked];
 
   return (
     <section className="mt-5">
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <h2 className="font-[family-name:var(--font-display)] text-lg uppercase tracking-[0.16em] text-[var(--mm-gold)]">
           Stands
         </h2>
-        <span className="text-sm text-[var(--mm-text-dim)]">{note}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-[var(--mm-text-dim)]">{note}</span>
+          <button
+            type="button"
+            onClick={() => setEasy((e) => !e)}
+            aria-pressed={easy}
+            className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[var(--mm-border)] px-3 py-1 text-xs text-[var(--mm-text-dim)] transition-colors hover:border-[var(--mm-gold)] hover:text-[var(--mm-text)] aria-pressed:border-[var(--mm-gold)] aria-pressed:text-[var(--mm-text)]"
+          >
+            <Icon
+              icon={easy ? "mdi:view-grid-outline" : "mdi:format-list-bulleted"}
+              width={14}
+            />
+            {easy ? "Medallions" : "Easy mode"}
+          </button>
+        </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-5 md:grid-cols-6">
-        {stands.map((s, i) => (
-          <Medallion
-            key={s.id}
-            stand={s}
-            selected={i === picked}
-            onPick={() => setPicked(i)}
-          />
-        ))}
-      </div>
+      {easy ? (
+        <EasyList
+          stands={stands}
+          helpNote={helpNote}
+          onPick={(i) => {
+            setPicked(i);
+            setEasy(false);
+          }}
+        />
+      ) : (
+        <>
+          <div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-5 md:grid-cols-6">
+            {stands.map((s, i) => (
+              <Medallion
+                key={s.id}
+                stand={s}
+                selected={i === picked}
+                onPick={() => setPicked(i)}
+              />
+            ))}
+          </div>
 
-      {/* The detail for whichever medallion is open. aria-live so a screen
-          reader hears the panel change rather than being left on the button. */}
-      <div
-        id="stand-detail"
-        aria-live="polite"
-        className="mt-5 rounded-[20px] border p-4 transition"
-        style={{
-          borderColor:
-            current?.state === "done"
-              ? "color-mix(in srgb, var(--mm-live) 45%, transparent)"
-              : current?.state === "locked"
-                ? "color-mix(in srgb, var(--mm-divider) 90%, transparent)"
-                : "color-mix(in srgb, var(--mm-gold) 70%, transparent)",
-          background:
-            "color-mix(in srgb, var(--mm-surface) 92%, transparent)",
-          boxShadow: "inset 0 1px 0 color-mix(in srgb, white 7%, transparent)",
-        }}
-      >
-        {details[picked]}
-      </div>
+          {/* The detail for whichever medallion is open. aria-live so a
+              screen reader hears the panel change rather than being left on
+              the button. */}
+          <div
+            id="stand-detail"
+            aria-live="polite"
+            className="mt-5 rounded-[20px] border p-4 transition"
+            style={{
+              borderColor:
+                current?.state === "done"
+                  ? "color-mix(in srgb, var(--mm-live) 45%, transparent)"
+                  : current?.state === "locked"
+                    ? "color-mix(in srgb, var(--mm-divider) 90%, transparent)"
+                    : "color-mix(in srgb, var(--mm-gold) 70%, transparent)",
+              background:
+                "color-mix(in srgb, var(--mm-surface) 92%, transparent)",
+              boxShadow:
+                "inset 0 1px 0 color-mix(in srgb, white 7%, transparent)",
+            }}
+          >
+            {details[picked]}
+          </div>
+        </>
+      )}
     </section>
+  );
+}
+
+/**
+ * The reference sheet: every stand's name and stall number in one column,
+ * with a way to jump into any of them. Nothing here that the medallions do
+ * not also know — it is the same information at reading distance.
+ */
+function EasyList({
+  stands,
+  helpNote,
+  onPick,
+}: {
+  stands: Stand[];
+  helpNote: string;
+  onPick: (index: number) => void;
+}) {
+  return (
+    <div className="mt-3">
+      <ol className="divide-y divide-[color-mix(in_srgb,var(--mm-divider)_75%,transparent)] overflow-hidden rounded-[20px] border border-[color-mix(in_srgb,var(--mm-border)_65%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_92%,transparent)]">
+        {stands.map((s, i) => {
+          const done = s.state === "done";
+          return (
+            <li key={s.id}>
+              <button
+                type="button"
+                onClick={() => onPick(i)}
+                className="flex min-h-12 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--mm-elevated)_60%,transparent)]"
+              >
+                <span
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold tabular-nums"
+                  style={{
+                    background: done ? "var(--mm-live)" : "var(--mm-elevated)",
+                    color: done ? "#070b1e" : "var(--mm-text-dim)",
+                  }}
+                >
+                  {done ? <Icon icon="mdi:check" width={13} /> : i + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span
+                    className={`block truncate font-medium ${
+                      s.state === "locked" ? "text-[var(--mm-text-dim)]" : ""
+                    }`}
+                  >
+                    {s.label}
+                  </span>
+                  {s.location && (
+                    <span className="block text-sm text-[var(--mm-text-dim)]">
+                      {s.location}
+                    </span>
+                  )}
+                </span>
+                <TokenPips done={s.tokens.done} total={s.tokens.total} />
+                <Icon
+                  icon="mdi:chevron-right"
+                  width={16}
+                  className="shrink-0 text-[var(--mm-text-dim)]"
+                />
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="mt-3 flex items-start gap-2 text-sm text-[var(--mm-text-dim)]">
+        <Icon
+          icon="mdi:hand-wave-outline"
+          width={16}
+          className="mt-0.5 shrink-0 text-[var(--mm-gold)]"
+        />
+        {helpNote}
+      </p>
+    </div>
+  );
+}
+
+/** One dot per token, lit when banked. Reads at a glance as "one of two". */
+function TokenPips({ done, total }: { done: number; total: number }) {
+  return (
+    <span
+      className="flex shrink-0 items-center gap-1"
+      aria-label={`${done} of ${total} tokens`}
+    >
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          key={i}
+          className="h-2 w-2 rounded-full"
+          style={{
+            background:
+              i < done
+                ? "var(--mm-gold)"
+                : "color-mix(in srgb, var(--mm-divider) 90%, transparent)",
+            boxShadow:
+              i < done
+                ? "0 0 6px color-mix(in srgb, var(--mm-gold) 60%, transparent)"
+                : "none",
+          }}
+        />
+      ))}
+    </span>
   );
 }
 
@@ -103,6 +253,7 @@ function Medallion({
 }) {
   const done = stand.state === "done";
   const locked = stand.state === "locked";
+  const partial = !done && stand.tokens.done > 0;
 
   // The ring carries the state; selection adds a second ring outside it, so
   // "which am I looking at" never has to compete with "have I cleared it".
@@ -168,12 +319,24 @@ function Medallion({
           )}
         </span>
 
-        {/* Cleared gets a tick; anything still open wears its price. */}
+        {/* Cleared gets a tick. A stand that pays more than one token wears
+            its count — "1/2" is the whole story of a half-visited vendor.
+            A single-token stand wears its price, as before. */}
         {done ? (
           <span className="absolute right-0 bottom-0 grid h-6 w-6 place-items-center rounded-full bg-[var(--mm-live)] text-[#070b1e] ring-[3px] ring-[var(--mm-bg)]">
             <Icon icon="mdi:check" width={14} />
           </span>
-        ) : locked ? null : (
+        ) : locked ? null : stand.tokens.total > 1 ? (
+          <span
+            className="absolute -right-1 bottom-0 grid h-6 min-w-6 place-items-center rounded-full px-1.5 text-[11px] font-bold tabular-nums ring-[3px] ring-[var(--mm-bg)]"
+            style={{
+              background: partial ? "var(--mm-gold)" : "var(--mm-elevated)",
+              color: partial ? "#160f0a" : "var(--mm-text-dim)",
+            }}
+          >
+            {stand.tokens.done}/{stand.tokens.total}
+          </span>
+        ) : (
           <span className="absolute -right-1 bottom-0 grid h-6 min-w-6 place-items-center rounded-full bg-[var(--mm-gold)] px-1.5 text-[11px] font-bold tabular-nums text-[#160f0a] ring-[3px] ring-[var(--mm-bg)]">
             {stand.points}
           </span>

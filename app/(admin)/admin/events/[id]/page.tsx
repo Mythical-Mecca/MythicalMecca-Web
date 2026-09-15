@@ -406,7 +406,7 @@ export default async function AdminEventPage({
                 <TextField
                   name="externalUrl"
                   label="External link"
-                  hint="origin = external"
+                  hint="also the sign-up link on quests"
                   icon="mdi:open-in-new"
                   type="url"
                   defaultValue={event.externalUrl ?? ""}

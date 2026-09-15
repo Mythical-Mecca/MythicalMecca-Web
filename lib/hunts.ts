@@ -111,8 +111,15 @@ export interface PublicStep {
   destination: Destination | null;
 }
 
+export interface PrizeTier {
+  points: number;
+  entries: number;
+}
+
 export interface HuntView {
   slug: string;
+  /** See scavengerHunts.prizeTiers. Ascending by points; empty when no draw. */
+  prizeTiers: PrizeTier[];
   /** True when the trail must be walked in order — drives the player copy. */
   sequential: boolean;
   title: string;
@@ -127,6 +134,12 @@ export interface HuntView {
    */
   eventSlug: string | null;
   eventTitle: string;
+  /**
+   * Where the event itself lives online, when it has told us. Shown as a
+   * sign-up link on the player panel, so someone who has not registered for
+   * the day is one tap from doing so.
+   */
+  eventUrl: string | null;
   /** The owning event — a player session is scoped to exactly one of these. */
   eventId: string;
   /** True when this quest admits event players only. See events.noDataMode. */
@@ -171,6 +184,8 @@ interface RawStep {
 interface RawHunt {
   id: string;
   slug: string;
+  eventUrl: string | null;
+  prizeTiers: PrizeTier[];
   sequential: boolean;
   allowListEnabled: boolean;
   allowList: string[];
@@ -256,6 +271,7 @@ async function rawHunt(slug: string): Promise<RawHunt | null> {
       eventId: events.id,
       eventSlug: events.slug,
       eventTitle: events.title,
+      eventUrl: events.externalUrl,
       eventLat: events.lat,
       eventLng: events.lng,
       noDataMode: events.noDataMode,
@@ -268,12 +284,14 @@ async function rawHunt(slug: string): Promise<RawHunt | null> {
   return {
     id: row.h.id,
     slug: row.h.slug,
+    prizeTiers: row.h.prizeTiers ?? [],
     sequential: row.h.sequential,
     title: row.h.title,
     description: row.h.description ?? "",
     mode: row.h.mode,
     eventSlug: row.eventSlug,
     eventTitle: row.eventTitle,
+    eventUrl: row.eventUrl,
     eventId: row.eventId,
     eventLat: row.eventLat,
     eventLng: row.eventLng,
@@ -509,6 +527,7 @@ export async function getHunt(
   );
   return {
     slug: raw.slug,
+    prizeTiers: raw.prizeTiers,
     sequential: raw.sequential,
     title: raw.title,
     description: raw.description,
@@ -518,12 +537,30 @@ export async function getHunt(
     earnedPoints: steps.filter((s) => s.done).reduce((a, s) => a + s.points, 0),
     eventSlug: raw.eventSlug,
     eventTitle: raw.eventTitle,
+    eventUrl: raw.eventUrl,
     eventId: raw.eventId,
     noDataMode: raw.noDataMode,
     allowed: await onAllowList(raw, who),
     allowListEnabled: raw.allowListEnabled,
     open: raw.open,
   };
+}
+
+/**
+ * Where a score sits on the prize ladder: entries held now, and the next
+ * rung up if there is one. Pure, so the page and the admin preview agree.
+ */
+export function prizeStanding(
+  tiers: PrizeTier[],
+  points: number
+): { entries: number; next: PrizeTier | null } {
+  let entries = 0;
+  let next: PrizeTier | null = null;
+  for (const t of tiers) {
+    if (points >= t.points) entries = Math.max(entries, t.entries);
+    else if (!next || t.points < next.points) next = t;
+  }
+  return { entries, next };
 }
 
 /**

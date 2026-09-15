@@ -1,0 +1,1 @@
+ALTER TABLE "scavenger_hunts" ADD COLUMN IF NOT EXISTS "prize_tiers" jsonb DEFAULT '[]'::jsonb NOT NULL;

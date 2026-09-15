@@ -19,12 +19,19 @@ export function PlayerSignIn({
   eventId,
   path,
   eventTitle,
+  signupUrl = null,
   bare = false,
 }: {
   eventId: string;
   /** The page to rebuild once there's a player — see playerSignIn. */
   path: string;
   eventTitle: string;
+  /**
+   * The event's own site, for someone who has not registered for the day.
+   * Registration is the event's business, not this panel's — the name typed
+   * here is only what the leaderboard calls you.
+   */
+  signupUrl?: string | null;
   /**
    * Drop the panel chrome. Set when this already sits inside a card, so the
    * quest teaser does not draw a card within a card.
@@ -121,6 +128,21 @@ export function PlayerSignIn({
           {joining ? "Sign back in" : "Pick a name instead"}
         </button>
       </form>
+
+      {signupUrl && joining && (
+        <p className="mt-4 text-center text-sm text-[var(--mm-text-dim)]">
+          Not registered for {eventTitle} yet?{" "}
+          <a
+            href={signupUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[var(--mm-gold)] underline underline-offset-4 hover:text-[var(--mm-gold-hi)]"
+          >
+            Sign up
+            <Icon icon="mdi:open-in-new" width={13} />
+          </a>
+        </p>
+      )}
     </Shell>
   );
 }
