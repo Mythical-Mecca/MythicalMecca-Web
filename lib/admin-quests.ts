@@ -7,6 +7,7 @@ import {
   huntStations,
   huntClaimAttempts,
   events,
+  eventPlayers,
   partners,
   users,
 } from "@/lib/db/schema";
@@ -212,8 +213,73 @@ export interface ClaimAttemptRow {
   objectiveTitle: string | null;
   outcome: ClaimOutcome;
   claimMode: ClaimMode | null;
+  /** Display name of whoever tried — a member, a no-data handle, or nobody. */
+  playerName: string | null;
   ip: string | null;
   createdAt: Date;
+}
+
+export interface QuestParticipant {
+  id: string;
+  name: string;
+  completedStepIds: string[];
+  points: number;
+  lastAt: Date;
+}
+
+/**
+ * Who is on this quest, and how far each of them has got.
+ *
+ * One row per adventurer, built from `hunt_progress` rather than the public
+ * leaderboard. The board caps at twenty and only cares about points; this
+ * list is the whole field, with every objective they have cleared, so an
+ * organiser can see who is stuck, who has finished, and who found a hidden
+ * extra.
+ */
+export async function questRoster(
+  huntId: string
+): Promise<QuestParticipant[]> {
+  if (!useDb) return [];
+  try {
+    const rows = await db
+      .select({
+        userId: huntProgress.userId,
+        playerId: huntProgress.playerId,
+        userName: users.name,
+        handle: eventPlayers.handle,
+        stepId: huntProgress.stepId,
+        points: huntProgress.pointsAwarded,
+        completedAt: huntProgress.completedAt,
+      })
+      .from(huntProgress)
+      .leftJoin(users, eq(users.id, huntProgress.userId))
+      .leftJoin(eventPlayers, eq(eventPlayers.id, huntProgress.playerId))
+      .where(eq(huntProgress.huntId, huntId))
+      .orderBy(asc(huntProgress.completedAt));
+
+    const byId = new Map<string, QuestParticipant>();
+    for (const r of rows) {
+      const id = r.userId ?? r.playerId;
+      if (!id) continue;
+      const seen = byId.get(id);
+      if (!seen) {
+        byId.set(id, {
+          id,
+          name: r.userName ?? r.handle ?? "Adventurer",
+          completedStepIds: [r.stepId],
+          points: r.points,
+          lastAt: r.completedAt,
+        });
+        continue;
+      }
+      seen.completedStepIds.push(r.stepId);
+      seen.points += r.points;
+      if (r.completedAt > seen.lastAt) seen.lastAt = r.completedAt;
+    }
+    return [...byId.values()];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -232,15 +298,26 @@ export async function questClaimFeed(
         objectiveTitle: huntSteps.title,
         outcome: huntClaimAttempts.outcome,
         claimMode: huntClaimAttempts.claimMode,
+        userName: users.name,
+        handle: eventPlayers.handle,
         ip: huntClaimAttempts.ip,
         createdAt: huntClaimAttempts.createdAt,
       })
       .from(huntClaimAttempts)
       .innerJoin(huntSteps, eq(huntClaimAttempts.stepId, huntSteps.id))
+      .leftJoin(users, eq(users.id, huntClaimAttempts.userId))
+      .leftJoin(eventPlayers, eq(eventPlayers.id, huntClaimAttempts.playerId))
       .where(eq(huntSteps.huntId, huntId))
       .orderBy(desc(huntClaimAttempts.createdAt))
       .limit(limit);
-    return rows;
+    return rows.map((r) => ({
+      objectiveTitle: r.objectiveTitle,
+      outcome: r.outcome,
+      claimMode: r.claimMode,
+      playerName: r.userName ?? r.handle,
+      ip: r.ip,
+      createdAt: r.createdAt,
+    }));
   } catch {
     return [];
   }

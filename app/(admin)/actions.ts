@@ -983,10 +983,34 @@ export async function updateQuest(
   return { ok: true };
 }
 
+const QUEST_EDITOR_TABS = new Set([
+  "progress",
+  "trail",
+  "settings",
+  "activity",
+  "advanced",
+]);
+
+/** Stay on the section the organiser was in after a redirecting action. */
+function questEditorPath(
+  slug: string,
+  query: Record<string, string>
+): string {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) {
+    if (!v) continue;
+    if (k === "tab" && !QUEST_EDITOR_TABS.has(v)) continue;
+    params.set(k, v);
+  }
+  const q = params.toString();
+  return q ? `/admin/quests/${slug}?${q}` : `/admin/quests/${slug}`;
+}
+
 export async function setQuestActive(formData: FormData) {
   const session = await requireAdmin();
   const slug = String(formData.get("slug"));
   const active = String(formData.get("active")) === "1";
+  const tab = String(formData.get("tab") ?? "");
   if (process.env.DATABASE_URL) {
     try {
       await db
@@ -994,7 +1018,7 @@ export async function setQuestActive(formData: FormData) {
         .set({ active, updatedAt: new Date() })
         .where(eq(scavengerHunts.slug, slug));
     } catch {
-      redirect(`/admin/quests/${slug}?error=1`);
+      redirect(questEditorPath(slug, { tab, error: "1" }));
     }
   }
   await logActivity({
@@ -1004,7 +1028,7 @@ export async function setQuestActive(formData: FormData) {
   });
   revalidatePath(`/admin/quests/${slug}`);
   revalidatePath("/quests");
-  redirect(`/admin/quests/${slug}?saved=1`);
+  redirect(questEditorPath(slug, { tab, saved: "1" }));
 }
 
 export async function deleteQuest(formData: FormData) {
@@ -1373,7 +1397,7 @@ export async function deleteObjective(formData: FormData) {
     try {
       await db.delete(huntSteps).where(eq(huntSteps.id, id));
     } catch {
-      redirect(`/admin/quests/${questSlug}?error=1`);
+      redirect(questEditorPath(questSlug, { tab: "trail", error: "1" }));
     }
   }
   await logActivity({
@@ -1383,7 +1407,7 @@ export async function deleteObjective(formData: FormData) {
   });
   revalidatePath(`/admin/quests/${questSlug}`);
   revalidatePath(`/quests/${questSlug}`);
-  redirect(`/admin/quests/${questSlug}?saved=1`);
+  redirect(questEditorPath(questSlug, { tab: "trail", saved: "1" }));
 }
 
 /**
@@ -1431,7 +1455,7 @@ export async function moveObjective(formData: FormData) {
         }
       }
     } catch {
-      redirect(`/admin/quests/${questSlug}?error=1`);
+      redirect(questEditorPath(questSlug, { tab: "trail", error: "1" }));
     }
   }
   await logActivity({
@@ -1440,7 +1464,7 @@ export async function moveObjective(formData: FormData) {
     entityId: id,
   });
   revalidatePath(`/admin/quests/${questSlug}`);
-  redirect(`/admin/quests/${questSlug}?saved=1`);
+  redirect(questEditorPath(questSlug, { tab: "trail", saved: "1" }));
 }
 
 /** Issue a fresh station key — for a lost device or a stand changing hands. */
@@ -1453,7 +1477,7 @@ export async function rotateStationKey(formData: FormData) {
       await db.delete(huntStations).where(eq(huntStations.stepId, id));
       await ensureStation(id);
     } catch {
-      redirect(`/admin/quests/${questSlug}?error=1`);
+      redirect(questEditorPath(questSlug, { tab: "trail", error: "1" }));
     }
   }
   await logActivity({
@@ -1462,7 +1486,7 @@ export async function rotateStationKey(formData: FormData) {
     entityId: id,
   });
   revalidatePath(`/admin/quests/${questSlug}`);
-  redirect(`/admin/quests/${questSlug}?saved=1`);
+  redirect(questEditorPath(questSlug, { tab: "trail", saved: "1" }));
 }
 
 // ---------------------------------------------------------------------------
