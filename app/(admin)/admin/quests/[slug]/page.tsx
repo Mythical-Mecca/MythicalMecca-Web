@@ -135,6 +135,19 @@ const OUTCOME_TONE: Record<string, string> = {
   not_allowed: "var(--mm-gold)",
 };
 
+const OUTCOME_LABEL: Record<string, string> = {
+  ok: "Checked in",
+  duplicate: "Already done",
+  bad_code: "Wrong code",
+  out_of_range: "Out of range",
+  not_open: "Not open",
+  unknown_step: "Unknown tag",
+  locked: "Locked",
+  rate_limited: "Too many tries",
+  wrong_account: "Wrong account",
+  not_allowed: "Not on the list",
+};
+
 export default async function AdminQuestEditorPage({
   params,
   searchParams,
@@ -187,6 +200,15 @@ export default async function AdminQuestEditorPage({
     id: p.id,
     name: p.businessName,
   }));
+  const hiddenCount = quest.objectiveList.filter((o) => o.hidden).length;
+  const shownCount = quest.objectiveList.length - hiddenCount;
+  const subtitle = [
+    `${shownCount} ${shownCount === 1 ? "objective" : "objectives"}`,
+    hiddenCount > 0 ? `${hiddenCount} hidden` : null,
+    `${quest.players} ${quest.players === 1 ? "adventurer" : "adventurers"}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="space-y-8">
@@ -195,7 +217,7 @@ export default async function AdminQuestEditorPage({
         <PageHeading
           size="md"
           title={quest.title}
-          subtitle={`${quest.objectives} objectives · ${quest.players} adventurers`}
+          subtitle={subtitle}
           icon="game-icons:treasure-map"
           accent={ACCENT}
           actions={
@@ -327,15 +349,10 @@ export default async function AdminQuestEditorPage({
       )}
 
       <section>
-        <h2 className="mb-1 flex items-center gap-2 font-[family-name:var(--font-display)] text-lg">
+        <h2 className="mb-3 flex items-center gap-2 font-[family-name:var(--font-display)] text-lg">
           <Icon icon="mdi:flag-outline" width={20} style={{ color: ACCENT }} />
           The trail
         </h2>
-        <p className="mb-4 text-sm text-[var(--mm-text-dim)]">
-          Objectives can be tackled in any order — this is the order they read
-          in. Use a <Icon icon="mdi:plus" width={13} className="inline" /> between
-          two of them to drop a new objective straight into that position.
-        </p>
         <ObjectiveTimeline
           questSlug={quest.slug}
           objectives={quest.objectiveList}
@@ -382,7 +399,9 @@ export default async function AdminQuestEditorPage({
                 key={i}
                 className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm"
               >
-                <Badge color={OUTCOME_TONE[row.outcome]}>{row.outcome}</Badge>
+                <Badge color={OUTCOME_TONE[row.outcome]}>
+                  {OUTCOME_LABEL[row.outcome] ?? row.outcome}
+                </Badge>
                 <span className="min-w-0 flex-1 truncate">
                   {row.objectiveTitle}
                 </span>

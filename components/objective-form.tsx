@@ -11,6 +11,7 @@ import {
   Field,
   TextField,
   TextareaField,
+  CheckboxField,
   inputCls,
   invalidCls,
 } from "@/components/form";
@@ -76,25 +77,25 @@ const CLAIM_MODES = [
   {
     value: "live_code",
     label: "Live code",
-    hint: "Strongest, and the default. The stand keeps its station page open and the code changes every minute, so a shared screenshot is worthless almost immediately.",
+    hint: "A code on the station page, changing every minute.",
     icon: "mdi:shield-check-outline",
   },
   {
     value: "location_verified",
     label: "Location verified",
-    hint: "The tag alone completes it, but only from inside the venue — a passed-on link is useless to anyone who isn't already here. The fallback if a vendor's device dies.",
+    hint: "The scan only works inside the venue.",
     icon: "mdi:map-marker-check-outline",
   },
   {
     value: "open",
     label: "Open scan",
-    hint: "The scan is the check-in: no code, no location. Anyone sent the link can clear it from anywhere, so keep this for low-stakes stops.",
+    hint: "The scan is the check-in. Anyone with the link can clear it.",
     icon: "mdi:shield-alert-outline",
   },
   {
     value: "sealed_tag",
     label: "Sealed NFC tag",
-    hint: "For NTAG 424 DNA tags, which sign every tap on-chip. Not built yet — objectives set to this can't be claimed, so don't use it during an event.",
+    hint: "Not built yet — don't use this during an event.",
     icon: "mdi:nfc-variant",
   },
 ];
@@ -103,13 +104,13 @@ const REVEAL_MODES = [
   {
     value: "direct",
     label: "Direct",
-    hint: "Name the destination up front. Straight wayfinding — good for a first quest, or a big venue.",
+    hint: "Name the stand up front.",
     icon: "mdi:map-marker-outline",
   },
   {
     value: "clue",
     label: "Clue",
-    hint: "Hide the stand's name and location until they check in. The prompt has to be enough to find it.",
+    hint: "Hide the name and location until they check in.",
     icon: "game-icons:secret-book",
   },
 ];
@@ -171,6 +172,7 @@ export function ObjectiveForm({
   const [revealMode, setRevealMode] = useState<RevealMode>(
     objective?.revealMode ?? "direct"
   );
+  const [hidden, setHidden] = useState(objective?.hidden ?? false);
   const config = objective?.config ?? {};
 
   const needsAnswer = type in answerLabel;
@@ -192,9 +194,10 @@ export function ObjectiveForm({
     "partnerId",
     "locationHint",
     "revealMode",
+    "hidden",
     "prompt",
     "points",
-    ...(sequential ? [] : ["parentId"]),
+    ...(sequential && !hidden ? [] : ["parentId"]),
     ...(needsAnswer ? ["answer"] : []),
     ...(isTrivia ? ["choices"] : []),
     ...(isVisit ? ["claimMode"] : []),
@@ -254,6 +257,16 @@ export function ObjectiveForm({
         error={fieldError.title}
       />
 
+      <CheckboxField
+        name="hidden"
+        value="1"
+        checked={hidden}
+        onChange={(e) => setHidden(e.currentTarget.checked)}
+        label="Hidden achievement"
+        icon="mdi:eye-off-outline"
+        description="Off the quest page until they unlock it — they find the tag, or they clear the objective named below."
+      />
+
       <PickerField
         label="Destination"
         name="partnerId"
@@ -281,15 +294,20 @@ export function ObjectiveForm({
 
       {/* Only meaningful on a free-order quest: when the trail is strictly
           ordered, `sort` already says what comes first and a second, possibly
-          contradictory ordering would just be a way to deadlock it. */}
-      {!sequential && (
+          contradictory ordering would just be a way to deadlock it. Hidden
+          extras still use a parent as the reveal — they sit beside the line. */}
+      {(!sequential || hidden) && (
         <PickerField
           label="Comes after"
           name="parentId"
           icon="mdi:source-branch"
           defaultValue={objective?.parentId ?? ""}
           placeholder="Nothing — available from the start"
-          description="Leave empty and this can be done at any time. Name an objective and it stays locked until that one is cleared."
+          description={
+            hidden
+              ? "Leave empty and they have to find the tag. Name one and this appears after they clear it."
+              : "Leave empty to keep this available from the start."
+          }
           error={fieldError.parentId}
           options={siblings
             .filter((o) => o.id !== objective?.id)
@@ -302,7 +320,7 @@ export function ObjectiveForm({
       )}
 
       <PickerField
-        label="How much do they get told?"
+        label="What they see"
         name="revealMode"
         icon="game-icons:secret-book"
         value={revealMode}
@@ -367,7 +385,7 @@ export function ObjectiveForm({
       {isVisit && (
         <>
           <PickerField
-            label="How do we know they're really there?"
+            label="How they check in"
             name="claimMode"
             icon="mdi:shield-check-outline"
             value={claimMode}

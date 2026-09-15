@@ -97,6 +97,8 @@ export interface PublicStep {
   done: boolean;
   revealMode: RevealMode;
   claimMode: ClaimMode;
+  /** True when this was a hidden extra — shown only because they unlocked it. */
+  hidden: boolean;
   /**
    * Waiting on something else. `true` when the quest is sequential and an
    * earlier objective is outstanding, or when this one names a prerequisite
@@ -157,6 +159,7 @@ interface RawStep {
   points: number;
   config: Record<string, unknown>;
   revealMode: RevealMode;
+  hidden: boolean;
   claimMode: ClaimMode;
   claimRadiusM: number | null;
   partnerId: string | null;
@@ -234,6 +237,7 @@ async function stepsFor(huntId: string): Promise<RawStep[]> {
     points: s.points,
     config: (s.config as Record<string, unknown>) ?? {},
     revealMode: s.revealMode,
+    hidden: s.hidden,
     claimMode: s.claimMode,
     claimRadiusM: s.claimRadiusM,
     partnerId: s.partnerId,
@@ -294,6 +298,9 @@ async function rawHunt(slug: string): Promise<RawHunt | null> {
  *   claimable in any order, which is the default and what the venue-navigation
  *   model was designed around.
  *
+ * Hidden extras sit beside the trail: they wait only on a named parent, never
+ * on the sequential line, so a secret QR cannot stall the stands.
+ *
  * Returns the blocking objective's title, or null when nothing blocks it.
  */
 function blockedBy(
@@ -302,9 +309,14 @@ function blockedBy(
   doneIds: Set<string>,
   sequential: boolean
 ): string | null {
+  if (step.hidden) {
+    if (!step.parentId) return null;
+    if (doneIds.has(step.parentId)) return null;
+    return all.find((o) => o.id === step.parentId)?.title ?? null;
+  }
   if (sequential) {
     const earlier = all
-      .filter((o) => o.sort < step.sort)
+      .filter((o) => !o.hidden && o.sort < step.sort)
       .sort((a, b) => b.sort - a.sort);
     const blocking = earlier.find((o) => !doneIds.has(o.id));
     return blocking ? blocking.title : null;
@@ -315,6 +327,18 @@ function blockedBy(
   // an unresolvable id here means the row is mid-change; treat it as open
   // rather than stranding the player.
   return all.find((o) => o.id === step.parentId)?.title ?? null;
+}
+
+/**
+ * Hidden extras stay off the quest page until unlocked.
+ *
+ * Claiming the tag itself unlocks it. Clearing a named parent also reveals
+ * it, so the extra QR / PIN / riddle can be handed over in the viewer.
+ */
+function listedForPlayer(step: RawStep, doneIds: Set<string>): boolean {
+  if (!step.hidden) return true;
+  if (doneIds.has(step.id)) return true;
+  return step.parentId !== null && doneIds.has(step.parentId);
 }
 
 function publicStep(
@@ -337,6 +361,7 @@ function publicStep(
         : undefined,
     done,
     revealMode: s.revealMode,
+    hidden: s.hidden,
     claimMode: s.claimMode,
     locked: lockedBy !== null,
     lockedBy,
@@ -380,7 +405,7 @@ export async function listHuntsForEvent(
         active: scavengerHunts.active,
         startsAt: scavengerHunts.startsAt,
         endsAt: scavengerHunts.endsAt,
-        steps: sql<number>`(select count(*) from ${huntSteps} where ${huntSteps.huntId} = ${scavengerHunts.id})`,
+        steps: sql<number>`(select count(*) from ${huntSteps} where ${huntSteps.huntId} = ${scavengerHunts.id} and ${huntSteps.hidden} = false)`,
       })
       .from(scavengerHunts)
       .where(
@@ -430,12 +455,12 @@ export async function listHunts(who?: Claimant): Promise<HuntCard[]> {
         description: scavengerHunts.description,
         eventSlug: events.slug,
         eventTitle: events.title,
-        steps: sql<number>`(select count(*) from ${huntSteps} where ${huntSteps.huntId} = ${scavengerHunts.id})`,
+        steps: sql<number>`(select count(*) from ${huntSteps} where ${huntSteps.huntId} = ${scavengerHunts.id} and ${huntSteps.hidden} = false)`,
         done: !who
           ? sql<number>`0`
           : who.kind === "member"
-            ? sql<number>`(select count(*) from ${huntProgress} where ${huntProgress.huntId} = ${scavengerHunts.id} and ${huntProgress.userId} = ${who.userId})`
-            : sql<number>`(select count(*) from ${huntProgress} where ${huntProgress.huntId} = ${scavengerHunts.id} and ${huntProgress.playerId} = ${who.playerId})`,
+            ? sql<number>`(select count(*) from ${huntProgress} inner join ${huntSteps} on ${huntSteps.id} = ${huntProgress.stepId} where ${huntProgress.huntId} = ${scavengerHunts.id} and ${huntProgress.userId} = ${who.userId} and ${huntSteps.hidden} = false)`
+            : sql<number>`(select count(*) from ${huntProgress} inner join ${huntSteps} on ${huntSteps.id} = ${huntProgress.stepId} where ${huntProgress.huntId} = ${scavengerHunts.id} and ${huntProgress.playerId} = ${who.playerId} and ${huntSteps.hidden} = false)`,
       })
       .from(scavengerHunts)
       .innerJoin(events, eq(scavengerHunts.eventId, events.id))
@@ -478,7 +503,8 @@ export async function getHunt(
   const raw = await rawHunt(slug);
   if (!raw) return null;
   const done = who ? await completedStepIds(raw.id, who) : new Set<string>();
-  const steps = raw.steps.map((s) =>
+  const listed = raw.steps.filter((s) => listedForPlayer(s, done));
+  const steps = listed.map((s) =>
     publicStep(s, done.has(s.id), blockedBy(s, raw.steps, done, raw.sequential))
   );
   return {
@@ -488,7 +514,7 @@ export async function getHunt(
     description: raw.description,
     mode: raw.mode,
     steps,
-    totalPoints: raw.steps.reduce((a, s) => a + s.points, 0),
+    totalPoints: listed.reduce((a, s) => a + s.points, 0),
     earnedPoints: steps.filter((s) => s.done).reduce((a, s) => a + s.points, 0),
     eventSlug: raw.eventSlug,
     eventTitle: raw.eventTitle,

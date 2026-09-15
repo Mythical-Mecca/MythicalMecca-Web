@@ -1056,6 +1056,7 @@ const objectiveSchema = z.object({
     "unlock_code",
   ]),
   revealMode: z.enum(["direct", "clue"]).default("direct"),
+  hidden: z.boolean().default(false),
   claimMode: z
     .enum(["live_code", "sealed_tag", "location_verified", "open"])
     .default("live_code"),
@@ -1163,6 +1164,7 @@ function objectiveFields(formData: FormData) {
     points: formData.get("points") || 10,
     type: formData.get("type") || "qr_scan",
     revealMode: formData.get("revealMode") || "direct",
+    hidden: formData.get("hidden") === "1",
     claimMode: formData.get("claimMode") || "live_code",
     partnerId: formData.get("partnerId") || undefined,
     locationHint: formData.get("locationHint") || undefined,
@@ -1283,6 +1285,7 @@ export async function addObjective(
           locationHint: parsed.data.locationHint,
           parentId: parsed.data.parentId,
           revealMode: parsed.data.revealMode,
+          hidden: parsed.data.hidden,
           claimMode: parsed.data.claimMode,
           claimRadiusM: parsed.data.claimRadiusM,
           config: configFor(parsed.data.type, parsed.data.answer, formData),
@@ -1337,6 +1340,7 @@ export async function updateObjective(
           locationHint: parsed.data.locationHint ?? null,
           parentId: parsed.data.parentId ?? null,
           revealMode: parsed.data.revealMode,
+          hidden: parsed.data.hidden,
           claimMode: parsed.data.claimMode,
           claimRadiusM: parsed.data.claimRadiusM ?? null,
           config: configFor(parsed.data.type, parsed.data.answer, formData),

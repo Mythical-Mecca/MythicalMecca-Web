@@ -40,11 +40,26 @@ const CLAIM_LABEL: Record<string, { label: string; color: string; icon: string }
     },
   };
 
+const TYPE_LABEL: Record<string, { label: string; icon: string }> = {
+  riddle: { label: "Riddle", icon: "game-icons:secret-book" },
+  unlock_code: { label: "Password", icon: "mdi:key-variant" },
+  trivia_gate: { label: "Trivia", icon: "mdi:format-list-bulleted" },
+  cipher: { label: "Cipher", icon: "mdi:alphabetical-variant" },
+  crossword: { label: "Crossword", icon: "mdi:grid" },
+  photo_proof: { label: "Photo", icon: "mdi:camera-outline" },
+  geo_checkpoint: { label: "Geo", icon: "mdi:map-marker-radius-outline" },
+};
+
+const ICON_BTN =
+  "grid h-9 w-9 place-items-center rounded-lg text-[var(--mm-text-dim)] transition hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)] disabled:opacity-25";
+
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
       type="button"
+      title={copied ? "Copied" : "Copy tag URL"}
+      aria-label={copied ? "Copied" : "Copy tag URL"}
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(value);
@@ -54,10 +69,9 @@ function CopyButton({ value }: { value: string }) {
           setCopied(false);
         }
       }}
-      className="mm-btn mm-btn-ghost shrink-0 text-xs"
+      className={ICON_BTN}
     >
-      <Icon icon={copied ? "mdi:check" : "mdi:content-copy"} width={14} />
-      {copied ? "Copied" : "Copy"}
+      <Icon icon={copied ? "mdi:check" : "mdi:content-copy"} width={16} />
     </button>
   );
 }
@@ -187,6 +201,11 @@ export function ObjectiveTimeline({
 
   const close = () => setDialog(null);
   const editing = dialog?.kind === "edit" ? dialog.objective : undefined;
+  const visibleIndex: Map<string, number> = new Map();
+  let visibleN = 0;
+  for (const o of objectives) {
+    if (!o.hidden) visibleIndex.set(o.id, ++visibleN);
+  }
 
   return (
     <div>
@@ -234,13 +253,18 @@ export function ObjectiveTimeline({
               style={{ color: ACCENT }}
             />
             {sequential
-              ? "Strictly in order — each objective opens once the one above it is cleared."
-              : "Any order, except where an objective names a prerequisite."}
+              ? "In order — each stand opens once the one above it is cleared. Hidden extras sit beside the trail."
+              : "Any order. Lock one by naming a prerequisite, or hide it until they find the tag."}
           </p>
           <ol className="relative space-y-0">
             {objectives.map((o, i) => {
               const claim = CLAIM_LABEL[o.claimMode];
+              const kind = TYPE_LABEL[o.type];
               const isVisit = o.type === "qr_scan";
+              const n = visibleIndex.get(o.id) ?? null;
+              const partnerDistinct =
+                o.partnerName &&
+                o.partnerName.trim().toLowerCase() !== o.title.trim().toLowerCase();
               return (
                 <li key={o.id}>
                   {/* Seam above every objective — index i inserts before it. */}
@@ -253,25 +277,55 @@ export function ObjectiveTimeline({
                     {/* Node marker, centred on the rail. */}
                     <span
                       aria-hidden
+                      title={o.hidden ? "Hidden extra" : undefined}
                       className="relative z-10 mt-1 grid h-10 w-10 shrink-0 place-items-center rounded-full border font-[family-name:var(--font-display)] text-sm tabular-nums"
                       style={{
                         background: `color-mix(in srgb, ${ACCENT} 16%, var(--mm-bg))`,
                         borderColor: `color-mix(in srgb, ${ACCENT} 45%, transparent)`,
+                        borderStyle: o.hidden ? "dashed" : "solid",
                         color: `color-mix(in srgb, ${ACCENT} 75%, white)`,
                       }}
                     >
-                      {String(i + 1).padStart(2, "0")}
+                      {n === null ? (
+                        <Icon icon="mdi:eye-off-outline" width={16} />
+                      ) : (
+                        String(n).padStart(2, "0")
+                      )}
                     </span>
 
-                    <div className="mm-glass min-w-0 flex-1 p-4">
-                      <div className="flex flex-wrap items-start gap-3">
+                    <div className="mm-glass min-w-0 flex-1 p-3 sm:p-4">
+                      <div className="flex items-start gap-2">
                         <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-medium">{o.title}</span>
-                            {o.partnerName && (
-                              <Badge color="var(--mm-gold)" icon="game-icons:anvil">
-                                {o.partnerName}
-                              </Badge>
+                          <span className="font-medium">{o.title}</span>
+                          {(partnerDistinct || o.locationHint) && (
+                            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--mm-text-dim)]">
+                              {partnerDistinct && (
+                                <span className="inline-flex items-center gap-1">
+                                  <Icon icon="game-icons:anvil" width={12} />
+                                  {o.partnerName}
+                                </span>
+                              )}
+                              {o.locationHint && (
+                                <span className="inline-flex items-center gap-1">
+                                  <Icon icon="mdi:map-marker-outline" width={12} />
+                                  {o.locationHint}
+                                </span>
+                              )}
+                            </p>
+                          )}
+                          {o.parentId && (!sequential || o.hidden) && (
+                            <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--mm-text-dim)]">
+                              <Icon icon="mdi:source-branch" width={13} />
+                              {o.hidden ? "Appears once " : "Locked until "}
+                              <span className="text-[var(--mm-text)]">
+                                {titleById.get(o.parentId) ?? "another objective"}
+                              </span>{" "}
+                              is cleared
+                            </p>
+                          )}
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            {o.hidden && (
+                              <Badge icon="mdi:eye-off-outline">Hidden</Badge>
                             )}
                             {o.revealMode === "clue" && (
                               <Badge
@@ -286,42 +340,28 @@ export function ObjectiveTimeline({
                                 {claim.label}
                               </Badge>
                             )}
-                            <Badge icon="mdi:star-outline">{o.points} pts</Badge>
-                            <Badge icon="mdi:account-check-outline">
-                              {o.completions} done
-                            </Badge>
+                            {!isVisit && kind && (
+                              <Badge icon={kind.icon}>{kind.label}</Badge>
+                            )}
+                            <span className="text-xs text-[var(--mm-text-dim)]">
+                              {o.points} pts · {o.completions} done
+                            </span>
+                            {isVisit && o.claimMode === "live_code" && (
+                              <span className="text-xs">
+                                <StationHealth lastSeenAt={o.stationLastSeenAt} />
+                              </span>
+                            )}
                           </div>
-                          {!sequential && o.parentId && (
-                            <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--mm-text-dim)]">
-                              <Icon icon="mdi:source-branch" width={13} />
-                              Locked until{" "}
-                              <span className="text-[var(--mm-text)]">
-                                {titleById.get(o.parentId) ?? "another objective"}
-                              </span>{" "}
-                              is cleared
-                            </p>
-                          )}
-                          {o.locationHint && (
-                            <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--mm-text-dim)]">
-                              <Icon icon="mdi:map-marker-outline" width={13} />
-                              {o.locationHint}
-                            </p>
-                          )}
-                          {isVisit && o.claimMode === "live_code" && (
-                            <p className="mt-1 text-xs">
-                              <StationHealth lastSeenAt={o.stationLastSeenAt} />
-                            </p>
-                          )}
                         </div>
 
-                        <div className="flex items-center gap-1">
+                        <div className="flex shrink-0 items-center">
                           <form action={moveObjective}>
                             <input type="hidden" name="questSlug" value={questSlug} />
                             <input type="hidden" name="id" value={o.id} />
                             <input type="hidden" name="dir" value="up" />
                             <button
                               disabled={i === 0}
-                              className="grid h-9 w-9 place-items-center rounded-lg text-[var(--mm-text-dim)] transition hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)] disabled:opacity-25"
+                              className={ICON_BTN}
                               aria-label={`Move ${o.title} up`}
                             >
                               <Icon icon="mdi:chevron-up" width={18} />
@@ -333,7 +373,7 @@ export function ObjectiveTimeline({
                             <input type="hidden" name="dir" value="down" />
                             <button
                               disabled={i === objectives.length - 1}
-                              className="grid h-9 w-9 place-items-center rounded-lg text-[var(--mm-text-dim)] transition hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)] disabled:opacity-25"
+                              className={ICON_BTN}
                               aria-label={`Move ${o.title} down`}
                             >
                               <Icon icon="mdi:chevron-down" width={18} />
@@ -343,45 +383,34 @@ export function ObjectiveTimeline({
                             type="button"
                             onClick={() => setDialog({ kind: "edit", objective: o })}
                             aria-haspopup="dialog"
-                            className="mm-btn mm-btn-ghost text-xs"
+                            aria-label={`Edit ${o.title}`}
+                            title="Edit"
+                            className={ICON_BTN}
                           >
-                            <Icon icon="mdi:pencil-outline" width={14} /> Edit
+                            <Icon icon="mdi:pencil-outline" width={16} />
                           </button>
                         </div>
                       </div>
 
                       {isVisit && (
-                        <div className="mt-3 space-y-3 border-t border-[var(--mm-divider)] pt-3">
-                          <div className="flex flex-wrap items-center gap-2">
+                        <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-[var(--mm-divider)] pt-2">
+                          <Link
+                            href={`/admin/quests/${questSlug}/tags#tag-${o.id}`}
+                            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs text-[var(--mm-text-dim)] transition hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+                          >
+                            <Icon icon="mdi:qrcode" width={15} />
+                            QR
+                          </Link>
+                          {o.claimMode === "live_code" && (
                             <Link
-                              href={`/admin/quests/${questSlug}/tags#tag-${o.id}`}
-                              className="mm-btn mm-btn-ghost text-xs"
+                              href={`/partner-hub/station/${o.id}`}
+                              className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs text-[var(--mm-text-dim)] transition hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
                             >
-                              <Icon icon="mdi:qrcode" width={15} />
-                              View &amp; download QR
+                              <Icon icon="mdi:monitor-dashboard" width={15} />
+                              Station
                             </Link>
-                            {o.claimMode === "live_code" && (
-                              <Link
-                                href={`/partner-hub/station/${o.id}`}
-                                className="mm-btn mm-btn-primary text-xs"
-                              >
-                                <Icon icon="mdi:monitor-dashboard" width={15} />
-                                Open vendor station
-                              </Link>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <code className="min-w-0 flex-1 truncate rounded-lg bg-[var(--mm-surface)] px-3 py-2 text-xs text-[var(--mm-text-dim)]">
-                              {o.tagUrl}
-                            </code>
-                            <CopyButton value={o.tagUrl} />
-                          </div>
-                          <p className="text-xs text-[var(--mm-text-dim)]">
-                            Print this as a QR code or write it to an NFC tag. It
-                            only names the objective — switching claim mode later
-                            never invalidates it.
-                          </p>
+                          )}
+                          <CopyButton value={o.tagUrl} />
                           {o.claimMode === "live_code" && (
                             <form action={rotateStationKey}>
                               <input
@@ -390,9 +419,12 @@ export function ObjectiveTimeline({
                                 value={questSlug}
                               />
                               <input type="hidden" name="id" value={o.id} />
-                              <button className="mm-btn mm-btn-ghost text-xs">
-                                <Icon icon="mdi:key-change" width={14} />
-                                New station key
+                              <button
+                                className={ICON_BTN}
+                                title="New station key"
+                                aria-label={`New station key for ${o.title}`}
+                              >
+                                <Icon icon="mdi:key-change" width={16} />
                               </button>
                             </form>
                           )}

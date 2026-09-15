@@ -949,7 +949,12 @@ export const huntSteps = pgTable(
     /** Where to find it on the floor — "Hall B, stand 14". */
     locationHint: text("location_hint"),
     /**
-     * Optional prerequisite, used only when the quest is not `sequential`.
+     * Optional prerequisite.
+     *
+     * On a free-order quest this is the lock. On a sequential quest it is
+     * ignored for ordinary stands — the sort order already decides — but a
+     * hidden extra still honours it: clearing the parent is how that extra
+     * is revealed.
      *
      * Self-referential, so it is declared with an explicit type annotation and
      * a callback — Drizzle can't infer a table that mentions itself. Set null
@@ -960,6 +965,15 @@ export const huntSteps = pgTable(
       onDelete: "set null",
     }),
     revealMode: revealModeEnum("reveal_mode").notNull().default("direct"),
+    /**
+     * Off the quest page until unlocked — a hidden achievement.
+     *
+     * Finding its tag (QR, PIN, riddle, whatever this objective uses) claims
+     * it and it appears. Naming a `parentId` instead reveals it once that
+     * parent is cleared, and the extra challenge is then handed to them in
+     * the viewer. Hidden extras never stall a sequential trail.
+     */
+    hidden: boolean("hidden").notNull().default(false),
     claimMode: claimModeEnum("claim_mode").notNull().default("live_code"),
     /** Geofence for `location_verified`, in metres. Null falls back to the event radius. */
     claimRadiusM: integer("claim_radius_m"),

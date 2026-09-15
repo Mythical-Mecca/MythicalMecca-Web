@@ -46,6 +46,8 @@ export interface AdminObjective {
   prompt: string;
   points: number;
   revealMode: RevealMode;
+  /** Off the quest page until the adventurer unlocks it. */
+  hidden: boolean;
   claimMode: ClaimMode;
   claimRadiusM: number | null;
   locationHint: string | null;
@@ -155,6 +157,7 @@ export async function getQuestAdmin(
       prompt: r.s.prompt ?? "",
       points: r.s.points,
       revealMode: r.s.revealMode,
+      hidden: r.s.hidden,
       claimMode: r.s.claimMode,
       claimRadiusM: r.s.claimRadiusM,
       locationHint: r.s.locationHint,
