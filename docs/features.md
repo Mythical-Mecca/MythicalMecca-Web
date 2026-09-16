@@ -85,6 +85,34 @@ Codes are derived, never stored: HOTP-style truncation of `HMAC(station_key, win
 The station key never leaves the server — `/api/quest-station/[stepId]` hands the display a
 **three-code buffer**, so a couple of minutes offline doesn't stall check-ins.
 
+### External sign-up (no-data events)
+
+At an event where we hold no personal data, the partner may still need a real
+registration — on **their** form, off our site. A quest can carry a link to it
+(`scavenger_hunts.signup_url`, set on the editor's Settings tab; only offered when
+the event is in no-data mode):
+
+- **Start.** Once a player has picked a handle, the trail waits behind a card: the
+  link, a line of why, and a tick — "I've filled it in". We can't see the form, so
+  the tick is their word; the copy says so. Scans at a stand still land while the
+  card is showing.
+- **Webhook.** The form's side can `POST` to `/api/signup-hooks/<secret>` with
+  `{ "handle": "…", "externalId": "…" }` (JSON or form-encoded; `username` /
+  `alias` / `player` are accepted for the handle, `external_id` / `id` / `reference`
+  for the id). The secret is minted when a link is first saved, shown on the
+  Settings tab, and rotatable there. Only the handle and reference are stored
+  (`player_signups`, one row per handle per event); the rest of the body is dropped
+  on the floor, because it is exactly the data the event promised not to hold.
+- **End.** When the trail is done and no webhook has named this handle, a reminder
+  shows with the link and "I've already done this" to dismiss it. A confirmed
+  handle sees a quiet "Signed up" line instead.
+- **Organiser.** The Progress tab marks each adventurer *Signed up* (webhook,
+  green, with the reference), *Says signed up* (their tick, gold) or *No sign-up*,
+  and lists webhook arrivals that match nobody — usually a typo on the form.
+
+Matching is by handle, case-insensitive, at read time: a webhook that arrives before
+the player picks that name still counts the moment they do.
+
 ### Progress, telemetry & the leaderboard
 
 - `hunt_progress` is unique per `(step_id, user_id)`; completion is idempotent. Verified

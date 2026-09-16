@@ -15,6 +15,7 @@ import {
 import { and, asc, desc, eq, gte, isNull, or, sql } from "drizzle-orm";
 import { newStationKey, verifyStationCode } from "@/lib/qr";
 import { isStoredMediaUrl, toMediaSrc } from "@/lib/media";
+import { signupStepFor, type SignupStep } from "@/lib/signup";
 import type { Claimant } from "@/lib/claimant";
 
 const useDb = !!process.env.DATABASE_URL;
@@ -153,6 +154,12 @@ export interface HuntView {
   /** True when the quest is restricted at all, whoever is reading. */
   allowListEnabled: boolean;
   open: boolean;
+  /**
+   * The external sign-up step, resolved for this player. Null when the quest
+   * doesn't ask for one, and null for members — the step exists for events
+   * where we hold no personal data, which is not their world.
+   */
+  signup: SignupStep | null;
 }
 
 export interface LeaderRow {
@@ -185,6 +192,9 @@ interface RawHunt {
   id: string;
   slug: string;
   eventUrl: string | null;
+  signupUrl: string | null;
+  signupLabel: string | null;
+  signupBlurb: string | null;
   prizeTiers: PrizeTier[];
   sequential: boolean;
   allowListEnabled: boolean;
@@ -292,6 +302,9 @@ async function rawHunt(slug: string): Promise<RawHunt | null> {
     eventSlug: row.eventSlug,
     eventTitle: row.eventTitle,
     eventUrl: row.eventUrl,
+    signupUrl: row.h.signupUrl,
+    signupLabel: row.h.signupLabel,
+    signupBlurb: row.h.signupBlurb,
     eventId: row.eventId,
     eventLat: row.eventLat,
     eventLng: row.eventLng,
@@ -543,6 +556,8 @@ export async function getHunt(
     allowed: await onAllowList(raw, who),
     allowListEnabled: raw.allowListEnabled,
     open: raw.open,
+    signup:
+      who?.kind === "player" ? await signupStepFor(raw, who.playerId) : null,
   };
 }
 

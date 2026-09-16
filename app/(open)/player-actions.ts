@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import {
   endPlayerSession,
+  playerSession,
   registerPlayer,
   signInPlayer,
 } from "@/lib/event-player";
+import { acknowledgeSignup, dismissSignupReminder } from "@/lib/signup";
 
 export type PlayerFormState = {
   error?: string;
@@ -51,6 +53,26 @@ export async function playerSignIn(
 
 export async function playerSignOut(formData: FormData) {
   await endPlayerSession();
+  const path = String(formData.get("path") ?? "");
+  if (path) revalidatePath(path);
+}
+
+/**
+ * "I've done this" — the player says they filled in the external sign-up
+ * form. Recorded against whoever holds the cookie; there is no other player
+ * it could apply to, so the form carries nothing but the page to rebuild.
+ */
+export async function playerAcknowledgeSignup(formData: FormData) {
+  const session = await playerSession();
+  if (session) await acknowledgeSignup(session.playerId);
+  const path = String(formData.get("path") ?? "");
+  if (path) revalidatePath(path);
+}
+
+/** "I've already done this" — dismisses the end-of-quest reminder. */
+export async function playerDismissSignupReminder(formData: FormData) {
+  const session = await playerSession();
+  if (session) await dismissSignupReminder(session.playerId);
   const path = String(formData.get("path") ?? "");
   if (path) revalidatePath(path);
 }

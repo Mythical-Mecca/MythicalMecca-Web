@@ -58,7 +58,7 @@ Changing an enum's values is awkward in Postgres — you cannot drop a value in
 place. Rename the type, recreate it without the value, re-point the column with
 `USING col::text::newtype`, then drop the old type.
 
-## Tables (27)
+## Tables (28)
 
 **Identity** — `user`, `account`, `session`, `verificationToken`
 Auth.js adapter tables plus Mythical Mecca columns on `user` (role, avatar, and
@@ -101,7 +101,15 @@ index probe; expiry is derived from `expires_at` at read time (no cron sweeps
 it). `partner_offerings` holds products and services with integer minor-unit
 prices plus a currency code.
 
-**Quests** — `scavenger_hunts`, `hunt_steps`, `hunt_progress`
+**Quests** — `scavenger_hunts`, `hunt_steps`, `hunt_progress`, `event_players`,
+`player_signups`
+`event_players` are handle+PIN accounts scoped to one no-data event — never a
+row in `user`. `player_signups` is what an external sign-up form's webhook told
+us: one handle per event (matched case-insensitively at read time), an optional
+reference from the form, and nothing else from the body. The form link, label
+and webhook secret live on `scavenger_hunts.signup_*`; the player's own "I've
+done this" ticks live on `event_players.signup_*_at`. See `lib/signup.ts`.
+
 `hunt_steps.config` is type-specific JSON:
 
 - `qr_scan` → `{ "uplink": "<signed-token>" }`

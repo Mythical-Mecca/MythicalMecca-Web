@@ -8,11 +8,19 @@ import {
   sharingFlags,
   guessFlags,
   paceFlags,
+  signupCount,
+  unmatchedSignups,
 } from "@/lib/admin-quests";
+import { DEFAULT_SIGNUP_LABEL } from "@/lib/signup";
+import { CopyLink } from "@/components/copy-link";
 import { listEvents } from "@/lib/admin";
 import { listMembers } from "@/lib/admin-users";
 import { getPartners } from "@/lib/content";
-import { setQuestActive, deleteQuest } from "@/app/(admin)/actions";
+import {
+  setQuestActive,
+  deleteQuest,
+  rotateSignupSecret,
+} from "@/app/(admin)/actions";
 import { ObjectiveTimeline } from "@/components/objective-timeline";
 import { QuestSettingsForm } from "@/components/quest-settings-form";
 import { QuestProgress } from "@/components/quest-progress";
@@ -219,17 +227,21 @@ export default async function AdminQuestEditorPage({
     label: "All quests",
   });
 
-  const [feed, flags, guesses, pace, members, roster] = await Promise.all([
-    questClaimFeed(quest.id),
-    sharingFlags(quest.id),
-    guessFlags(quest.id),
-    paceFlags(quest.id),
-    // Only to autocomplete the allow list. A no-data event has no members to
-    // offer, and asking for them there would be the one query on this page
-    // that reads the table that event promised to stay out of.
-    quest.eventNoDataMode ? Promise.resolve([]) : listMembers(),
-    questRoster(quest.id),
-  ]);
+  const [feed, flags, guesses, pace, members, roster, unmatched, signups] =
+    await Promise.all([
+      questClaimFeed(quest.id),
+      sharingFlags(quest.id),
+      guessFlags(quest.id),
+      paceFlags(quest.id),
+      // Only to autocomplete the allow list. A no-data event has no members to
+      // offer, and asking for them there would be the one query on this page
+      // that reads the table that event promised to stay out of.
+      quest.eventNoDataMode ? Promise.resolve([]) : listMembers(),
+      questRoster(quest.id),
+      quest.signupUrl ? unmatchedSignups(quest.eventId) : Promise.resolve([]),
+      quest.signupWebhookUrl ? signupCount(quest.eventId) : Promise.resolve(0),
+    ]);
+  const signupLabel = quest.signupLabel?.trim() || DEFAULT_SIGNUP_LABEL;
   const memberEmails = members
     .map((m) => m.email)
     .filter((e): e is string => !!e)
@@ -451,6 +463,9 @@ export default async function AdminQuestEditorPage({
           tagsHref={tagsHref}
           printHref={printHref}
           accent={ACCENT}
+          signup={
+            quest.signupUrl ? { label: signupLabel, unmatched } : null
+          }
         />
       )}
 
@@ -479,12 +494,75 @@ export default async function AdminQuestEditorPage({
             noDataMode={quest.eventNoDataMode}
             memberEmails={memberEmails}
             prizeTiers={quest.prizeTiers}
+            signupUrl={quest.signupUrl}
+            signupLabel={quest.signupLabel}
+            signupBlurb={quest.signupBlurb}
             events={events.map((e) => ({
               id: e.id,
               title: e.title,
               when: e.startsAt ? formatDate(e.startsAt) : "",
             }))}
           />
+        </FormCard>
+      )}
+
+      {tab === "settings" && quest.eventNoDataMode && quest.signupWebhookUrl && (
+        /* The other half of the external sign-up step. Lives outside the
+           settings form because rotating the secret is its own action, and a
+           form can't sit inside a form. */
+        <FormCard
+          title="Sign-up webhook"
+          icon="mdi:webhook"
+          accent={ACCENT}
+        >
+          <div className="space-y-4 text-sm">
+            <p className="text-[var(--mm-text-dim)]">
+              Point the form at this address and the tick on a player&apos;s
+              page becomes a confirmation. Anyone holding the link can post
+              to it, so treat it like a password — and rotate it if it gets
+              out.
+            </p>
+            <CopyLink url={quest.signupWebhookUrl} />
+            <div className="rounded-xl border border-[var(--mm-divider)] p-4">
+              <p className="text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
+                What to send
+              </p>
+              <p className="mt-1 text-[var(--mm-text-dim)]">
+                One <code className="font-mono text-xs">POST</code>
+                {" "}per submission, as JSON or a form post. The player&apos;s
+                username is the only field that matters; a reference from
+                the form is kept alongside it if you send one. Nothing else
+                in the body is stored.
+              </p>
+              <pre className="mm-inset mt-3 overflow-x-auto rounded-xl px-4 py-3 font-mono text-xs leading-relaxed">
+{`{ "handle": "Sheldor the Conqueror", "externalId": "CCA-1234" }`}
+              </pre>
+              <p className="mt-2 text-xs text-[var(--mm-text-dim)]">
+                Matched to the name a player picked here, ignoring capitals.
+                The reply says whether it matched anyone yet; a miss is kept
+                and matches the moment they pick that name.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[var(--mm-text-dim)]">
+                {signups === 0
+                  ? "Nothing has arrived yet."
+                  : `${signups} sign-up${signups === 1 ? "" : "s"} received for this event.`}
+              </p>
+              <form action={rotateSignupSecret}>
+                <input type="hidden" name="slug" value={quest.slug} />
+                <ConfirmButton
+                  label="Rotate secret"
+                  confirmLabel="Rotate — the old link stops working"
+                  icon="mdi:refresh"
+                  title="Rotate the webhook secret?"
+                  body="The current address stops accepting posts immediately. You'll need to paste the new one into the form."
+                  className="mm-btn mm-btn-ghost text-sm"
+                  tone="normal"
+                />
+              </form>
+            </div>
+          </div>
         </FormCard>
       )}
 

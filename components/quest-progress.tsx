@@ -2,7 +2,11 @@ import Link from "next/link";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
 import { formatDateTime } from "@/lib/format";
-import type { AdminObjective, QuestParticipant } from "@/lib/admin-quests";
+import type {
+  AdminObjective,
+  QuestParticipant,
+  UnmatchedSignup,
+} from "@/lib/admin-quests";
 
 /**
  * The floor view of a quest: who is playing, how far each of them has got,
@@ -47,6 +51,7 @@ export function QuestProgress({
   tagsHref,
   printHref,
   accent,
+  signup = null,
 }: {
   objectives: AdminObjective[];
   participants: QuestParticipant[];
@@ -54,6 +59,12 @@ export function QuestProgress({
   tagsHref: string;
   printHref: string;
   accent: string;
+  /**
+   * Present when the quest asks players to fill in an external form. Adds
+   * a sign-up mark per adventurer and a list of webhook arrivals that match
+   * nobody — the typos worth catching while they are still in the hall.
+   */
+  signup?: { label: string; unmatched: UnmatchedSignup[] } | null;
 }) {
   const listed = listedIds(objectives);
   const roster = sortRoster(participants, listed);
@@ -62,6 +73,7 @@ export function QuestProgress({
   ).length;
   const checkIns = objectives.reduce((n, o) => n + o.completions, 0);
   const field = Math.max(roster.length, 1);
+  const confirmed = roster.filter((p) => p.signup?.state === "confirmed").length;
 
   if (roster.length === 0) {
     return (
@@ -102,7 +114,47 @@ export function QuestProgress({
           value={roster.reduce((n, p) => n + p.points, 0)}
           accent={accent}
         />
+        {signup && (
+          <Glance
+            icon="mdi:clipboard-check-outline"
+            label="Sign-up confirmed"
+            value={confirmed}
+            accent={accent}
+          />
+        )}
       </div>
+
+      {signup && signup.unmatched.length > 0 && (
+        <section className="mm-glass border-[var(--mm-gold)] p-4">
+          <h3 className="flex items-center gap-2 font-medium text-[var(--mm-gold)]">
+            <Icon icon="mdi:account-question-outline" width={18} />
+            Sign-ups that match nobody
+          </h3>
+          <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
+            The form reported these names, but no player here goes by them.
+            Usually a typo on the form — worth a word with whoever it was.
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {signup.unmatched.map((u) => (
+              <li
+                key={`${u.handle}-${u.receivedAt.getTime()}`}
+                title={`Received ${formatDateTime(u.receivedAt)}${
+                  u.externalId ? ` · ref ${u.externalId}` : ""
+                }`}
+                className="rounded-full border border-[var(--mm-border)] px-2.5 py-1 text-xs"
+              >
+                {u.handle}
+                {u.externalId && (
+                  <span className="text-[var(--mm-text-dim)]">
+                    {" · "}
+                    {u.externalId}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {objectives.length > 0 && (
         <section className="mm-glass p-5">
@@ -195,6 +247,9 @@ export function QuestProgress({
                       ) : i === 0 ? (
                         <Badge color={accent}>Leading</Badge>
                       ) : null}
+                      {signup && p.signup && (
+                        <SignupMark signup={p.signup} label={signup.label} />
+                      )}
                     </div>
                     <p className="mt-0.5 text-sm text-[var(--mm-text-dim)]">
                       {listed.length > 0
@@ -253,6 +308,48 @@ export function QuestProgress({
         </ol>
       </section>
     </div>
+  );
+}
+
+/**
+ * Where one adventurer stands with the external form. Three states, and
+ * "claimed" is deliberately not green: it is their word, and the organiser
+ * handing out a prize is the one who has to decide how much that is worth.
+ */
+function SignupMark({
+  signup,
+  label,
+}: {
+  signup: NonNullable<QuestParticipant["signup"]>;
+  label: string;
+}) {
+  if (signup.state === "confirmed") {
+    return (
+      <Badge
+        color="var(--mm-live)"
+        icon="mdi:clipboard-check-outline"
+        title={signup.externalId ? `${label} · ref ${signup.externalId}` : label}
+      >
+        Signed up
+        {signup.externalId && (
+          <span className="ml-1 font-mono text-[10px] opacity-80">
+            {signup.externalId}
+          </span>
+        )}
+      </Badge>
+    );
+  }
+  if (signup.state === "claimed") {
+    return (
+      <Badge color="var(--mm-gold)" icon="mdi:clipboard-text-outline" title={`${label} · their word, not confirmed`}>
+        Says signed up
+      </Badge>
+    );
+  }
+  return (
+    <Badge icon="mdi:clipboard-off-outline" title={`${label} · nothing yet`}>
+      No sign-up
+    </Badge>
   );
 }
 

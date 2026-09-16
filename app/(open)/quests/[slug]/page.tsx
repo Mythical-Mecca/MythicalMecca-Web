@@ -5,7 +5,11 @@ import { BackLink } from "@/components/back-link";
 import { parseReturn, withReturn, type ReturnTo } from "@/lib/return-to";
 import { playerForEvent } from "@/lib/event-player";
 import { PlayerSignIn } from "@/components/player-sign-in";
-import { playerSignOut } from "@/app/(open)/player-actions";
+import {
+  playerAcknowledgeSignup,
+  playerDismissSignupReminder,
+  playerSignOut,
+} from "@/app/(open)/player-actions";
 import {
   getHunt,
   prizeStanding,
@@ -14,6 +18,7 @@ import {
   type PublicStep,
   type StepType,
 } from "@/lib/hunts";
+import type { SignupStep } from "@/lib/signup";
 import { completeStep } from "@/app/(app)/quests/actions";
 import { GeoStep } from "@/components/geo-step";
 import { PhotoStep } from "@/components/photo-step";
@@ -386,6 +391,130 @@ function PlayerStrip({
           CLEARED
         </span>
       </span>
+    </div>
+  );
+}
+
+/** The domain a link goes to, for "this opens X in a new tab". */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "another site";
+  }
+}
+
+/**
+ * The external sign-up step, before the trail.
+ *
+ * The form is the event's, not ours, and we cannot see whether it was sent —
+ * so this asks, links, and takes the player's word. The tick is the whole
+ * mechanism; the copy says plainly that the responsibility is theirs. Scans
+ * at a stand still count while this is showing: the step is a request, not a
+ * lock on the quest.
+ */
+function SignupGate({ signup, path }: { signup: SignupStep; path: string }) {
+  return (
+    <section
+      aria-labelledby="signup-gate-title"
+      className="mm-card mt-4 border-[var(--mm-gold)] p-5"
+    >
+      <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--mm-gold)]">
+        Before you start
+      </p>
+      <h2
+        id="signup-gate-title"
+        className="mt-1 font-[family-name:var(--font-display)] text-xl tracking-wide"
+      >
+        {signup.label}
+      </h2>
+      {signup.blurb && (
+        <p className="mt-1.5 text-sm text-[var(--mm-text-dim)]">{signup.blurb}</p>
+      )}
+      <a
+        href={signup.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mm-btn mm-btn-primary mt-4 w-full justify-center py-3.5 text-base"
+      >
+        <Icon icon="mdi:open-in-new" width={18} />
+        {signup.label}
+      </a>
+      <p className="mt-2 text-center text-xs text-[var(--mm-text-dim)]">
+        Opens {hostOf(signup.url)}
+        {" "}in a new tab. We can&apos;t see that form, so it&apos;s on you to
+        send it — then come back here.
+      </p>
+
+      <form action={playerAcknowledgeSignup} className="mt-4 space-y-3">
+        <input type="hidden" name="path" value={path} />
+        <label className="mm-inset flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm">
+          <input
+            type="checkbox"
+            name="done"
+            value="1"
+            required
+            className="h-5 w-5 shrink-0 accent-[var(--mm-gold)]"
+          />
+          I&apos;ve filled it in
+        </label>
+        <button className="mm-btn mm-btn-ghost w-full justify-center py-3.5 text-base">
+          Continue to the quest
+          <Icon icon="mdi:chevron-right" width={18} />
+        </button>
+      </form>
+    </section>
+  );
+}
+
+/**
+ * Shown once the trail is done, when nothing from the form's side has said
+ * this handle signed up. Either they forgot, or the form never told us —
+ * both are worth one more nudge, and neither is worth withholding the win.
+ */
+function SignupReminder({
+  signup,
+  path,
+}: {
+  signup: SignupStep;
+  path: string;
+}) {
+  return (
+    <div
+      role="status"
+      className="mm-card mt-4 border-[var(--mm-gold)] p-4 text-sm"
+    >
+      <p className="flex items-start gap-2">
+        <Icon
+          icon="mdi:clipboard-alert-outline"
+          width={18}
+          className="mt-0.5 shrink-0 text-[var(--mm-gold)]"
+        />
+        <span>
+          <span className="font-medium">One last thing.</span>
+          {" "}We haven&apos;t heard from the event&apos;s sign-up form for
+          your name yet. If you sent it, you&apos;re fine. If not, do it now —
+          it&apos;s what makes the prize draw count.
+        </span>
+      </p>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <a
+          href={signup.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mm-btn mm-btn-primary flex-1 justify-center text-sm"
+        >
+          <Icon icon="mdi:open-in-new" width={16} />
+          {signup.label}
+        </a>
+        <form action={playerDismissSignupReminder} className="flex-1">
+          <input type="hidden" name="path" value={path} />
+          <button className="mm-btn mm-btn-ghost w-full justify-center text-sm">
+            <Icon icon="mdi:check" width={16} />
+            I&apos;ve already done this
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -825,6 +954,12 @@ export default async function HuntDetailPage({
   );
   const finished = doneCount === hunt.steps.length && hunt.steps.length > 0;
 
+  // The external sign-up step. Until they tick it (or the form's side tells
+  // us they did it), the trail waits behind the card — but a scan at a stand
+  // still lands, so nobody loses a check-in to a box they hadn't found yet.
+  const signup = hunt.signup;
+  const gated = !!signup && !signup.confirmed && !signup.acknowledged;
+
   return (
     <div className="relative mx-auto max-w-3xl px-4 py-4 sm:px-6 sm:py-6">
 
@@ -870,6 +1005,17 @@ export default async function HuntDetailPage({
         total={hunt.steps.length}
       />
 
+      {signup?.confirmed && (
+        <p className="mt-3 flex items-center gap-1.5 px-1 text-xs text-[var(--mm-live)]">
+          <Icon icon="mdi:check-decagram" width={14} className="shrink-0" />
+          Signed up with the event — thanks.
+        </p>
+      )}
+
+      {gated ? (
+        <SignupGate signup={signup} path={`/quests/${hunt.slug}`} />
+      ) : (
+        <>
       {(!hunt.open || closed) && (
         <div
           role="status"
@@ -897,6 +1043,10 @@ export default async function HuntDetailPage({
           <Icon icon="game-icons:laurels-trophy" width={20} className="shrink-0" />
           Every stand visited — all {hunt.totalPoints} points banked.
         </p>
+      )}
+
+      {finished && signup && !signup.confirmed && !signup.reminderDismissed && (
+        <SignupReminder signup={signup} path={`/quests/${hunt.slug}`} />
       )}
 
       <StandsCabinet
@@ -929,6 +1079,8 @@ export default async function HuntDetailPage({
       />
 
       <PlayerQuestActions questSlug={hunt.slug} />
+        </>
+      )}
     </div>
   );
 }

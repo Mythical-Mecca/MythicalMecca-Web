@@ -27,7 +27,8 @@ import { slugify } from "@/lib/slug";
 import { logActivity } from "@/lib/logging";
 import { announceEvent } from "@/lib/discord";
 import { parseSocials, toStoredSocials } from "@/lib/socials";
-import { httpUrl } from "@/lib/url";
+import { httpUrl, safeHttpUrl } from "@/lib/url";
+import { newSignupSecret } from "@/lib/signup";
 
 async function requireAdmin() {
   const session = await auth();
@@ -941,6 +942,9 @@ export async function updateQuest(
   const allowList = parseAllowList(String(formData.get("allowList") ?? ""));
   const tiersRaw = String(formData.get("prizeTiers") ?? "");
   const tiers = parsePrizeTiers(tiersRaw);
+  const signupUrlRaw = String(formData.get("signupUrl") ?? "").trim();
+  const signupLabel = String(formData.get("signupLabel") ?? "").trim().slice(0, 60);
+  const signupBlurb = String(formData.get("signupBlurb") ?? "").trim().slice(0, 300);
   const values = {
     title: String(formData.get("title") ?? ""),
     description: String(formData.get("description") ?? ""),
@@ -948,7 +952,19 @@ export async function updateQuest(
     endsAt: String(formData.get("endsAt") ?? ""),
     allowList: String(formData.get("allowList") ?? ""),
     prizeTiers: tiersRaw,
+    signupUrl: signupUrlRaw,
+    signupLabel,
+    signupBlurb,
   };
+  // Rendered as an href on the player's page, so the scheme is checked here
+  // as well as in the form — see lib/url.ts.
+  const signupUrl = signupUrlRaw ? safeHttpUrl(signupUrlRaw) : null;
+  if (signupUrlRaw && !signupUrl) {
+    return {
+      fieldErrors: { signupUrl: "Needs to be a full http(s) link to the form." },
+      values,
+    };
+  }
   if ("bad" in tiers) {
     return {
       fieldErrors: {
@@ -987,6 +1003,18 @@ export async function updateQuest(
 
   if (process.env.DATABASE_URL) {
     try {
+      // The webhook credential is minted the first time a form is attached,
+      // so the settings page can show the URL straight after this save. It
+      // is never cleared here — a form switched off and on again should
+      // still post to the address it was given. Rotate it deliberately.
+      const [current] = await db
+        .select({ secret: scavengerHunts.signupWebhookSecret })
+        .from(scavengerHunts)
+        .where(eq(scavengerHunts.slug, slug))
+        .limit(1);
+      const signupWebhookSecret =
+        current?.secret ?? (signupUrl ? newSignupSecret() : null);
+
       await db
         .update(scavengerHunts)
         .set({
@@ -999,6 +1027,10 @@ export async function updateQuest(
           // the list instead of asking for it again.
           allowList,
           prizeTiers: tiers.tiers,
+          signupUrl,
+          signupLabel: signupLabel || null,
+          signupBlurb: signupBlurb || null,
+          signupWebhookSecret,
           startsAt: opens,
           endsAt: closes,
           updatedAt: new Date(),
@@ -1500,6 +1532,34 @@ export async function moveObjective(formData: FormData) {
   });
   revalidatePath(`/admin/quests/${questSlug}`);
   redirect(questEditorPath(questSlug, { tab: "trail", saved: "1" }));
+}
+
+/**
+ * Issue a fresh webhook secret for the external sign-up form. The old URL
+ * stops working the moment this saves, so the form has to be re-pointed —
+ * which is the point, when the old one has leaked.
+ */
+export async function rotateSignupSecret(formData: FormData) {
+  const session = await requireAdmin();
+  const slug = String(formData.get("slug"));
+  if (process.env.DATABASE_URL) {
+    try {
+      await db
+        .update(scavengerHunts)
+        .set({ signupWebhookSecret: newSignupSecret(), updatedAt: new Date() })
+        .where(eq(scavengerHunts.slug, slug));
+    } catch {
+      redirect(questEditorPath(slug, { tab: "settings", error: "1" }));
+    }
+  }
+  await logActivity({
+    actorId: session.user.id,
+    action: "quest.signup_secret.rotate",
+    entityType: "quest",
+    entityId: slug,
+  });
+  revalidatePath(`/admin/quests/${slug}`);
+  redirect(questEditorPath(slug, { tab: "settings", saved: "1" }));
 }
 
 /** Issue a fresh station key — for a lost device or a stand changing hands. */

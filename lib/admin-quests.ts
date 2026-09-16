@@ -8,11 +8,13 @@ import {
   huntClaimAttempts,
   events,
   eventPlayers,
+  playerSignups,
   partners,
   users,
 } from "@/lib/db/schema";
-import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { tagUrl, MissingSigningSecretError } from "@/lib/qr";
+import { signupWebhookUrl } from "@/lib/signup";
 import type {
   ClaimMode,
   ClaimOutcome,
@@ -83,6 +85,15 @@ export interface AdminQuestDetail extends AdminQuestRow {
    * rather than making the admin remember which applies.
    */
   eventNoDataMode: boolean;
+  /** See scavengerHunts.signupUrl. */
+  signupUrl: string | null;
+  signupLabel: string | null;
+  signupBlurb: string | null;
+  /**
+   * Where the external form should POST. Null until a sign-up URL has been
+   * saved once, which is when the secret is minted.
+   */
+  signupWebhookUrl: string | null;
 }
 
 export async function listQuestsAdmin(): Promise<AdminQuestRow[]> {
@@ -199,6 +210,12 @@ export async function getQuestAdmin(
       allowList: row.h.allowList ?? [],
       prizeTiers: row.h.prizeTiers ?? [],
       eventNoDataMode: row.eventNoDataMode,
+      signupUrl: row.h.signupUrl,
+      signupLabel: row.h.signupLabel,
+      signupBlurb: row.h.signupBlurb,
+      signupWebhookUrl: row.h.signupWebhookSecret
+        ? signupWebhookUrl(row.h.signupWebhookSecret)
+        : null,
       objectives: objectiveList.length,
       players: Number(players[0]?.n ?? 0),
       objectiveList,
@@ -222,12 +239,23 @@ export interface ClaimAttemptRow {
   createdAt: Date;
 }
 
+/**
+ * Where a player stands with the external sign-up form.
+ *
+ * - `confirmed`: the form's webhook named this handle.
+ * - `claimed`: they ticked "I've done this" and nothing has confirmed it.
+ * - `none`: neither.
+ */
+export type SignupState = "confirmed" | "claimed" | "none";
+
 export interface QuestParticipant {
   id: string;
   name: string;
   completedStepIds: string[];
   points: number;
   lastAt: Date;
+  /** Null for a member — the sign-up step only exists for event players. */
+  signup: { state: SignupState; externalId: string | null } | null;
 }
 
 /**
@@ -250,6 +278,9 @@ export async function questRoster(
         playerId: huntProgress.playerId,
         userName: users.name,
         handle: eventPlayers.handle,
+        acknowledgedAt: eventPlayers.signupAcknowledgedAt,
+        confirmedAt: playerSignups.receivedAt,
+        externalId: playerSignups.externalId,
         stepId: huntProgress.stepId,
         points: huntProgress.pointsAwarded,
         completedAt: huntProgress.completedAt,
@@ -257,6 +288,14 @@ export async function questRoster(
       .from(huntProgress)
       .leftJoin(users, eq(users.id, huntProgress.userId))
       .leftJoin(eventPlayers, eq(eventPlayers.id, huntProgress.playerId))
+      // Sign-ups are matched by handle at read time — see playerSignups.
+      .leftJoin(
+        playerSignups,
+        and(
+          eq(playerSignups.eventId, eventPlayers.eventId),
+          sql`lower(${playerSignups.handle}) = lower(${eventPlayers.handle})`
+        )
+      )
       .where(eq(huntProgress.huntId, huntId))
       .orderBy(asc(huntProgress.completedAt));
 
@@ -272,6 +311,16 @@ export async function questRoster(
           completedStepIds: [r.stepId],
           points: r.points,
           lastAt: r.completedAt,
+          signup: r.playerId
+            ? {
+                state: r.confirmedAt
+                  ? "confirmed"
+                  : r.acknowledgedAt
+                    ? "claimed"
+                    : "none",
+                externalId: r.externalId,
+              }
+            : null,
         });
         continue;
       }
@@ -282,6 +331,61 @@ export async function questRoster(
     return [...byId.values()];
   } catch {
     return [];
+  }
+}
+
+export interface UnmatchedSignup {
+  handle: string;
+  externalId: string | null;
+  receivedAt: Date;
+}
+
+/**
+ * Sign-ups the form reported for handles nobody at the event has taken.
+ *
+ * Usually a typo on the form — "Grognak" typed as "Grognack" — and the one
+ * case the matching can't fix on its own. Listed so the organiser can spot
+ * it while the player is still in the hall.
+ */
+export async function unmatchedSignups(
+  eventId: string
+): Promise<UnmatchedSignup[]> {
+  if (!useDb) return [];
+  try {
+    const rows = await db
+      .select({
+        handle: playerSignups.handle,
+        externalId: playerSignups.externalId,
+        receivedAt: playerSignups.receivedAt,
+      })
+      .from(playerSignups)
+      .leftJoin(
+        eventPlayers,
+        and(
+          eq(eventPlayers.eventId, playerSignups.eventId),
+          sql`lower(${eventPlayers.handle}) = lower(${playerSignups.handle})`
+        )
+      )
+      .where(and(eq(playerSignups.eventId, eventId), isNull(eventPlayers.id)))
+      .orderBy(desc(playerSignups.receivedAt))
+      .limit(50);
+    return rows;
+  } catch {
+    return [];
+  }
+}
+
+/** How many webhook sign-ups have landed for this event, matched or not. */
+export async function signupCount(eventId: string): Promise<number> {
+  if (!useDb) return 0;
+  try {
+    const [row] = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(playerSignups)
+      .where(eq(playerSignups.eventId, eventId));
+    return Number(row?.n ?? 0);
+  } catch {
+    return 0;
   }
 }
 
