@@ -186,20 +186,45 @@ export interface AdminPartner {
   status: PartnerStatus;
   reviewNote: string | null;
   memberCount: number;
+  offeringCount: number;
+  galleryCount: number;
   socialsRaw: string | null;
+  /** Display-ready — see toMediaSrc. */
+  logoUrl: string | null;
+  bannerUrl: string | null;
+  shopUrl: string | null;
+  /** ISO, for the table's datetime cells. */
+  submittedAt: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
-/** Correlated count — cheaper than a group-by for a list this size. */
+/** Correlated counts — cheaper than a group-by for a list this size. */
 const memberCountSql = sql<number>`(
   select count(*)::int from ${partnerMembers}
   where ${partnerMembers.partnerId} = ${partners.id}
 )`;
+const offeringCountSql = sql<number>`(
+  select count(*)::int from ${partnerOfferings}
+  where ${partnerOfferings.partnerId} = ${partners.id}
+)`;
+const galleryCountSql = sql<number>`(
+  select count(*)::int from ${partnerGalleryItems}
+  where ${partnerGalleryItems.partnerId} = ${partners.id}
+)`;
+
+const adminSelect = {
+  p: partners,
+  c: partnerCategories,
+  members: memberCountSql,
+  offerings: offeringCountSql,
+  gallery: galleryCountSql,
+};
 
 function toAdminPartner(
   p: typeof partners.$inferSelect,
   categoryName: string | null,
-  memberCount: number
+  counts: { members: number; offerings: number; gallery: number }
 ): AdminPartner {
   const links = parseSocials(p.socials);
   return {
@@ -214,10 +239,17 @@ function toAdminPartner(
     categoryName,
     status: p.status,
     reviewNote: p.reviewNote,
-    memberCount,
+    memberCount: counts.members,
+    offeringCount: counts.offerings,
+    galleryCount: counts.gallery,
     // Tolerant of every stored shape, so editing never silently drops links.
     socialsRaw: links.length ? links.map((l) => l.url).join("\n") : null,
-    createdAt: p.createdAt.toISOString().slice(0, 10),
+    logoUrl: toMediaSrc(p.logoUrl),
+    bannerUrl: toMediaSrc(p.bannerUrl),
+    shopUrl: p.shopUrl,
+    submittedAt: p.submittedAt ? p.submittedAt.toISOString() : null,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
   };
 }
 
@@ -226,12 +258,12 @@ export async function listPartners(): Promise<AdminPartner[]> {
   if (!useDb) return [];
   try {
     const rows = await db
-      .select({ p: partners, c: partnerCategories, members: memberCountSql })
+      .select(adminSelect)
       .from(partners)
       .leftJoin(partnerCategories, eq(partners.categoryId, partnerCategories.id))
       .orderBy(desc(partners.isPremium), asc(partners.businessName));
-    return rows.map(({ p, c, members }) =>
-      toAdminPartner(p, c?.name ?? null, members)
+    return rows.map(({ p, c, ...counts }) =>
+      toAdminPartner(p, c?.name ?? null, counts)
     );
   } catch {
     return [];
@@ -246,13 +278,13 @@ export async function listPartnersForReview(): Promise<AdminPartner[]> {
   if (!useDb) return [];
   try {
     const rows = await db
-      .select({ p: partners, c: partnerCategories, members: memberCountSql })
+      .select(adminSelect)
       .from(partners)
       .leftJoin(partnerCategories, eq(partners.categoryId, partnerCategories.id))
       .where(eq(partners.status, "pending"))
       .orderBy(asc(partners.submittedAt));
-    return rows.map(({ p, c, members }) =>
-      toAdminPartner(p, c?.name ?? null, members)
+    return rows.map(({ p, c, ...counts }) =>
+      toAdminPartner(p, c?.name ?? null, counts)
     );
   } catch {
     return [];
@@ -263,13 +295,14 @@ export async function getPartnerById(id: string): Promise<AdminPartner | null> {
   if (!useDb) return null;
   try {
     const [row] = await db
-      .select({ p: partners, c: partnerCategories, members: memberCountSql })
+      .select(adminSelect)
       .from(partners)
       .leftJoin(partnerCategories, eq(partners.categoryId, partnerCategories.id))
       .where(eq(partners.id, id))
       .limit(1);
     if (!row) return null;
-    return toAdminPartner(row.p, row.c?.name ?? null, row.members);
+    const { p, c, ...counts } = row;
+    return toAdminPartner(p, c?.name ?? null, counts);
   } catch {
     return null;
   }

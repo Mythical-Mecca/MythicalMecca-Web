@@ -1,6 +1,8 @@
 import { PageHeading } from "@/components/page-heading";
 import { listCategories, type PartnerCategory } from "@/lib/categories";
-import { createCategory, updateCategory } from "../../../actions";
+import { createCategory, deleteCategory, updateCategory } from "../../../actions";
+import { ConfirmButton } from "@/components/confirm-button";
+import { listPartners } from "@/lib/partner";
 import { TextField, TextareaField, CheckboxField, FormCard, FormSection } from "@/components/form";
 import { PartnerTabs } from "@/components/partner-tabs";
 import { Icon } from "@/components/icon";
@@ -108,10 +110,17 @@ function CategoryFields({ category }: { category?: PartnerCategory }) {
 export default async function AdminCategoriesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; error?: string }>;
+  searchParams: Promise<{ saved?: string; error?: string; deleted?: string }>;
 }) {
   const categories = await listCategories();
-  const { saved, error } = await searchParams;
+  const { saved, error, deleted } = await searchParams;
+  // How many stalls sit in each category — shown on the card, and what
+  // decides whether the delete button is offered at all.
+  const partners = await listPartners();
+  const inUse = new Map<string, number>();
+  for (const p of partners) {
+    if (p.categoryId) inUse.set(p.categoryId, (inUse.get(p.categoryId) ?? 0) + 1);
+  }
 
   return (
     <div className="max-w-3xl space-y-8">
@@ -126,7 +135,14 @@ export default async function AdminCategoriesPage({
       <PartnerTabs active="/admin/partners/categories" />
 
       {saved && <Flash>Category saved.</Flash>}
-      {error && <Flash tone="error">Could not save — check inputs.</Flash>}
+      {deleted && <Flash>Category deleted.</Flash>}
+      {error === "inuse" ? (
+        <Flash tone="error">
+          That category still has partners in it — move them first, then delete it.
+        </Flash>
+      ) : error ? (
+        <Flash tone="error">Could not save — check inputs.</Flash>
+      ) : null}
 
       <FormCard title="New category" icon="mdi:plus" accent={ACCENT}>
         <form action={createCategory} className="space-y-5">
@@ -162,6 +178,26 @@ export default async function AdminCategoriesPage({
                   <Icon icon="mdi:content-save" width={16} /> Save category
                 </button>
               </form>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--mm-divider)] pt-4 text-sm text-[var(--mm-text-dim)]">
+                <span>
+                  {(inUse.get(c.id) ?? 0) === 0
+                    ? "No partners in this category."
+                    : `${inUse.get(c.id)} ${inUse.get(c.id) === 1 ? "partner" : "partners"} in this category.`}
+                </span>
+                {(inUse.get(c.id) ?? 0) === 0 && (
+                  <form action={deleteCategory}>
+                    <input type="hidden" name="id" value={c.id} />
+                    <ConfirmButton
+                      label="Delete category"
+                      confirmLabel="Delete it"
+                      icon="mdi:trash-can-outline"
+                      title={`Delete "${c.name}"?`}
+                      body="It's empty, so nothing else is affected. There is no undo."
+                      className="mm-btn mm-btn-ghost text-xs text-[var(--mm-danger)]"
+                    />
+                  </form>
+                )}
+              </div>
             </FormCard>
           ))
         )}

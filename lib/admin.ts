@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import {
   events,
   partners,
+  partnerCategories,
   partnerApplications,
   activityLog,
   errorLog,
@@ -55,7 +56,14 @@ export interface AdminApplication {
   socials: Record<string, string>;
   status: string;
   userId: string;
+  /** Who applied — the account the stall would be handed to. */
+  applicantName: string | null;
+  applicantEmail: string | null;
+  categoryName: string | null;
+  reviewerName: string | null;
+  reviewNote: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 export interface LogRow {
   id: string;
@@ -300,12 +308,26 @@ export async function listGallery(): Promise<AdminGalleryItem[]> {
 export async function listApplications(): Promise<AdminApplication[]> {
   if (!useDb) return [];
   try {
+    const applicant = alias(users, "applicant");
+    const reviewer = alias(users, "reviewer");
     const rows = await db
-      .select()
+      .select({
+        a: partnerApplications,
+        applicantName: applicant.name,
+        applicantEmail: applicant.email,
+        reviewerName: reviewer.name,
+        categoryName: partnerCategories.name,
+      })
       .from(partnerApplications)
+      .leftJoin(applicant, eq(partnerApplications.userId, applicant.id))
+      .leftJoin(reviewer, eq(partnerApplications.reviewedBy, reviewer.id))
+      .leftJoin(
+        partnerCategories,
+        eq(partnerApplications.categoryId, partnerCategories.id)
+      )
       .where(ne(partnerApplications.status, "draft"))
       .orderBy(desc(partnerApplications.createdAt));
-    return rows.map((r) => ({
+    return rows.map(({ a: r, ...j }) => ({
       id: r.id,
       businessName: r.businessName,
       pitch: r.pitch,
@@ -313,7 +335,13 @@ export async function listApplications(): Promise<AdminApplication[]> {
       socials: (r.socials as Record<string, string> | null) ?? {},
       status: r.status,
       userId: r.userId,
+      applicantName: j.applicantName,
+      applicantEmail: j.applicantEmail,
+      categoryName: j.categoryName,
+      reviewerName: j.reviewerName,
+      reviewNote: r.reviewNote,
       createdAt: r.createdAt.toISOString().slice(0, 10),
+      updatedAt: r.updatedAt.toISOString().slice(0, 10),
     }));
   } catch {
     return [];

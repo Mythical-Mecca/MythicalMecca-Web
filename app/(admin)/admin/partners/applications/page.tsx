@@ -38,7 +38,11 @@ export default async function AdminApplicationsPage({
       <PartnerTabs active="/admin/partners/applications" />
 
       {done && <Flash>Verdict recorded.</Flash>}
-      {error && <Flash tone="error">Action failed.</Flash>}
+      {error === "note" ? (
+        <Flash tone="error">Say why before turning one down — the note is what they see.</Flash>
+      ) : error ? (
+        <Flash tone="error">Action failed.</Flash>
+      ) : null}
 
       <section>
         <h2 className="mb-4 flex items-center gap-2 font-[family-name:var(--font-display)] text-lg">
@@ -57,6 +61,11 @@ export default async function AdminApplicationsPage({
                   </h3>
                   <span className="text-xs text-[var(--mm-text-dim)]">{a.createdAt}</span>
                 </div>
+                <p className="mt-1 text-xs text-[var(--mm-text-dim)]">
+                  {a.applicantName ?? "Unknown adventurer"}
+                  {a.applicantEmail ? ` · ${a.applicantEmail}` : ""}
+                  {a.categoryName ? ` · ${a.categoryName}` : " · no category"}
+                </p>
                 <p className="mt-2 text-sm text-[var(--mm-text-dim)]">{a.pitch}</p>
                 {a.images.length > 0 && (
                   <div className="mt-3 grid grid-cols-4 gap-2">
@@ -113,9 +122,18 @@ export default async function AdminApplicationsPage({
                       <Icon icon="mdi:check" width={15} /> Approve
                     </button>
                   </form>
-                  <form action={rejectApplication}>
+                  {/* The note is the applicant's only feedback — it shows on
+                      their apply page — so the reject form asks for one. */}
+                  <form action={rejectApplication} className="flex flex-1 gap-2">
                     <input type="hidden" name="id" value={a.id} />
-                    <button className="mm-btn mm-btn-ghost text-xs">
+                    <input
+                      name="note"
+                      required
+                      aria-label="Why it was turned down"
+                      placeholder="Why (shown to them)"
+                      className={`${inputCls} py-1.5 text-xs`}
+                    />
+                    <button className="mm-btn mm-btn-ghost shrink-0 text-xs">
                       <Icon icon="mdi:close" width={15} /> Reject
                     </button>
                   </form>
@@ -133,17 +151,27 @@ export default async function AdminApplicationsPage({
           </h2>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {decided.map((a) => (
-              <div
-                key={a.id}
-                className="mm-glass flex items-center justify-between p-3 text-sm"
-              >
-                <span className="truncate">{a.businessName}</span>
-                <span
-                  className="shrink-0 text-xs uppercase tracking-widest"
-                  style={{ color: STATUS_COLOR[a.status] }}
-                >
-                  {a.status}
-                </span>
+              <div key={a.id} className="mm-glass p-3 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate">{a.businessName}</span>
+                  <span
+                    className="shrink-0 text-xs uppercase tracking-widest"
+                    style={{ color: STATUS_COLOR[a.status] }}
+                  >
+                    {a.status}
+                  </span>
+                </div>
+                <p className="mt-1 truncate text-xs text-[var(--mm-text-dim)]">
+                  {a.applicantName ?? a.applicantEmail ?? "Unknown adventurer"}
+                  {" · "}
+                  {a.reviewerName ? `by ${a.reviewerName} ` : ""}
+                  {a.updatedAt}
+                </p>
+                {a.reviewNote && (
+                  <p className="mt-1 text-xs italic text-[var(--mm-text-dim)]">
+                    &ldquo;{a.reviewNote}&rdquo;
+                  </p>
+                )}
               </div>
             ))}
           </div>

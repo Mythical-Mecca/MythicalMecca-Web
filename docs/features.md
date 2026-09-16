@@ -154,6 +154,45 @@ Score submission goes through a server action that validates and writes `game_sc
 
 - **Profile (mech loadout)** — avatar (file pipeline), display name, division/squadron,
   rank + sync gauge, badge wall, recent activity.
-- **Vendor application** — multi-field form (business name, pitch, socials, sample media),
-  submits a `vendor_applications` row; **pending tracking** shows status + review note;
-  on approval the user's role flips to `vendor` and a `vendors` row is created.
+- **Partner application** — see Partners below.
+
+## Partners
+
+A partner is a vendor or stallholder with a public page (`/partners/[slug]`). The
+schema calls them `partners`; the UI says "stall" to the people running one.
+
+**Lifecycle.** `partners.status` (draft → pending → approved / rejected) is the review;
+`partners.active` is the separate listing switch. Public needs **both** approved and
+active. There are two ways in:
+
+- **Application** (`/apply`) — first-time applicants pitch a stall in a category that
+  requires one. An admin approves or rejects at `/admin/partners/applications`; a
+  rejection requires a note, which the applicant sees. Approval creates the partner
+  (approved, listed), makes the applicant its owner, flips their role to `partner` and
+  copies the sample images into the gallery.
+- **Self-serve stall** — an existing partner opens another in the hub (`/partner-hub/new`),
+  builds it as a draft and submits it; it lands in `/admin/partners/queue` for
+  "Approve & publish" or "Request changes" with a note.
+
+**Admin management** (`/admin/partners`):
+
+- The list is an editable table: name, status, listed, category, premium, tagline, slug,
+  shop link, bio and review note are all edited in place; bulk approve / list / unlist;
+  search and per-column filters. Each row opens the public page (or a preview when it is
+  not public), the manage page, or the hub view.
+- `/admin/partners/new` adds a partner by hand — created approved and listed. An owner
+  email is optional: an existing account is made owner on the spot, anyone else gets an
+  owner invitation whose link is shown for hand-delivery.
+- `/admin/partners/[id]` is tabbed: **Details** (every column, logo and banner with
+  remove, status with review note, listed and premium), **Gallery** (add up to 12, kind,
+  caption, reorder, remove), **Products** (add, edit in place, hide, reorder, remove),
+  **Team** (add by email or link, roles, remove, revoke invitations) and **Advanced**
+  (delete — members, invites, products and gallery cascade; events and quest stands keep
+  going with the partner link cleared).
+- Categories (`/admin/partners/categories`) carry the display toggles that shape a
+  partner's page. A category can be deleted only once no partner is in it.
+
+**Partner hub** (`/partner-hub`) is the self-service side: profile, gallery, products and
+team, scoped by `partner_members` (owner | manager). Admins are treated as a synthetic
+owner of every stall there, which is what the "Partner Hub" button on the admin page
+opens.

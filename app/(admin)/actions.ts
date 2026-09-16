@@ -234,7 +234,10 @@ export async function approveApplication(formData: FormData) {
 export async function rejectApplication(formData: FormData) {
   const session = await requireAdmin();
   const id = String(formData.get("id"));
-  const note = String(formData.get("note") ?? "");
+  const note = String(formData.get("note") ?? "").trim().slice(0, 500);
+  // A rejection with no reason is a door closing in silence. The form
+  // requires it; this is the backstop for a submit that skipped the field.
+  if (!note) redirect("/admin/partners/applications?error=note");
 
   if (process.env.DATABASE_URL) {
     try {
@@ -477,68 +480,48 @@ export async function updateCategory(formData: FormData) {
   redirect("/admin/partners/categories?saved=1");
 }
 
+/**
+ * Delete a category. Refused while any partner is still in it: the FK would
+ * quietly set those partners to "no category", and a stall that stops
+ * showing its products because its category vanished is a bug report with
+ * no obvious cause. Move them first.
+ */
+export async function deleteCategory(formData: FormData) {
+  const session = await requireAdmin();
+  const id = String(formData.get("id"));
+  if (!z.uuid().safeParse(id).success) redirect("/admin/partners/categories");
+  if (process.env.DATABASE_URL) {
+    let inUse = 0;
+    try {
+      const [row] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(partners)
+        .where(eq(partners.categoryId, id));
+      inUse = row?.n ?? 0;
+      if (inUse === 0) {
+        await db.delete(partnerCategories).where(eq(partnerCategories.id, id));
+      }
+    } catch {
+      redirect("/admin/partners/categories?error=1");
+    }
+    // Outside the try: redirect() signals by throwing, and the catch above
+    // would turn it into a generic failure.
+    if (inUse > 0) redirect("/admin/partners/categories?error=inuse");
+  }
+  await logActivity({
+    actorId: session.user.id,
+    action: "partner_category.delete",
+    entityId: id,
+  });
+  revalidatePath("/admin/partners/categories");
+  revalidatePath("/partners");
+  revalidatePath("/");
+  redirect("/admin/partners/categories?deleted=1");
+}
+
 // ---------------------------------------------------------------------------
 // Partners
 // ---------------------------------------------------------------------------
-const partnerSchema = z.object({
-  businessName: z.string().min(2).max(160),
-  categoryId: z.string().uuid().optional(),
-  tagline: z.string().max(200).optional(),
-  bio: z.string().max(2000).optional(),
-  socials: z.string().max(2000).optional(),
-});
-
-export async function createPartner(formData: FormData) {
-  const session = await requireAdmin();
-  const parsed = partnerSchema.safeParse({
-    businessName: formData.get("businessName"),
-    categoryId: formData.get("categoryId") || undefined,
-    tagline: formData.get("tagline") || undefined,
-    bio: formData.get("bio") || undefined,
-    socials: formData.get("socials") || undefined,
-  });
-  if (!parsed.success) redirect("/admin/partners/new?error=1");
-
-  if (process.env.DATABASE_URL) {
-    try {
-      await db.insert(partners).values({
-        slug: `${slugify(parsed.data.businessName)}-${Date.now().toString(36)}`,
-        businessName: parsed.data.businessName,
-        categoryId: parsed.data.categoryId ?? null,
-        tagline: parsed.data.tagline,
-        bio: parsed.data.bio,
-        isPremium: bool(formData, "isPremium"),
-        active: true,
-        // An admin creating a partner IS the review — the column default is
-        // `draft`, which would otherwise hide it from the public site.
-        status: "approved",
-        reviewedBy: session.user.id,
-        socials: toStoredSocials(parseSocials({ raw: parsed.data.socials })),
-      });
-    } catch {
-      redirect("/admin/partners/new?error=1");
-    }
-  }
-  await logActivity({ actorId: session.user.id, action: "partner.create" });
-  revalidatePath("/admin/partners");
-  revalidatePath("/partners");
-  redirect("/admin/partners?saved=1");
-}
-
-/**
- * Every surface a partner appears on. The homepage and the detail page were
- * previously missed, so both went stale after an admin edit.
- */
-function revalidatePartnerPaths(id: string, slug: string | null) {
-  revalidatePath("/");
-  revalidatePath("/partners");
-  if (slug) revalidatePath(`/partners/${slug}`);
-  revalidatePath("/admin/partners");
-  revalidatePath(`/admin/partners/${id}`);
-  revalidatePath("/partner-hub");
-  revalidatePath(`/partner-hub/${id}`);
-}
-
 /**
  * Approve a self-serve stall. Once live, later edits publish immediately —
  * `active` remains the kill switch if a partner goes off the rails.
@@ -614,103 +597,6 @@ export async function rejectPartner(formData: FormData) {
   revalidatePath("/partner-hub");
   revalidatePath(`/partner-hub/${id}`);
   redirect("/admin/partners/queue?done=1");
-}
-
-export async function updatePartner(formData: FormData) {
-  const session = await requireAdmin();
-  const id = String(formData.get("id"));
-  const parsed = partnerSchema.safeParse({
-    businessName: formData.get("businessName"),
-    categoryId: formData.get("categoryId") || undefined,
-    tagline: formData.get("tagline") || undefined,
-    bio: formData.get("bio") || undefined,
-    socials: formData.get("socials") || undefined,
-  });
-  if (!parsed.success) redirect(`/admin/partners/${id}?error=1`);
-
-  let updatedSlug: string | null = null;
-  if (process.env.DATABASE_URL) {
-    try {
-      const [row] = await db
-        .update(partners)
-        .set({
-          businessName: parsed.data.businessName,
-          categoryId: parsed.data.categoryId ?? null,
-          tagline: parsed.data.tagline ?? null,
-          bio: parsed.data.bio ?? null,
-          isPremium: bool(formData, "isPremium"),
-          active: bool(formData, "active"),
-          socials: toStoredSocials(parseSocials({ raw: parsed.data.socials })),
-          updatedAt: new Date(),
-        })
-        .where(eq(partners.id, id))
-        .returning({ slug: partners.slug });
-      updatedSlug = row?.slug ?? null;
-    } catch {
-      redirect(`/admin/partners/${id}?error=1`);
-    }
-  }
-  await logActivity({
-    actorId: session.user.id,
-    action: "partner.update",
-    entityId: id,
-  });
-  revalidatePartnerPaths(id, updatedSlug);
-  redirect("/admin/partners?saved=1");
-}
-
-export async function setPartnerPremium(formData: FormData) {
-  const session = await requireAdmin();
-  const id = String(formData.get("id"));
-  const premium = String(formData.get("premium")) === "1";
-  let slug: string | null = null;
-  if (process.env.DATABASE_URL) {
-    try {
-      const [row] = await db
-        .update(partners)
-        .set({ isPremium: premium, updatedAt: new Date() })
-        .where(eq(partners.id, id))
-        .returning({ slug: partners.slug });
-      slug = row?.slug ?? null;
-    } catch {
-      redirect("/admin/partners?error=1");
-    }
-  }
-  await logActivity({
-    actorId: session.user.id,
-    action: "partner.premium",
-    entityId: id,
-    metadata: { premium },
-  });
-  revalidatePartnerPaths(id, slug);
-  redirect("/admin/partners?saved=1");
-}
-
-export async function setPartnerActive(formData: FormData) {
-  const session = await requireAdmin();
-  const id = String(formData.get("id"));
-  const active = String(formData.get("active")) === "1";
-  let slug: string | null = null;
-  if (process.env.DATABASE_URL) {
-    try {
-      const [row] = await db
-        .update(partners)
-        .set({ active, updatedAt: new Date() })
-        .where(eq(partners.id, id))
-        .returning({ slug: partners.slug });
-      slug = row?.slug ?? null;
-    } catch {
-      redirect("/admin/partners?error=1");
-    }
-  }
-  await logActivity({
-    actorId: session.user.id,
-    action: "partner.active",
-    entityId: id,
-    metadata: { active },
-  });
-  revalidatePartnerPaths(id, slug);
-  redirect("/admin/partners?saved=1");
 }
 
 // ---------------------------------------------------------------------------
