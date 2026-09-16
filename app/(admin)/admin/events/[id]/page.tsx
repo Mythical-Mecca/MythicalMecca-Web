@@ -15,7 +15,9 @@ import {
   setEventCommentDeleted,
   setEventChatDeleted,
   deleteEventReview,
+  rotateSignupSecret,
 } from "@/app/(admin)/actions-events";
+import { CopyLink } from "@/components/copy-link";
 import { FormCard, TextField, TextareaField, inputCls } from "@/components/form";
 import { PickerField } from "@/components/picker-field";
 import { LocationField } from "@/components/location-field";
@@ -414,6 +416,68 @@ export default async function AdminEventPage({
                 />
               </div>
 
+              {/* The external sign-up step. Only makes sense where we hold no
+                  personal data ourselves and the event's partner needs a real
+                  registration on their own form. Shown whatever the mode is
+                  set to, because the mode is picked further down this same
+                  form — hiding this on the current value would make the two
+                  fields fight over one save. */}
+              <div className="space-y-4 rounded-xl border border-[var(--mm-divider)] p-4">
+                <div>
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    <Icon
+                      icon="mdi:clipboard-text-outline"
+                      width={16}
+                      className="text-[var(--mm-gold)]"
+                    />
+                    External sign-up form
+                    <span className="text-xs font-normal text-[var(--mm-text-dim)]">
+                      no-data events
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--mm-text-dim)]">
+                    Ask players to register on the event&apos;s own form before
+                    any quest here opens. They tick that they&apos;ve done it;
+                    we can&apos;t check. If the form can call a webhook, the
+                    tick is confirmed automatically — the address appears below
+                    once a link is saved. Leave the link empty to switch the
+                    step off.
+                  </p>
+                </div>
+                <TextField
+                  name="signupUrl"
+                  label="Form link"
+                  hint="optional"
+                  icon="mdi:link-variant"
+                  type="url"
+                  inputMode="url"
+                  defaultValue={event.signupUrl ?? ""}
+                  placeholder="https://forms.example.com/comic-con-2026"
+                />
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <TextField
+                    name="signupLabel"
+                    label="Button label"
+                    hint="optional"
+                    icon="mdi:format-title"
+                    maxLength={60}
+                    defaultValue={event.signupLabel ?? ""}
+                    placeholder="Sign up on CCA"
+                    description="Empty means “Sign up with the event”."
+                  />
+                  <TextField
+                    name="signupBlurb"
+                    label="Why"
+                    hint="optional"
+                    icon="mdi:text"
+                    maxLength={300}
+                    defaultValue={event.signupBlurb ?? ""}
+                    placeholder="They need your details for the prize draw — we keep none of it."
+                    description="One line above the button, in the organiser's words."
+                  />
+                </div>
+              </div>
+
               <div className="grid gap-5 sm:grid-cols-2">
                 <LocalDateTimeField
                   name="startsAt"
@@ -475,6 +539,71 @@ export default async function AdminEventPage({
               </button>
             </form>
           </FormCard>
+
+          {event.signupWebhookUrl && (
+            /* The other half of the external sign-up step. Its own card
+               because rotating the secret is its own action, and a form
+               can't sit inside a form. */
+            <FormCard title="Sign-up webhook" icon="mdi:webhook" accent={ACCENT}>
+              <div className="space-y-4 text-sm">
+                <p className="text-[var(--mm-text-dim)]">
+                  Point the form at this address and the tick on a player&apos;s
+                  quest page becomes a confirmation. Anyone holding the link
+                  can post to it, so treat it like a password — and rotate it
+                  if it gets out.
+                  {!event.signupUrl && (
+                    <>
+                      {" "}
+                      The step is off right now (no form link), but posts here
+                      are still kept.
+                    </>
+                  )}
+                </p>
+                <CopyLink url={event.signupWebhookUrl} />
+                <div className="rounded-xl border border-[var(--mm-divider)] p-4">
+                  <p className="text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
+                    What to send
+                  </p>
+                  <p className="mt-1 text-[var(--mm-text-dim)]">
+                    One <code className="font-mono text-xs">POST</code>
+                    {" "}per submission, as JSON or a form post. The
+                    player&apos;s username is the only field that matters; a
+                    reference from the form is kept alongside it if you send
+                    one. Nothing else in the body is stored.
+                  </p>
+                  <pre className="mm-inset mt-3 overflow-x-auto rounded-xl px-4 py-3 font-mono text-xs leading-relaxed">
+{`{ "handle": "Sheldor the Conqueror", "externalId": "CCA-1234" }`}
+                  </pre>
+                  <p className="mt-2 text-xs text-[var(--mm-text-dim)]">
+                    Matched to the name a player picked here, ignoring
+                    capitals. The reply says whether it matched anyone yet; a
+                    miss is kept and matches the moment they pick that name.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-[var(--mm-text-dim)]">
+                    {event.signupsReceived === 0
+                      ? "Nothing has arrived yet."
+                      : `${event.signupsReceived} sign-up${
+                          event.signupsReceived === 1 ? "" : "s"
+                        } received.`}
+                  </p>
+                  <form action={rotateSignupSecret}>
+                    <input type="hidden" name="id" value={event.id} />
+                    <ConfirmButton
+                      label="Rotate secret"
+                      confirmLabel="Rotate — the old link stops working"
+                      icon="mdi:refresh"
+                      title="Rotate the webhook secret?"
+                      body="The current address stops accepting posts immediately. You'll need to paste the new one into the form."
+                      className="mm-btn mm-btn-ghost text-sm"
+                      tone="normal"
+                    />
+                  </form>
+                </div>
+              </div>
+            </FormCard>
+          )}
 
           {/* Moderation is only meaningful for a submission, so it only
               appears for one — the rest of the time it's noise. */}

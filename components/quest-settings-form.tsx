@@ -45,9 +45,6 @@ export function QuestSettingsForm({
   noDataMode,
   memberEmails,
   prizeTiers,
-  signupUrl,
-  signupLabel,
-  signupBlurb,
 }: {
   slug: string;
   title: string;
@@ -64,10 +61,6 @@ export function QuestSettingsForm({
   /** Existing members, to autocomplete against. Empty at a no-data event. */
   memberEmails: string[];
   prizeTiers: { points: number; entries: number }[];
-  /** See scavengerHunts.signupUrl. Only offered at a no-data event. */
-  signupUrl: string | null;
-  signupLabel: string | null;
-  signupBlurb: string | null;
 }) {
   const [state, formAction, pending] = useActionState<
     QuestSettingsState,
@@ -266,64 +259,6 @@ export function QuestSettingsForm({
         placeholder={"10 = 1\n20 = 2\n30 = 3\n40 = 5"}
         description="One rung per line: points, then the draw entries they earn. A player holds the highest rung they have reached. Leave empty for no draw."
       />
-
-      {noDataMode && (
-        /* The external sign-up step. Only makes sense where we hold no
-           personal data ourselves and the event's partner needs a real
-           registration on their own form. The webhook that pairs with it is
-           shown below the form, once a link has been saved. */
-        <div className="space-y-4 rounded-xl border border-[var(--mm-divider)] p-4">
-          <div>
-            <p className="flex items-center gap-2 text-sm font-medium">
-              <Icon
-                icon="mdi:clipboard-text-outline"
-                width={16}
-                className="text-[var(--mm-gold)]"
-              />
-              External sign-up form
-            </p>
-            <p className="mt-0.5 text-xs text-[var(--mm-text-dim)]">
-              Ask players to register on the event&apos;s own form before the
-              trail opens. They tick that they&apos;ve done it; we can&apos;t
-              check. If the form can call a webhook, the tick is confirmed
-              automatically — see below. Leave the link empty to switch the
-              step off.
-            </p>
-          </div>
-          <TextField
-            label="Form link"
-            name="signupUrl"
-            type="url"
-            inputMode="url"
-            defaultValue={v.signupUrl ?? signupUrl ?? ""}
-            icon="mdi:link-variant"
-            hint="optional"
-            placeholder="https://forms.example.com/comic-con-2026"
-            error={fieldError.signupUrl}
-          />
-          <TextField
-            label="Button label"
-            name="signupLabel"
-            maxLength={60}
-            defaultValue={v.signupLabel ?? signupLabel ?? ""}
-            icon="mdi:format-title"
-            hint="optional"
-            placeholder="Sign up on CCA"
-            description="What the button says. Empty means “Sign up with the event”."
-          />
-          <TextareaField
-            label="Why"
-            name="signupBlurb"
-            rows={2}
-            maxLength={300}
-            defaultValue={v.signupBlurb ?? signupBlurb ?? ""}
-            icon="mdi:text"
-            hint="optional"
-            placeholder="Comic Con needs your details for the prize draw — we don't keep any here."
-            description="One line above the button, in the organiser's words."
-          />
-        </div>
-      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <DateTimeField

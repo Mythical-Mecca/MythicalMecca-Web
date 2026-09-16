@@ -17,6 +17,8 @@ import { auth } from "@/lib/auth";
 import { roleAtLeast } from "@/lib/rbac";
 import { logActivity } from "@/lib/logging";
 import { announceEvent } from "@/lib/discord";
+import { safeHttpUrl } from "@/lib/url";
+import { newSignupSecret } from "@/lib/signup";
 
 async function requireAdmin() {
   const session = await auth();
@@ -219,6 +221,19 @@ const EVENT_FIELDS = {
       message: "Must be an http(s) link",
     }),
   reviewNote: optionalText(500),
+  /**
+   * The external sign-up form — see events.signupUrl. Rendered as an href on
+   * every quest page at this event, so the scheme is checked, not just the
+   * shape: `z.url()` would wave `javascript:` through.
+   */
+  signupUrl: z
+    .string()
+    .transform((v) => (v.trim() === "" ? null : v.trim()))
+    .refine((v) => v === null || safeHttpUrl(v) !== null, {
+      message: "Must be a full http(s) link to the form",
+    }),
+  signupLabel: optionalText(60),
+  signupBlurb: optionalText(300),
 } as const;
 
 export type EventField = keyof typeof EVENT_FIELDS;
@@ -432,6 +447,20 @@ export async function updateEvent(formData: FormData) {
         clashed = !!clash && clash.id !== id;
       }
       if (!clashed) {
+        // The webhook credential is minted the first time a sign-up form is
+        // attached, so the page can show its URL straight after this save.
+        // It is never cleared here — a form switched off and on again should
+        // still post to the address it was given. Rotate it deliberately.
+        if (typeof patch.signupUrl === "string") {
+          const [current] = await db
+            .select({ secret: events.signupWebhookSecret })
+            .from(events)
+            .where(eq(events.id, id))
+            .limit(1);
+          if (current && !current.secret) {
+            patch.signupWebhookSecret = newSignupSecret();
+          }
+        }
         await db
           .update(events)
           .set({ ...patch, updatedAt: new Date() })
@@ -459,6 +488,35 @@ export async function updateEvent(formData: FormData) {
 }
 
 /** Re-announce an event in Discord — after a reschedule, or a missed post. */
+/**
+ * Issue a fresh webhook secret for the external sign-up form. The old URL
+ * stops working the moment this saves, so the form has to be re-pointed —
+ * which is the point, when the old one has leaked.
+ */
+export async function rotateSignupSecret(formData: FormData) {
+  const session = await requireAdmin();
+  const id = String(formData.get("id"));
+  if (!z.uuid().safeParse(id).success) redirect("/admin/events");
+  if (process.env.DATABASE_URL) {
+    try {
+      await db
+        .update(events)
+        .set({ signupWebhookSecret: newSignupSecret(), updatedAt: new Date() })
+        .where(eq(events.id, id));
+    } catch {
+      redirect(backTo(id, "details", "error"));
+    }
+  }
+  await logActivity({
+    actorId: session.user.id,
+    action: "event.signup_secret.rotate",
+    entityType: "event",
+    entityId: id,
+  });
+  revalidatePath(`/admin/events/${id}`);
+  redirect(backTo(id, "details", "saved"));
+}
+
 export async function announceEventOnDiscord(formData: FormData) {
   const session = await requireAdmin();
   const id = String(formData.get("id"));

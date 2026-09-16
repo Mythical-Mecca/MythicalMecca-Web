@@ -155,9 +155,9 @@ export interface HuntView {
   allowListEnabled: boolean;
   open: boolean;
   /**
-   * The external sign-up step, resolved for this player. Null when the quest
-   * doesn't ask for one, and null for members — the step exists for events
-   * where we hold no personal data, which is not their world.
+   * The event's external sign-up step, resolved for this player. Null when
+   * the event doesn't ask for one, and null for members — the step exists for
+   * events where we hold no personal data, which is not their world.
    */
   signup: SignupStep | null;
 }
@@ -285,6 +285,9 @@ async function rawHunt(slug: string): Promise<RawHunt | null> {
       eventLat: events.lat,
       eventLng: events.lng,
       noDataMode: events.noDataMode,
+      signupUrl: events.signupUrl,
+      signupLabel: events.signupLabel,
+      signupBlurb: events.signupBlurb,
     })
     .from(scavengerHunts)
     .innerJoin(events, eq(scavengerHunts.eventId, events.id))
@@ -302,9 +305,9 @@ async function rawHunt(slug: string): Promise<RawHunt | null> {
     eventSlug: row.eventSlug,
     eventTitle: row.eventTitle,
     eventUrl: row.eventUrl,
-    signupUrl: row.h.signupUrl,
-    signupLabel: row.h.signupLabel,
-    signupBlurb: row.h.signupBlurb,
+    signupUrl: row.signupUrl,
+    signupLabel: row.signupLabel,
+    signupBlurb: row.signupBlurb,
     eventId: row.eventId,
     eventLat: row.eventLat,
     eventLng: row.eventLng,

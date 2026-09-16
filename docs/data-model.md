@@ -107,8 +107,9 @@ prices plus a currency code.
 row in `user`. `player_signups` is what an external sign-up form's webhook told
 us: one handle per event (matched case-insensitively at read time), an optional
 reference from the form, and nothing else from the body. The form link, label
-and webhook secret live on `scavenger_hunts.signup_*`; the player's own "I've
-done this" ticks live on `event_players.signup_*_at`. See `lib/signup.ts`.
+and webhook secret live on `events.signup_*` — the form is the event's, so every
+quest there asks for the same thing; the player's own "I've done this" ticks
+live on `event_players.signup_*_at`. See `lib/signup.ts`.
 
 `hunt_steps.config` is type-specific JSON:
 

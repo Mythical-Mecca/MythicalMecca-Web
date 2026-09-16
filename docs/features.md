@@ -88,9 +88,9 @@ The station key never leaves the server — `/api/quest-station/[stepId]` hands 
 ### External sign-up (no-data events)
 
 At an event where we hold no personal data, the partner may still need a real
-registration — on **their** form, off our site. A quest can carry a link to it
-(`scavenger_hunts.signup_url`, set on the editor's Settings tab; only offered when
-the event is in no-data mode):
+registration — on **their** form, off our site. The event carries a link to it
+(`events.signup_url`, set on the event's Details tab under "External sign-up
+form"), and every quest at that event asks for it:
 
 - **Start.** Once a player has picked a handle, the trail waits behind a card: the
   link, a line of why, and a tick — "I've filled it in". We can't see the form, so
@@ -99,8 +99,10 @@ the event is in no-data mode):
 - **Webhook.** The form's side can `POST` to `/api/signup-hooks/<secret>` with
   `{ "handle": "…", "externalId": "…" }` (JSON or form-encoded; `username` /
   `alias` / `player` are accepted for the handle, `external_id` / `id` / `reference`
-  for the id). The secret is minted when a link is first saved, shown on the
-  Settings tab, and rotatable there. Only the handle and reference are stored
+  for the id). The secret is minted when a link is first saved, shown in the
+  "Sign-up webhook" card on the event's Details tab, and rotatable there. The
+  quest editor's Settings tab just says whether the event asks for one and links
+  across. Only the handle and reference are stored
   (`player_signups`, one row per handle per event); the rest of the body is dropped
   on the floor, because it is exactly the data the event promised not to hold.
 - **End.** When the trail is done and no webhook has named this handle, a reminder

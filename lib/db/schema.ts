@@ -337,6 +337,30 @@ export const events = pgTable(
     // origin=external: repost metadata — no RSVP, just a link-out
     sourceName: text("source_name"),
     externalUrl: text("external_url"),
+  /**
+   * An external sign-up form the event's players are asked to fill in — the
+   * partner's own registration, at an event where we hold no personal data
+   * ourselves. On the event, not the quest: the form is the event's, one
+   * player fills it in once, and every quest here asks for the same thing.
+   *
+   * A URL here switches the step on. The form lives elsewhere and we cannot
+   * see whether it was submitted, so the step is a request, not a gate: the
+   * player ticks that they have done it and carries on. What we *can* learn
+   * is a webhook from the form's side saying "this handle signed up", which
+   * lands in `player_signups` and turns the reminder at the end off.
+   */
+  signupUrl: text("signup_url"),
+  /** What the button says — "Sign up on CCA". Falls back to a generic label. */
+  signupLabel: text("signup_label"),
+  /** One line on why, shown above the button. */
+  signupBlurb: text("signup_blurb"),
+  /**
+   * The credential for the inbound webhook, carried in its URL. Minted the
+   * first time a sign-up URL is saved, and kept when the URL is cleared so a
+   * form re-enabled later still posts to the address it was given. Rotated
+   * from the event page; see lib/signup.ts.
+   */
+  signupWebhookSecret: text("signup_webhook_secret"),
     // origin=community moderation (mirrors reviews)
     reviewedBy: text("reviewed_by").references(() => users.id, {
       onDelete: "set null",
@@ -883,28 +907,6 @@ export const scavengerHunts = pgTable("scavenger_hunts", {
     .$type<{ points: number; entries: number }[]>()
     .notNull()
     .default(sql`'[]'::jsonb`),
-  /**
-   * An external sign-up form the player is asked to fill in — a partner's
-   * own registration, at an event where we hold no personal data ourselves.
-   *
-   * A URL here switches the step on. The form lives elsewhere and we cannot
-   * see whether it was submitted, so the step is a request, not a gate: the
-   * player ticks that they have done it and carries on. What we *can* learn
-   * is a webhook from the form's side saying "this handle signed up", which
-   * lands in `player_signups` and turns the reminder at the end off.
-   */
-  signupUrl: text("signup_url"),
-  /** What the button says — "Sign up on CCA". Falls back to a generic label. */
-  signupLabel: text("signup_label"),
-  /** One line on why, shown above the button. */
-  signupBlurb: text("signup_blurb"),
-  /**
-   * The credential for the inbound webhook, carried in its URL. Minted the
-   * first time a sign-up URL is saved, and kept when the URL is cleared so a
-   * form re-enabled later still posts to the address it was given. Rotated
-   * from the editor; see lib/signup.ts.
-   */
-  signupWebhookSecret: text("signup_webhook_secret"),
   startsAt: timestamp("starts_at", { withTimezone: true }),
   endsAt: timestamp("ends_at", { withTimezone: true }),
   active: boolean("active").notNull().default(true),
@@ -956,8 +958,8 @@ export const eventPlayers = pgTable(
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
     /**
      * The player's own word that they filled in the event's external sign-up
-     * form (see scavengerHunts.signupUrl). Ticked once per event, since the
-     * form is the event's, whichever quest asked. Not proof of anything —
+     * form (see events.signupUrl). Ticked once per event, since the form is
+     * the event's, whichever quest asked. Not proof of anything —
      * `player_signups` is what the form's side actually told us.
      */
     signupAcknowledgedAt: timestamp("signup_acknowledged_at", {
@@ -993,10 +995,6 @@ export const playerSignups = pgTable(
     eventId: uuid("event_id")
       .notNull()
       .references(() => events.id, { onDelete: "cascade" }),
-    /** Which quest's webhook it arrived on. Null once that quest is gone. */
-    huntId: uuid("hunt_id").references(() => scavengerHunts.id, {
-      onDelete: "set null",
-    }),
     handle: text("handle").notNull(),
     /** The form's own id for the submission, when it sent one. */
     externalId: text("external_id"),

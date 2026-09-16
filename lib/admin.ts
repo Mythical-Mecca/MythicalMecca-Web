@@ -15,11 +15,13 @@ import {
   eventReviews,
   eventInterests,
   chatMessages,
+  playerSignups,
 } from "@/lib/db/schema";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { sampleEvents } from "@/lib/content";
 import { toMediaSrc } from "@/lib/media";
+import { signupWebhookUrl } from "@/lib/signup";
 
 const useDb = !!process.env.DATABASE_URL;
 
@@ -112,6 +114,15 @@ export interface AdminEventRow {
   updatedAt: string;
   /** Quests attached to this event — usually none or one. */
   quests: { slug: string; title: string }[];
+  /** See events.signupUrl. */
+  signupUrl: string | null;
+  signupLabel: string | null;
+  signupBlurb: string | null;
+  /**
+   * Where the external form should POST. Null until a sign-up URL has been
+   * saved once, which is when the secret is minted.
+   */
+  signupWebhookUrl: string | null;
 }
 
 export async function listEventRows(): Promise<AdminEventRow[]> {
@@ -133,6 +144,10 @@ export async function listEventRows(): Promise<AdminEventRow[]> {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       quests: [],
+      signupUrl: null,
+      signupLabel: null,
+      signupBlurb: null,
+      signupWebhookUrl: null,
     }));
   }
   try {
@@ -185,6 +200,12 @@ export async function listEventRows(): Promise<AdminEventRow[]> {
       createdAt: e.createdAt.toISOString(),
       updatedAt: e.updatedAt.toISOString(),
       quests: questsByEvent.get(e.id) ?? [],
+      signupUrl: e.signupUrl,
+      signupLabel: e.signupLabel,
+      signupBlurb: e.signupBlurb,
+      signupWebhookUrl: e.signupWebhookSecret
+        ? signupWebhookUrl(e.signupWebhookSecret)
+        : null,
     }));
   } catch {
     return [];
@@ -433,6 +454,8 @@ export interface AdminEventReview {
 }
 
 export interface AdminEventDetail extends AdminEventRow {
+  /** Webhook sign-ups that have landed for this event, matched or not. */
+  signupsReceived: number;
   submitterName: string | null;
   reviewerName: string | null;
   gallery: AdminGalleryImage[];
@@ -476,6 +499,7 @@ export async function getEventAdmin(
       commentRows,
       chatRows,
       reviewRows,
+      signupRows,
     ] = await Promise.all([
       db
         .select({
@@ -521,6 +545,10 @@ export async function getEventAdmin(
         .leftJoin(users, eq(eventReviews.userId, users.id))
         .where(eq(eventReviews.eventId, id))
         .orderBy(desc(eventReviews.createdAt)),
+      db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(playerSignups)
+        .where(eq(playerSignups.eventId, id)),
     ]);
 
     const ratings = reviewRows.map((x) => x.r.rating);
@@ -549,6 +577,13 @@ export async function getEventAdmin(
       createdAt: e.createdAt.toISOString(),
       updatedAt: e.updatedAt.toISOString(),
       quests,
+      signupUrl: e.signupUrl,
+      signupLabel: e.signupLabel,
+      signupBlurb: e.signupBlurb,
+      signupWebhookUrl: e.signupWebhookSecret
+        ? signupWebhookUrl(e.signupWebhookSecret)
+        : null,
+      signupsReceived: signupRows[0]?.n ?? 0,
       submitterName: people[0]?.submitterName ?? null,
       reviewerName: people[0]?.reviewerName ?? null,
       gallery: gallery.map((g) => ({

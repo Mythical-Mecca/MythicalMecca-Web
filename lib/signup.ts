@@ -2,7 +2,7 @@ import "server-only";
 import { randomBytes } from "crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { eventPlayers, playerSignups, scavengerHunts } from "@/lib/db/schema";
+import { eventPlayers, events, playerSignups } from "@/lib/db/schema";
 import { normalizeHandle } from "@/lib/event-player";
 import { appUrl } from "@/lib/qr";
 
@@ -29,7 +29,7 @@ const useDb = !!process.env.DATABASE_URL;
  * did it, who the form agrees on, and who has done neither.
  */
 
-/** What the quest page shows a player, when the step is switched on. */
+/** What a quest page shows a player, when the event has the step switched on. */
 export interface SignupStep {
   url: string;
   label: string;
@@ -95,21 +95,20 @@ export async function recordExternalSignup(input: {
   const externalId = input.externalId?.trim().slice(0, 200) || null;
 
   try {
-    const [hunt] = await db
-      .select({ id: scavengerHunts.id, eventId: scavengerHunts.eventId })
-      .from(scavengerHunts)
-      .where(eq(scavengerHunts.signupWebhookSecret, input.secret))
+    const [event] = await db
+      .select({ id: events.id })
+      .from(events)
+      .where(eq(events.signupWebhookSecret, input.secret))
       .limit(1);
-    if (!hunt) return { ok: false, reason: "unknown_secret" };
+    if (!event) return { ok: false, reason: "unknown_secret" };
 
     // Raw SQL because the conflict target is an expression index
     // (event_id, lower(handle)) and the query builder only takes columns.
     await db.execute(sql`
-      insert into ${playerSignups} (event_id, hunt_id, handle, external_id)
-      values (${hunt.eventId}, ${hunt.id}, ${handle}, ${externalId})
+      insert into ${playerSignups} (event_id, handle, external_id)
+      values (${event.id}, ${handle}, ${externalId})
       on conflict (event_id, lower(handle)) do update set
-        external_id = coalesce(excluded.external_id, ${playerSignups}.external_id),
-        hunt_id = excluded.hunt_id
+        external_id = coalesce(excluded.external_id, ${playerSignups}.external_id)
     `);
 
     const [player] = await db
@@ -117,7 +116,7 @@ export async function recordExternalSignup(input: {
       .from(eventPlayers)
       .where(
         and(
-          eq(eventPlayers.eventId, hunt.eventId),
+          eq(eventPlayers.eventId, event.id),
           sql`lower(${eventPlayers.handle}) = lower(${handle})`
         )
       )
@@ -138,18 +137,18 @@ export async function recordExternalSignup(input: {
  * still counts the moment they do.
  */
 export async function signupStepFor(
-  hunt: {
+  event: {
     signupUrl: string | null;
     signupLabel: string | null;
     signupBlurb: string | null;
   },
   playerId: string
 ): Promise<SignupStep | null> {
-  if (!hunt.signupUrl) return null;
+  if (!event.signupUrl) return null;
   const base: SignupStep = {
-    url: hunt.signupUrl,
-    label: hunt.signupLabel?.trim() || DEFAULT_SIGNUP_LABEL,
-    blurb: hunt.signupBlurb?.trim() || null,
+    url: event.signupUrl,
+    label: event.signupLabel?.trim() || DEFAULT_SIGNUP_LABEL,
+    blurb: event.signupBlurb?.trim() || null,
     confirmed: false,
     acknowledged: false,
     reminderDismissed: false,

@@ -14,7 +14,6 @@ import {
 } from "@/lib/db/schema";
 import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { tagUrl, MissingSigningSecretError } from "@/lib/qr";
-import { signupWebhookUrl } from "@/lib/signup";
 import type {
   ClaimMode,
   ClaimOutcome,
@@ -85,15 +84,12 @@ export interface AdminQuestDetail extends AdminQuestRow {
    * rather than making the admin remember which applies.
    */
   eventNoDataMode: boolean;
-  /** See scavengerHunts.signupUrl. */
-  signupUrl: string | null;
-  signupLabel: string | null;
-  signupBlurb: string | null;
   /**
-   * Where the external form should POST. Null until a sign-up URL has been
-   * saved once, which is when the secret is minted.
+   * The event's external sign-up step, when it has one — see events.signupUrl.
+   * Read here so the editor can say the step is on and mark the roster; it is
+   * configured on the event page.
    */
-  signupWebhookUrl: string | null;
+  eventSignup: { url: string; label: string | null } | null;
 }
 
 export async function listQuestsAdmin(): Promise<AdminQuestRow[]> {
@@ -142,6 +138,8 @@ export async function getQuestAdmin(
         eventNoDataMode: events.noDataMode,
         eventLat: events.lat,
         eventLng: events.lng,
+        eventSignupUrl: events.signupUrl,
+        eventSignupLabel: events.signupLabel,
       })
       .from(scavengerHunts)
       .innerJoin(events, eq(scavengerHunts.eventId, events.id))
@@ -210,11 +208,8 @@ export async function getQuestAdmin(
       allowList: row.h.allowList ?? [],
       prizeTiers: row.h.prizeTiers ?? [],
       eventNoDataMode: row.eventNoDataMode,
-      signupUrl: row.h.signupUrl,
-      signupLabel: row.h.signupLabel,
-      signupBlurb: row.h.signupBlurb,
-      signupWebhookUrl: row.h.signupWebhookSecret
-        ? signupWebhookUrl(row.h.signupWebhookSecret)
+      eventSignup: row.eventSignupUrl
+        ? { url: row.eventSignupUrl, label: row.eventSignupLabel }
         : null,
       objectives: objectiveList.length,
       players: Number(players[0]?.n ?? 0),
@@ -372,20 +367,6 @@ export async function unmatchedSignups(
     return rows;
   } catch {
     return [];
-  }
-}
-
-/** How many webhook sign-ups have landed for this event, matched or not. */
-export async function signupCount(eventId: string): Promise<number> {
-  if (!useDb) return 0;
-  try {
-    const [row] = await db
-      .select({ n: sql<number>`count(*)` })
-      .from(playerSignups)
-      .where(eq(playerSignups.eventId, eventId));
-    return Number(row?.n ?? 0);
-  } catch {
-    return 0;
   }
 }
 
