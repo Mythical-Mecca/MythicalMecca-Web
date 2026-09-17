@@ -579,6 +579,17 @@ export default async function AdminEventPage({
                     capitals. The reply says whether it matched anyone yet; a
                     miss is kept and matches the moment they pick that name.
                   </p>
+                  <p className="mt-3 text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
+                    monday.com
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--mm-text-dim)]">
+                    Works as-is with a board webhook (Integrations &rarr;
+                    Webhooks &rarr; &ldquo;When an item is created, send a
+                    webhook&rdquo;): the handshake is answered, and the
+                    item&apos;s name is taken as the player&apos;s username
+                    with the item id as the reference. Make the form&apos;s
+                    username question the item name.
+                  </p>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-[var(--mm-text-dim)]">

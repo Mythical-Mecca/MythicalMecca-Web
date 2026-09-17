@@ -64,6 +64,21 @@ export function signupWebhookUrl(secret: string): string {
 /** Secrets are opaque base64url; anything else is refused before the query. */
 const SECRET_SHAPE = /^[A-Za-z0-9_-]{20,64}$/;
 
+/** Does any event own this secret? For the handshake, which stores nothing. */
+export async function isLiveSignupSecret(secret: string): Promise<boolean> {
+  if (!useDb || !SECRET_SHAPE.test(secret)) return false;
+  try {
+    const [row] = await db
+      .select({ id: events.id })
+      .from(events)
+      .where(eq(events.signupWebhookSecret, secret))
+      .limit(1);
+    return !!row;
+  } catch {
+    return false;
+  }
+}
+
 export type WebhookResult =
   | { ok: false; reason: "unknown_secret" | "bad_handle" | "unavailable" }
   | { ok: true; matched: boolean; handle: string };

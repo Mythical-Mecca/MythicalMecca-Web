@@ -99,7 +99,9 @@ form"), and every quest at that event asks for it:
 - **Webhook.** The form's side can `POST` to `/api/signup-hooks/<secret>` with
   `{ "handle": "…", "externalId": "…" }` (JSON or form-encoded; `username` /
   `alias` / `player` are accepted for the handle, `external_id` / `id` / `reference`
-  for the id). The secret is minted when a link is first saved, shown in the
+  for the id). monday.com board webhooks work unchanged: the `{ "challenge" }`
+  handshake is echoed, and an `{ "event": … }` payload is read as item name →
+  handle, item id → reference (a column-change event uses `value.text`). The secret is minted when a link is first saved, shown in the
   "Sign-up webhook" card on the event's Details tab, and rotatable there. The
   quest editor's Settings tab just says whether the event asks for one and links
   across. Only the handle and reference are stored

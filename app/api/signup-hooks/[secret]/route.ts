@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { recordExternalSignup } from "@/lib/signup";
+import { isLiveSignupSecret, recordExternalSignup } from "@/lib/signup";
 
 /**
  * Inbound webhook from an external sign-up form: "this handle registered".
@@ -9,13 +9,24 @@ import { recordExternalSignup } from "@/lib/signup";
  * read from it. Everything else the form knows about the person stays on the
  * form's side; this endpoint never stores it and never logs it.
  *
- * Accepted keys (first one present wins, case as written):
+ * Two dialects are understood:
+ *
+ * **Plain** — a flat JSON or form body. First key present wins:
  *   handle      — also `username`, `alias`, `player`
  *   externalId  — also `external_id`, `id`, `reference`, `ref`
  *
- * `name` is deliberately not an alias for the handle: on most forms that
- * field is the person's real name, and storing it here would put exactly the
- * data this event promised not to hold into our database.
+ * **monday.com** — the shape its board webhooks send. Subscribing starts with
+ * a handshake: a POST of `{ "challenge": "…" }` that must be echoed back
+ * as-is with a 200, or monday refuses the URL. After that every event is
+ * `{ "event": { pulseName, pulseId, value?, … } }`. The item name
+ * (`pulseName`) is taken as the handle, so the board's form must make the
+ * player's username the item name; `pulseId` becomes the reference. A
+ * column-change event carries the new text in `value.text` instead.
+ *
+ * `name` is deliberately not an alias for the handle in the plain dialect:
+ * on most forms that field is the person's real name, and storing it here
+ * would put exactly the data this event promised not to hold into our
+ * database.
  *
  * Answers 202 with `{ ok, matched }` so a test post from the form builder
  * tells the organiser whether the handle already belongs to a player.
@@ -65,6 +76,35 @@ async function readBody(req: Request): Promise<Record<string, unknown> | null> {
   }
 }
 
+/**
+ * The handle and reference out of a monday.com event envelope, or null when
+ * the body isn't one. Item creation carries the name; a column change
+ * carries the new value; both carry the item id.
+ */
+function fromMonday(
+  body: Record<string, unknown>
+): { handle: string; externalId: string | null } | null {
+  const event = body.event;
+  if (!event || typeof event !== "object") return null;
+  const e = event as Record<string, unknown>;
+  const value =
+    e.value && typeof e.value === "object"
+      ? (e.value as Record<string, unknown>)
+      : null;
+  const handle =
+    (typeof e.pulseName === "string" && e.pulseName.trim()) ||
+    (value && typeof value.text === "string" && value.text.trim()) ||
+    (value && typeof value.name === "string" && value.name.trim()) ||
+    null;
+  if (!handle) return null;
+  const id = e.pulseId ?? e.itemId;
+  return {
+    handle,
+    externalId:
+      typeof id === "number" || typeof id === "string" ? String(id) : null,
+  };
+}
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ secret: string }> }
@@ -78,10 +118,25 @@ export async function POST(
     );
   }
 
-  const handle = pick(body, HANDLE_KEYS);
+  // monday.com's subscription handshake: echo the token or the URL is
+  // refused. Only for a live secret — a wrong one learns nothing, as below.
+  if (typeof body.challenge === "string") {
+    if (!(await isLiveSignupSecret(secret))) {
+      return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    }
+    return NextResponse.json({ challenge: body.challenge });
+  }
+
+  const monday = fromMonday(body);
+  const handle = monday?.handle ?? pick(body, HANDLE_KEYS);
   if (!handle) {
     return NextResponse.json(
-      { ok: false, error: "missing_handle", expects: { handle: "string", externalId: "string?" } },
+      {
+        ok: false,
+        error: "missing_handle",
+        expects: { handle: "string", externalId: "string?" },
+        hint: "monday.com: make the player's username the item name.",
+      },
       { status: 400 }
     );
   }
@@ -89,7 +144,7 @@ export async function POST(
   const result = await recordExternalSignup({
     secret,
     handle,
-    externalId: pick(body, ID_KEYS),
+    externalId: monday ? monday.externalId : pick(body, ID_KEYS),
   });
 
   if (!result.ok) {
