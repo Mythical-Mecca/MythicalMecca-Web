@@ -94,14 +94,7 @@ export function StandsCabinet({
       </div>
 
       {easy ? (
-        <EasyList
-          stands={stands}
-          helpNote={helpNote}
-          onPick={(i) => {
-            setPicked(i);
-            setEasy(false);
-          }}
-        />
+        <EasyList stands={stands} helpNote={helpNote} />
       ) : (
         <>
           <div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-5 md:grid-cols-6">
@@ -144,65 +137,30 @@ export function StandsCabinet({
 }
 
 /**
- * The reference sheet: every stand's name and stall number in one column,
- * with a way to jump into any of them. Nothing here that the medallions do
- * not also know — it is the same information at reading distance.
+ * The reference sheet: vendor name and stall number only. No tokens, no
+ * progress chrome — a phone held beside a floor map just wants the words.
  */
 function EasyList({
   stands,
   helpNote,
-  onPick,
 }: {
   stands: Stand[];
   helpNote: string;
-  onPick: (index: number) => void;
 }) {
   return (
     <div className="mt-3">
-      <ol className="divide-y divide-[color-mix(in_srgb,var(--mm-divider)_75%,transparent)] overflow-hidden rounded-[20px] border border-[color-mix(in_srgb,var(--mm-border)_65%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_92%,transparent)]">
-        {stands.map((s, i) => {
-          const done = s.state === "done";
-          return (
-            <li key={s.id}>
-              <button
-                type="button"
-                onClick={() => onPick(i)}
-                className="flex min-h-12 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--mm-elevated)_60%,transparent)]"
-              >
-                <span
-                  className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold tabular-nums"
-                  style={{
-                    background: done ? "var(--mm-live)" : "var(--mm-elevated)",
-                    color: done ? "#070b1e" : "var(--mm-text-dim)",
-                  }}
-                >
-                  {done ? <Icon icon="mdi:check" width={13} /> : i + 1}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span
-                    className={`block truncate font-medium ${
-                      s.state === "locked" ? "text-[var(--mm-text-dim)]" : ""
-                    }`}
-                  >
-                    {s.label}
-                  </span>
-                  {s.location && (
-                    <span className="block text-sm text-[var(--mm-text-dim)]">
-                      {s.location}
-                    </span>
-                  )}
-                </span>
-                <TokenPips done={s.tokens.done} total={s.tokens.total} />
-                <Icon
-                  icon="mdi:chevron-right"
-                  width={16}
-                  className="shrink-0 text-[var(--mm-text-dim)]"
-                />
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+      <ul className="divide-y divide-[color-mix(in_srgb,var(--mm-divider)_75%,transparent)] overflow-hidden rounded-[20px] border border-[color-mix(in_srgb,var(--mm-border)_65%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_92%,transparent)]">
+        {stands.map((s) => (
+          <li key={s.id} className="min-w-0 px-4 py-3">
+            <p className="truncate font-medium">{s.label}</p>
+            {s.location ? (
+              <p className="mt-0.5 text-sm text-[var(--mm-text-dim)]">
+                {s.location}
+              </p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
       <p className="mt-3 flex items-start gap-2 text-sm text-[var(--mm-text-dim)]">
         <Icon
           icon="mdi:hand-wave-outline"
@@ -212,33 +170,6 @@ function EasyList({
         {helpNote}
       </p>
     </div>
-  );
-}
-
-/** One dot per token, lit when banked. Reads at a glance as "one of two". */
-function TokenPips({ done, total }: { done: number; total: number }) {
-  return (
-    <span
-      className="flex shrink-0 items-center gap-1"
-      aria-label={`${done} of ${total} tokens`}
-    >
-      {Array.from({ length: total }, (_, i) => (
-        <span
-          key={i}
-          className="h-2 w-2 rounded-full"
-          style={{
-            background:
-              i < done
-                ? "var(--mm-gold)"
-                : "color-mix(in srgb, var(--mm-divider) 90%, transparent)",
-            boxShadow:
-              i < done
-                ? "0 0 6px color-mix(in srgb, var(--mm-gold) 60%, transparent)"
-                : "none",
-          }}
-        />
-      ))}
-    </span>
   );
 }
 

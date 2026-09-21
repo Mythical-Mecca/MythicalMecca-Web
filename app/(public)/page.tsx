@@ -399,7 +399,7 @@ export default async function HomePage() {
                     <Link
                       key={e.slug}
                       href={eventHref(e.slug)}
-                      className="mm-glass group flex items-center gap-4 p-4 transition hover:border-[var(--mm-violet)]"
+                      className="mm-glass group flex min-w-0 items-center gap-4 overflow-hidden p-4 transition hover:border-[var(--mm-violet)]"
                     >
                       <Icon
                         icon="game-icons:campfire"
