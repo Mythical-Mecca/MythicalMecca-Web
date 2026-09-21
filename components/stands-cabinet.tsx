@@ -7,8 +7,12 @@ export interface Stand {
   id: string;
   /** What goes under the medallion. A locked stand still owns its title. */
   label: string;
-  /** The stall number or hall — what the easy-mode list is for. */
+  /** Revealed stall — only once the clue has been earned. */
   location: string | null;
+  /** Easy-mode directory name — vendor even while the clue is unsolved. */
+  vendor: string;
+  /** Easy-mode stall / hall — always shown in the list. */
+  stall: string | null;
   state: "done" | "open" | "locked";
   /** Everything this stand pays, across all its tokens. */
   points: number;
@@ -152,10 +156,10 @@ function EasyList({
       <ul className="divide-y divide-[color-mix(in_srgb,var(--mm-divider)_75%,transparent)] overflow-hidden rounded-[20px] border border-[color-mix(in_srgb,var(--mm-border)_65%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_92%,transparent)]">
         {stands.map((s) => (
           <li key={s.id} className="min-w-0 px-4 py-3">
-            <p className="truncate font-medium">{s.label}</p>
-            {s.location ? (
+            <p className="truncate font-medium">{s.vendor}</p>
+            {s.stall ? (
               <p className="mt-0.5 text-sm text-[var(--mm-text-dim)]">
-                {s.location}
+                {s.stall}
               </p>
             ) : null}
           </li>

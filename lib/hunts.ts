@@ -110,6 +110,12 @@ export interface PublicStep {
   lockedBy: string | null;
   /** Null until earned when `revealMode` is "clue" — the clue *is* the puzzle. */
   destination: Destination | null;
+  /**
+   * Vendor + stall for Easy mode. Always present when the objective names a
+   * destination — unlike `destination`, this is not withheld for clues, because
+   * Easy mode is the directory that skips the puzzle.
+   */
+  directory: Destination | null;
 }
 
 export interface PrizeTier {
@@ -383,6 +389,13 @@ function publicStep(
   // A "clue" objective withholds *where* until it's been claimed — revealing
   // the vendor early would hand over the answer.
   const reveal = s.revealMode === "direct" || done;
+  const dest: Destination = {
+    partnerSlug: s.partnerSlug,
+    partnerName: s.partnerName,
+    partnerLogo: s.partnerLogo,
+    locationHint: s.locationHint,
+  };
+  const hasDirectory = !!(s.partnerSlug || s.partnerName || s.locationHint);
   return {
     id: s.id,
     type: s.type,
@@ -399,14 +412,8 @@ function publicStep(
     claimMode: s.claimMode,
     locked: lockedBy !== null,
     lockedBy,
-    destination: reveal
-      ? {
-          partnerSlug: s.partnerSlug,
-          partnerName: s.partnerName,
-          partnerLogo: s.partnerLogo,
-          locationHint: s.locationHint,
-        }
-      : null,
+    destination: reveal ? dest : null,
+    directory: hasDirectory ? dest : null,
   };
 }
 

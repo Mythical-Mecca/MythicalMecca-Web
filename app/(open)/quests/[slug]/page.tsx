@@ -632,8 +632,12 @@ function StandDetail({
  */
 interface StandGroup {
   key: string;
+  /** Medallion title — clue titles stay until the destination is earned. */
   label: string;
   location: string | null;
+  /** Easy-mode directory — vendor + stall even while the clue is unsolved. */
+  vendor: string;
+  stall: string | null;
   partnerSlug: string | null;
   logo: string | null;
   initial: string | null;
@@ -646,14 +650,21 @@ function groupByStand(steps: PublicStep[]): StandGroup[] {
   const byKey = new Map<string, StandGroup>();
   for (const step of steps) {
     const d = step.destination;
-    const key = d?.partnerSlug ? `partner:${d.partnerSlug}` : `step:${step.id}`;
+    const dir = step.directory;
+    // Group on the partner the objective *would* reveal, not only once the
+    // clue is solved — otherwise Easy mode (and a half-cleared stand) lists
+    // the same vendor once per token.
+    const partnerSlug = d?.partnerSlug ?? dir?.partnerSlug ?? null;
+    const key = partnerSlug ? `partner:${partnerSlug}` : `step:${step.id}`;
     let g = byKey.get(key);
     if (!g) {
       g = {
         key,
         label: d?.partnerName ?? step.title,
         location: d?.locationHint ?? null,
-        partnerSlug: d?.partnerSlug ?? null,
+        vendor: dir?.partnerName ?? d?.partnerName ?? step.title,
+        stall: dir?.locationHint ?? d?.locationHint ?? null,
+        partnerSlug,
         logo: null,
         initial: null,
         icon: STEP_ICON[step.type],
@@ -663,6 +674,12 @@ function groupByStand(steps: PublicStep[]): StandGroup[] {
       groups.push(g);
     }
     g.steps.push(step);
+    if (d?.partnerName) {
+      g.label = d.partnerName;
+      g.location = d.locationHint ?? g.location;
+    }
+    if (dir?.partnerName) g.vendor = dir.partnerName;
+    if (dir?.locationHint) g.stall = dir.locationHint;
     // The face is shown as soon as any token at the stand is open — the
     // stand is on the board by then, and its logo is no longer a clue.
     if (!step.locked && d) {
@@ -1060,6 +1077,8 @@ export default async function HuntDetailPage({
             id: g.key,
             label: g.label,
             location: g.location,
+            vendor: g.vendor,
+            stall: g.stall,
             state:
               done === g.steps.length
                 ? ("done" as const)
