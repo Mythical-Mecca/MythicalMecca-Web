@@ -136,6 +136,11 @@ export interface HuntView {
   totalPoints: number;
   earnedPoints: number;
   /**
+   * Hidden extras still off the board. Shown as empty ? medallions so the
+   * cabinet (and the points total) makes clear there is more to find.
+   */
+  hiddenRemaining: number;
+  /**
    * Null when the quest's event isn't public yet — the event exists (the FK is
    * NOT NULL) but a draft has no page to link to.
    */
@@ -548,6 +553,9 @@ export async function getHunt(
   const steps = listed.map((s) =>
     publicStep(s, done.has(s.id), blockedBy(s, raw.steps, done, raw.sequential))
   );
+  const hiddenRemaining = raw.steps.filter(
+    (s) => s.hidden && !listedForPlayer(s, done)
+  ).length;
   return {
     slug: raw.slug,
     prizeTiers: raw.prizeTiers,
@@ -556,8 +564,11 @@ export async function getHunt(
     description: raw.description,
     mode: raw.mode,
     steps,
-    totalPoints: listed.reduce((a, s) => a + s.points, 0),
+    // Grand total — hidden extras included, so the hoard shows there is more
+    // to find than the open board alone.
+    totalPoints: raw.steps.reduce((a, s) => a + s.points, 0),
     earnedPoints: steps.filter((s) => s.done).reduce((a, s) => a + s.points, 0),
+    hiddenRemaining,
     eventSlug: raw.eventSlug,
     eventTitle: raw.eventTitle,
     eventUrl: raw.eventUrl,

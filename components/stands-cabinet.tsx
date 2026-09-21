@@ -57,6 +57,7 @@ export function StandsCabinet({
   initial,
   note,
   helpNote,
+  hiddenRemaining = 0,
 }: {
   stands: Stand[];
   /** Parallel to `stands`. Server-rendered; this only chooses which shows. */
@@ -66,6 +67,8 @@ export function StandsCabinet({
   note: string;
   /** Where to go when stuck. Shown on the easy-mode list. */
   helpNote: string;
+  /** Locked extras still off the board — empty ? slots, Steam-style. */
+  hiddenRemaining?: number;
 }) {
   const [picked, setPicked] = useState(initial);
   // Easy mode: the same stands as a plain list of names and stall numbers.
@@ -92,7 +95,7 @@ export function StandsCabinet({
               icon={easy ? "mdi:view-grid-outline" : "mdi:format-list-bulleted"}
               width={14}
             />
-            {easy ? "Medallions" : "Easy mode"}
+            {easy ? "Medallions" : "Easy mode?"}
           </button>
         </div>
       </div>
@@ -109,6 +112,9 @@ export function StandsCabinet({
                 selected={i === picked}
                 onPick={() => setPicked(i)}
               />
+            ))}
+            {Array.from({ length: hiddenRemaining }, (_, i) => (
+              <SecretMedallion key={`secret-${i}`} />
             ))}
           </div>
 
@@ -177,6 +183,35 @@ function EasyList({
   );
 }
 
+/**
+ * A hidden extra that is not on the board yet. Dashed and empty — same idea
+ * as a locked Steam achievement: you can see that a slot exists, nothing else.
+ */
+function SecretMedallion() {
+  return (
+    <div
+      className="flex flex-col items-center gap-1.5"
+      aria-label="Hidden stand"
+    >
+      <span
+        className="grid h-[78px] w-[78px] place-items-center rounded-full"
+        style={{
+          background: "transparent",
+          border: "2px dashed color-mix(in srgb, var(--mm-divider) 85%, transparent)",
+          color: "color-mix(in srgb, var(--mm-text-dim) 70%, transparent)",
+        }}
+      >
+        <span className="font-[family-name:var(--font-display)] text-[1.75rem] leading-none">
+          ?
+        </span>
+      </span>
+      <span className="line-clamp-2 text-center text-[0.68rem] leading-tight text-[var(--mm-text-dim)]">
+        Hidden
+      </span>
+    </div>
+  );
+}
+
 function Medallion({
   stand,
   selected,
@@ -190,13 +225,15 @@ function Medallion({
   const locked = stand.state === "locked";
   const partial = !done && stand.tokens.done > 0;
 
-  // The ring carries the state; selection adds a second ring outside it, so
-  // "which am I looking at" never has to compete with "have I cleared it".
+  // Selected reads as the open page; everything else steps back. Done stays
+  // green either way so "cleared" never has to compete with "looking at".
   const ring = done
     ? "var(--mm-live)"
     : locked
-      ? "color-mix(in srgb, var(--mm-divider) 90%, transparent)"
+      ? "color-mix(in srgb, var(--mm-divider) 70%, transparent)"
       : "var(--mm-gold)";
+
+  const ringWidth = selected ? 3 : done ? 2 : 1.5;
 
   return (
     <button
@@ -206,27 +243,41 @@ function Medallion({
       aria-controls="stand-detail"
       className="group flex flex-col items-center gap-1.5 focus:outline-none"
     >
-      <span className="relative">
+      <span
+        className="relative transition-transform duration-200"
+        style={{
+          transform: selected ? "scale(1.08)" : "scale(1)",
+        }}
+      >
         <span
-          className="grid h-[78px] w-[78px] place-items-center overflow-hidden rounded-full transition"
+          className="grid h-[78px] w-[78px] place-items-center overflow-hidden rounded-full transition-[box-shadow,opacity,filter] duration-200"
           style={{
             background: done
-              ? "linear-gradient(150deg, color-mix(in oklab, var(--mm-live) 14%, var(--mm-surface)), var(--mm-surface))"
+              ? "linear-gradient(150deg, color-mix(in oklab, var(--mm-live) 22%, var(--mm-surface)), var(--mm-surface))"
               : locked
                 ? "var(--mm-surface)"
-                : "linear-gradient(150deg, color-mix(in oklab, var(--mm-gold) 18%, var(--mm-surface)), var(--mm-surface))",
+                : selected
+                  ? "linear-gradient(150deg, color-mix(in oklab, var(--mm-gold) 28%, var(--mm-surface)), var(--mm-surface))"
+                  : "linear-gradient(150deg, color-mix(in oklab, var(--mm-gold) 10%, var(--mm-surface)), var(--mm-surface))",
             boxShadow: [
-              `0 0 0 2px ${ring}`,
+              `0 0 0 ${ringWidth}px ${ring}`,
               selected
-                ? `0 0 0 5px color-mix(in srgb, ${ring} 30%, transparent)`
-                : "",
-              !done && !locked
-                ? "0 0 26px -6px color-mix(in srgb, var(--mm-gold) 75%, transparent)"
-                : "",
+                ? done
+                  ? "0 0 0 7px color-mix(in srgb, var(--mm-live) 35%, transparent), 0 0 28px -4px color-mix(in srgb, var(--mm-live) 55%, transparent)"
+                  : "0 0 0 7px color-mix(in srgb, var(--mm-gold) 40%, transparent), 0 0 32px -4px color-mix(in srgb, var(--mm-gold) 70%, transparent)"
+                : done
+                  ? "0 0 14px -6px color-mix(in srgb, var(--mm-live) 45%, transparent)"
+                  : "",
             ]
               .filter(Boolean)
               .join(", "),
-            opacity: locked ? 0.75 : 1,
+            opacity: selected ? 1 : done ? 0.72 : locked ? 0.55 : 0.62,
+            filter:
+              !selected && done
+                ? "saturate(0.75)"
+                : !selected && !locked
+                  ? "saturate(0.85) brightness(0.92)"
+                  : "none",
           }}
         >
           {stand.logo ? (
@@ -279,8 +330,16 @@ function Medallion({
       </span>
 
       <span
-        className={`line-clamp-2 text-center text-[0.68rem] leading-tight ${
-          locked ? "text-[var(--mm-text-dim)]" : "text-[var(--mm-text)]"
+        className={`line-clamp-2 text-center text-[0.68rem] leading-tight transition-colors ${
+          selected
+            ? done
+              ? "font-medium text-[var(--mm-live)]"
+              : "font-medium text-[var(--mm-text)]"
+            : done
+              ? "text-[var(--mm-text-dim)]"
+              : locked
+                ? "text-[var(--mm-text-dim)]"
+                : "text-[var(--mm-text-dim)]"
         }`}
       >
         {stand.label}

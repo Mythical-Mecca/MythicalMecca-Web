@@ -356,13 +356,13 @@ function HoardCase({
 function PlayerStrip({
   handle,
   path,
-  done,
+  earned,
   total,
 }: {
   /** Null for a signed-in member — the site header already says who they are. */
   handle: string | null;
   path: string;
-  done: number;
+  earned: number;
   total: number;
 }) {
   return (
@@ -385,10 +385,10 @@ function PlayerStrip({
         <span className="text-sm text-[var(--mm-text-dim)]">Your progress</span>
       )}
       <span className="shrink-0 font-[family-name:var(--font-display)] text-lg leading-none tabular-nums">
-        {done}
+        {earned}
         <span className="text-[var(--mm-text-dim)]">/{total}</span>{" "}
         <span className="text-[0.62rem] tracking-[0.16em] text-[var(--mm-text-dim)]">
-          CLEARED
+          PTS
         </span>
       </span>
     </div>
@@ -955,9 +955,10 @@ export default async function HuntDetailPage({
     );
   }
 
-  const doneCount = hunt.steps.filter((s) => s.done).length;
   const groups = groupByStand(hunt.steps);
-  const standsLeft = groups.filter((g) => !g.steps.every((st) => st.done)).length;
+  const standsLeft =
+    groups.filter((g) => !g.steps.every((st) => st.done)).length +
+    hunt.hiddenRemaining;
   // Which medallion the cabinet opens on: whatever the player just tried,
   // else the first stand with something still to do. Not a ranking — a
   // starting point.
@@ -969,7 +970,9 @@ export default async function HuntDetailPage({
         : g.steps.some((st) => !st.done && !st.locked)
     )
   );
-  const finished = doneCount === hunt.steps.length && hunt.steps.length > 0;
+  // Grand total includes hidden extras; finished only when those are banked too.
+  const finished =
+    hunt.totalPoints > 0 && hunt.earnedPoints === hunt.totalPoints;
 
   // The external sign-up step. Until they tick it (or the form's side tells
   // us they did it), the trail waits behind the card — but a scan at a stand
@@ -1018,8 +1021,8 @@ export default async function HuntDetailPage({
       <PlayerStrip
         handle={player?.handle ?? null}
         path={`/quests/${hunt.slug}`}
-        done={doneCount}
-        total={hunt.steps.length}
+        earned={hunt.earnedPoints}
+        total={hunt.totalPoints}
       />
 
       {signup?.confirmed && (
@@ -1070,6 +1073,7 @@ export default async function HuntDetailPage({
         note={hunt.sequential ? "In order" : "Any order"}
         helpNote="Stuck, or a code that won't take? Find the Mythical Mecca stand and ask — we're around all day."
         initial={openIndex}
+        hiddenRemaining={hunt.hiddenRemaining}
         stands={groups.map((g) => {
           const done = g.steps.filter((st) => st.done).length;
           const allLocked = g.steps.every((st) => st.locked);
