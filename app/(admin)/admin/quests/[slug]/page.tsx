@@ -476,6 +476,7 @@ export default async function AdminQuestEditorPage({
             slug={quest.slug}
             title={quest.title}
             description={quest.description}
+            easyModeHtml={quest.easyModeHtml}
             eventId={quest.eventId}
             sequential={quest.sequential}
             startsAtLocal={toLocalInput(quest.startsAt)}

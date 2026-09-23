@@ -868,6 +868,14 @@ export const scavengerHunts = pgTable("scavenger_hunts", {
   slug: text("slug").notNull().unique(),
   title: text("title").notNull(),
   description: text("description"),
+  /**
+   * Freeform Easy-mode copy. When set, the player Easy-mode tab shows this
+   * instead of the auto-built vendor/stall list — so a trail can still offer
+   * a directory when objectives are not linked to partners.
+   *
+   * Stored as a small HTML subset (paragraphs, lists, bold/italic, links).
+   */
+  easyModeHtml: text("easy_mode_html"),
   mode: huntModeEnum("mode").notNull().default("hybrid"),
   /**
    * How the trail may be walked.

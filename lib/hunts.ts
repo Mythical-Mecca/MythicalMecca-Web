@@ -131,6 +131,11 @@ export interface HuntView {
   sequential: boolean;
   title: string;
   description: string;
+  /**
+   * Authored Easy-mode directory HTML. Empty when the organiser has not
+   * written one — the player page then falls back to the vendor/stall list.
+   */
+  easyModeHtml: string;
   mode: string;
   steps: PublicStep[];
   totalPoints: number;
@@ -212,6 +217,7 @@ interface RawHunt {
   allowList: string[];
   title: string;
   description: string;
+  easyModeHtml: string;
   mode: string;
   steps: RawStep[];
   /**
@@ -312,6 +318,7 @@ async function rawHunt(slug: string): Promise<RawHunt | null> {
     sequential: row.h.sequential,
     title: row.h.title,
     description: row.h.description ?? "",
+    easyModeHtml: row.h.easyModeHtml ?? "",
     mode: row.h.mode,
     eventSlug: row.eventSlug,
     eventTitle: row.eventTitle,
@@ -562,6 +569,7 @@ export async function getHunt(
     sequential: raw.sequential,
     title: raw.title,
     description: raw.description,
+    easyModeHtml: raw.easyModeHtml,
     mode: raw.mode,
     steps,
     // Grand total — hidden extras included, so the hoard shows there is more

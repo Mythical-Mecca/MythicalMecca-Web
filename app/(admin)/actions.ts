@@ -28,6 +28,7 @@ import { logActivity } from "@/lib/logging";
 import { announceEvent } from "@/lib/discord";
 import { parseSocials, toStoredSocials } from "@/lib/socials";
 import { httpUrl } from "@/lib/url";
+import { sanitizeEasyModeHtml } from "@/lib/easy-mode-html";
 
 async function requireAdmin() {
   const session = await auth();
@@ -827,9 +828,13 @@ export async function updateQuest(
   const allowList = parseAllowList(String(formData.get("allowList") ?? ""));
   const tiersRaw = String(formData.get("prizeTiers") ?? "");
   const tiers = parsePrizeTiers(tiersRaw);
+  const easyModeHtml = sanitizeEasyModeHtml(
+    String(formData.get("easyModeHtml") ?? "")
+  );
   const values = {
     title: String(formData.get("title") ?? ""),
     description: String(formData.get("description") ?? ""),
+    easyModeHtml: String(formData.get("easyModeHtml") ?? ""),
     startsAt: String(formData.get("startsAt") ?? ""),
     endsAt: String(formData.get("endsAt") ?? ""),
     allowList: String(formData.get("allowList") ?? ""),
@@ -878,6 +883,7 @@ export async function updateQuest(
         .set({
           title: parsed.data.title,
           description: parsed.data.description ?? null,
+          easyModeHtml,
           eventId: parsed.data.eventId,
           sequential: formData.get("sequential") === "1",
           allowListEnabled,

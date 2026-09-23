@@ -1074,6 +1074,7 @@ export default async function HuntDetailPage({
         helpNote="Stuck, or a code that won't take? Find the Mythical Mecca stand and ask — we're around all day."
         initial={openIndex}
         hiddenRemaining={hunt.hiddenRemaining}
+        easyModeHtml={hunt.easyModeHtml || undefined}
         stands={groups.map((g) => {
           const done = g.steps.filter((st) => st.done).length;
           const allLocked = g.steps.every((st) => st.locked);

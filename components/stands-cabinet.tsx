@@ -58,6 +58,7 @@ export function StandsCabinet({
   note,
   helpNote,
   hiddenRemaining = 0,
+  easyModeHtml,
 }: {
   stands: Stand[];
   /** Parallel to `stands`. Server-rendered; this only chooses which shows. */
@@ -69,6 +70,8 @@ export function StandsCabinet({
   helpNote: string;
   /** Locked extras still off the board — empty ? slots, Steam-style. */
   hiddenRemaining?: number;
+  /** Authored Easy-mode directory. When set, replaces the auto vendor list. */
+  easyModeHtml?: string;
 }) {
   const [picked, setPicked] = useState(initial);
   // Easy mode: the same stands as a plain list of names and stall numbers.
@@ -101,7 +104,11 @@ export function StandsCabinet({
       </div>
 
       {easy ? (
-        <EasyList stands={stands} helpNote={helpNote} />
+        <EasyList
+          stands={stands}
+          helpNote={helpNote}
+          html={easyModeHtml}
+        />
       ) : (
         <>
           <div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-5 md:grid-cols-6">
@@ -147,30 +154,39 @@ export function StandsCabinet({
 }
 
 /**
- * The reference sheet: vendor name and stall number only. No tokens, no
- * progress chrome — a phone held beside a floor map just wants the words.
+ * The reference sheet. Prefer authored Easy-mode HTML when the organiser
+ * wrote one; otherwise fall back to vendor name + stall from each stand.
  */
 function EasyList({
   stands,
   helpNote,
+  html,
 }: {
   stands: Stand[];
   helpNote: string;
+  html?: string;
 }) {
   return (
     <div className="mt-3">
-      <ul className="divide-y divide-[color-mix(in_srgb,var(--mm-divider)_75%,transparent)] overflow-hidden rounded-[20px] border border-[color-mix(in_srgb,var(--mm-border)_65%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_92%,transparent)]">
-        {stands.map((s) => (
-          <li key={s.id} className="min-w-0 px-4 py-3">
-            <p className="truncate font-medium">{s.vendor}</p>
-            {s.stall ? (
-              <p className="mt-0.5 text-sm text-[var(--mm-text-dim)]">
-                {s.stall}
-              </p>
-            ) : null}
-          </li>
-        ))}
-      </ul>
+      {html ? (
+        <div
+          className="overflow-hidden rounded-[20px] border border-[color-mix(in_srgb,var(--mm-border)_65%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_92%,transparent)] px-4 py-3 text-[var(--mm-text)] [&_a]:text-[var(--mm-gold)] [&_a]:underline [&_li]:my-0.5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      ) : (
+        <ul className="divide-y divide-[color-mix(in_srgb,var(--mm-divider)_75%,transparent)] overflow-hidden rounded-[20px] border border-[color-mix(in_srgb,var(--mm-border)_65%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_92%,transparent)]">
+          {stands.map((s) => (
+            <li key={s.id} className="min-w-0 px-4 py-3">
+              <p className="truncate font-medium">{s.vendor}</p>
+              {s.stall ? (
+                <p className="mt-0.5 text-sm text-[var(--mm-text-dim)]">
+                  {s.stall}
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
       <p className="mt-3 flex items-start gap-2 text-sm text-[var(--mm-text-dim)]">
         <Icon
           icon="mdi:hand-wave-outline"

@@ -107,9 +107,6 @@ export function EventCalendar({
       return { y: d.getFullYear(), m: d.getMonth() };
     });
 
-  const goToday = () =>
-    setCursor({ y: today.getFullYear(), m: today.getMonth() });
-
   // The sheet is a real modal: Escape closes it, Tab stays inside it, the page
   // behind it doesn't scroll, and focus lands on the panel when it opens.
   useEffect(() => {
@@ -254,13 +251,6 @@ export function EventCalendar({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={goToday}
-            className="inline-flex min-h-11 items-center rounded-full border border-[var(--mm-border)] px-4 text-xs text-[var(--mm-text-dim)] transition hover:border-[var(--mm-gold)] hover:text-[var(--mm-text)]"
-          >
-            Today
-          </button>
           <button
             type="button"
             aria-label="Previous month"

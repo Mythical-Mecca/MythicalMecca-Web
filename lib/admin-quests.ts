@@ -69,6 +69,8 @@ export interface AdminObjective {
 
 export interface AdminQuestDetail extends AdminQuestRow {
   description: string;
+  /** Freeform Easy-mode HTML — see scavengerHunts.easyModeHtml. */
+  easyModeHtml: string;
   mode: string;
   objectiveList: AdminObjective[];
   /** Whether the attached event has coordinates — open-tag geofencing needs them. */
@@ -195,6 +197,7 @@ export async function getQuestAdmin(
       slug: row.h.slug,
       title: row.h.title,
       description: row.h.description ?? "",
+      easyModeHtml: row.h.easyModeHtml ?? "",
       mode: row.h.mode,
       active: row.h.active,
       startsAt: row.h.startsAt,

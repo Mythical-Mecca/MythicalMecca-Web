@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { updateQuest, type QuestSettingsState } from "@/app/(admin)/actions";
 import { CheckboxField, TextField, TextareaField } from "@/components/form";
+import { RichTextField } from "@/components/rich-text-field";
 import { PickerField } from "@/components/picker-field";
 import { DateTimeField } from "@/components/datetime-input";
 import { Icon } from "@/components/icon";
@@ -35,6 +36,7 @@ export function QuestSettingsForm({
   slug,
   title,
   description,
+  easyModeHtml,
   eventId,
   sequential,
   startsAtLocal,
@@ -49,6 +51,7 @@ export function QuestSettingsForm({
   slug: string;
   title: string;
   description: string;
+  easyModeHtml: string;
   eventId: string;
   sequential: boolean;
   startsAtLocal: string;
@@ -128,6 +131,15 @@ export function QuestSettingsForm({
         defaultValue={v.description ?? description}
         icon="mdi:text"
         error={fieldError.description}
+      />
+      <RichTextField
+        label="Easy mode"
+        name="easyModeHtml"
+        defaultValue={v.easyModeHtml ?? easyModeHtml}
+        icon="mdi:format-list-bulleted"
+        hint="optional"
+        error={fieldError.easyModeHtml}
+        description="Shown when a player opens Easy mode. Write the vendor names and stall numbers here — useful when objectives are not linked to partners."
       />
       <PickerField
         label="Event"
