@@ -18,8 +18,9 @@ import {
   scavengerHunts,
   huntSteps,
   huntStations,
+  huntProgress,
 } from "@/lib/db/schema";
-import { and, asc, desc, eq, gt, gte, inArray, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, lt, or, sql } from "drizzle-orm";
 import { ensureStation } from "@/lib/hunts";
 import { auth } from "@/lib/auth";
 import { roleAtLeast } from "@/lib/rbac";
@@ -912,6 +913,7 @@ export async function updateQuest(
 
 const QUEST_EDITOR_TABS = new Set([
   "progress",
+  "completions",
   "trail",
   "settings",
   "activity",
@@ -975,6 +977,61 @@ export async function deleteQuest(formData: FormData) {
   });
   revalidatePath("/admin/quests");
   redirect("/admin/quests?deleted=1");
+}
+
+/**
+ * Wipe every check-in for the chosen adventurers on this quest.
+ *
+ * Ids are either member `userId`s or event-player `playerId`s — the roster
+ * already uses that shared key. Cascade is per-row: other quests, and anyone
+ * not selected, are untouched.
+ */
+export async function deleteQuestParticipants(
+  slug: string,
+  ids: string[]
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await requireAdmin();
+  const unique = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+  if (unique.length === 0) {
+    return { ok: false, error: "Pick at least one adventurer." };
+  }
+  if (!process.env.DATABASE_URL) {
+    return { ok: false, error: "No database configured." };
+  }
+  try {
+    const [hunt] = await db
+      .select({ id: scavengerHunts.id })
+      .from(scavengerHunts)
+      .where(eq(scavengerHunts.slug, slug))
+      .limit(1);
+    if (!hunt) return { ok: false, error: "Unknown quest." };
+
+    await db
+      .delete(huntProgress)
+      .where(
+        and(
+          eq(huntProgress.huntId, hunt.id),
+          or(
+            inArray(huntProgress.userId, unique),
+            inArray(huntProgress.playerId, unique)
+          )
+        )
+      );
+
+    await logActivity({
+      actorId: session.user.id,
+      action: "quest.participants.delete",
+      metadata: { slug, count: unique.length },
+    });
+    revalidatePath(`/admin/quests/${slug}`);
+    revalidatePath(`/quests/${slug}`);
+    return { ok: true };
+  } catch {
+    return {
+      ok: false,
+      error: "Could not remove that progress. Please try again.",
+    };
+  }
 }
 
 /**

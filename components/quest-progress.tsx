@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
-import { formatDateTime } from "@/lib/format";
 import type {
   AdminObjective,
   QuestParticipant,
   UnmatchedSignup,
 } from "@/lib/admin-quests";
+import { formatDateTime } from "@/lib/format";
 
 /**
  * The floor view of a quest: who is playing, how far each of them has got,
@@ -39,17 +39,13 @@ function sortRoster(
   });
 }
 
-function initial(name: string): string {
-  const ch = name.trim().charAt(0);
-  return ch ? ch.toUpperCase() : "?";
-}
-
 export function QuestProgress({
   objectives,
   participants,
   active,
   tagsHref,
   printHref,
+  completionsHref,
   accent,
   signup = null,
 }: {
@@ -58,6 +54,8 @@ export function QuestProgress({
   active: boolean;
   tagsHref: string;
   printHref: string;
+  /** Link to the Completions tab — the roster table lives there. */
+  completionsHref?: string;
   accent: string;
   /**
    * Present when the quest asks players to fill in an external form. Adds
@@ -210,146 +208,20 @@ export function QuestProgress({
         </section>
       )}
 
-      <section>
-        <h2 className="mb-1 flex items-center gap-2 font-[family-name:var(--font-display)] text-lg">
-          <Icon icon="mdi:account-star-outline" width={20} style={{ color: accent }} />
-          Adventurers
-        </h2>
-        <p className="mb-3 text-sm text-[var(--mm-text-dim)]">
-          Marks follow the trail, left to right. A tick is cleared; an eye is a
-          hidden extra they haven&apos;t found yet.
+      {completionsHref && (
+        <p className="text-sm text-[var(--mm-text-dim)]">
+          <Link
+            href={completionsHref}
+            className="inline-flex items-center gap-1.5 text-[var(--mm-gold)] hover:underline"
+          >
+            Open Completions
+            <Icon icon="mdi:arrow-right" width={14} />
+          </Link>{" "}
+          to export the roster, remove mistaken check-ins, or group winners by
+          day.
         </p>
-        <ol className="space-y-2">
-          {roster.map((p, i) => {
-            const done = new Set(p.completedStepIds);
-            const listedN = listedDone(p, listed);
-            const finished = listed.length > 0 && listedN === listed.length;
-            return (
-              <li key={p.id} className="mm-glass p-4">
-                <div className="flex items-start gap-3">
-                  <span
-                    aria-hidden
-                    className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-semibold"
-                    style={{
-                      background: `color-mix(in srgb, ${accent} 16%, transparent)`,
-                      color: accent,
-                    }}
-                  >
-                    {initial(p.name)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="font-medium">{p.name}</span>
-                      {finished ? (
-                        <Badge color="var(--mm-live)" icon="mdi:flag-checkered">
-                          Finished
-                        </Badge>
-                      ) : i === 0 ? (
-                        <Badge color={accent}>Leading</Badge>
-                      ) : null}
-                      {signup && p.signup && (
-                        <SignupMark signup={p.signup} label={signup.label} />
-                      )}
-                    </div>
-                    <p className="mt-0.5 text-sm text-[var(--mm-text-dim)]">
-                      {listed.length > 0
-                        ? `${listedN} of ${listed.length} on the trail`
-                        : `${p.completedStepIds.length} cleared`}
-                      {p.points > 0 ? ` · ${p.points} pts` : ""}
-                      {" · "}
-                      last seen {formatDateTime(p.lastAt)}
-                    </p>
-                    {objectives.length > 0 && (
-                      <ol className="mt-2.5 flex flex-wrap gap-1.5">
-                        {objectives.map((o) => {
-                          const cleared = done.has(o.id);
-                          const label = `${o.title}${
-                            cleared ? " — done" : " — still open"
-                          }${o.hidden ? " (hidden)" : ""}`;
-                          return (
-                            <li key={o.id}>
-                              <span
-                                title={label}
-                                className={`inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-[10px] font-semibold tabular-nums ${
-                                  cleared
-                                    ? "text-[var(--mm-text)]"
-                                    : "text-[var(--mm-text-dim)]"
-                                }`}
-                                style={{
-                                  background: cleared
-                                    ? `color-mix(in srgb, ${accent} 22%, transparent)`
-                                    : "var(--mm-elevated)",
-                                  boxShadow: o.hidden
-                                    ? "inset 0 0 0 1px color-mix(in srgb, var(--mm-text-dim) 45%, transparent)"
-                                    : cleared
-                                      ? `inset 0 0 0 1px color-mix(in srgb, ${accent} 45%, transparent)`
-                                      : undefined,
-                                }}
-                              >
-                                <span className="sr-only">{label}</span>
-                                {cleared ? (
-                                  <Icon icon="mdi:check" width={12} />
-                                ) : o.hidden ? (
-                                  <Icon icon="mdi:eye-off-outline" width={12} />
-                                ) : (
-                                  <Icon icon="mdi:circle-small" width={12} />
-                                )}
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ol>
-                    )}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
+      )}
     </div>
-  );
-}
-
-/**
- * Where one adventurer stands with the external form. Three states, and
- * "claimed" is deliberately not green: it is their word, and the organiser
- * handing out a prize is the one who has to decide how much that is worth.
- */
-function SignupMark({
-  signup,
-  label,
-}: {
-  signup: NonNullable<QuestParticipant["signup"]>;
-  label: string;
-}) {
-  if (signup.state === "confirmed") {
-    return (
-      <Badge
-        color="var(--mm-live)"
-        icon="mdi:clipboard-check-outline"
-        title={signup.externalId ? `${label} · ref ${signup.externalId}` : label}
-      >
-        Signed up
-        {signup.externalId && (
-          <span className="ml-1 font-mono text-[10px] opacity-80">
-            {signup.externalId}
-          </span>
-        )}
-      </Badge>
-    );
-  }
-  if (signup.state === "claimed") {
-    return (
-      <Badge color="var(--mm-gold)" icon="mdi:clipboard-text-outline" title={`${label} · their word, not confirmed`}>
-        Says signed up
-      </Badge>
-    );
-  }
-  return (
-    <Badge icon="mdi:clipboard-off-outline" title={`${label} · nothing yet`}>
-      No sign-up
-    </Badge>
   );
 }
 

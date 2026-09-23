@@ -18,6 +18,7 @@ import { setQuestActive, deleteQuest } from "@/app/(admin)/actions";
 import { ObjectiveTimeline } from "@/components/objective-timeline";
 import { QuestSettingsForm } from "@/components/quest-settings-form";
 import { QuestProgress } from "@/components/quest-progress";
+import { QuestCompletionsTable } from "@/components/quest-completions-table";
 import { FormCard } from "@/components/form";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { tagHostWarning } from "@/lib/app-url";
@@ -43,6 +44,7 @@ const ACCENT = "#9a6cff";
 
 const TABS = [
   { key: "progress", label: "Progress", icon: "mdi:account-group-outline" },
+  { key: "completions", label: "Completions", icon: "mdi:format-list-checks" },
   { key: "trail", label: "Trail", icon: "mdi:flag-outline" },
   { key: "settings", label: "Settings", icon: "mdi:cog-outline" },
   { key: "activity", label: "Activity", icon: "mdi:pulse" },
@@ -265,6 +267,7 @@ export default async function AdminQuestEditorPage({
 
   const COUNTS: Record<TabKey, number | undefined> = {
     progress: roster.length,
+    completions: roster.length,
     trail: quest.objectiveList.length,
     settings: undefined,
     activity: feed.length,
@@ -455,8 +458,33 @@ export default async function AdminQuestEditorPage({
           active={quest.active}
           tagsHref={tagsHref}
           printHref={printHref}
+          completionsHref={sectionHref(quest.slug, "completions", sp)}
           accent={ACCENT}
           signup={quest.eventSignup ? { label: signupLabel, unmatched } : null}
+        />
+      )}
+
+      {tab === "completions" && (
+        <QuestCompletionsTable
+          questSlug={quest.slug}
+          accent={ACCENT}
+          rows={roster.map((p) => {
+            const listed = quest.objectiveList
+              .filter((o) => !o.hidden)
+              .map((o) => o.id);
+            const done = new Set(p.completedStepIds);
+            const cleared = listed.filter((id) => done.has(id)).length;
+            return {
+              id: p.id,
+              name: p.name,
+              points: p.points,
+              cleared,
+              listed: listed.length,
+              finished: listed.length > 0 && cleared === listed.length,
+              lastAt: p.lastAt.toISOString(),
+              signupState: p.signup?.state ?? null,
+            };
+          })}
         />
       )}
 
