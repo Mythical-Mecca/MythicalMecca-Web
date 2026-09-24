@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidateHunt } from "@/lib/revalidate-hunt";
 import { claimantFor, claimantId } from "@/lib/claimant";
 import {
   getStepRaw,
@@ -94,6 +94,6 @@ export async function completeStep(formData: FormData) {
     });
   }
 
-  revalidatePath(`/quests/${huntSlug}`);
+  revalidateHunt(huntSlug);
   redirect(`/quests/${huntSlug}?ok=${stepId}#step-${stepId}`);
 }

@@ -30,6 +30,8 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { SectionTabs } from "@/components/section-tabs";
 import { forwardReturn, parseReturn, withReturn } from "@/lib/return-to";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({
   params,
 }: {
@@ -233,7 +235,7 @@ export default async function AdminQuestEditorPage({
       // offer, and asking for them there would be the one query on this page
       // that reads the table that event promised to stay out of.
       quest.eventNoDataMode ? Promise.resolve([]) : listMembers(),
-      questRoster(quest.id),
+      questRoster(quest.id, quest.eventId),
       quest.eventSignup ? unmatchedSignups(quest.eventId) : Promise.resolve([]),
     ]);
   const signupLabel = quest.eventSignup?.label?.trim() || DEFAULT_SIGNUP_LABEL;
@@ -481,7 +483,8 @@ export default async function AdminQuestEditorPage({
               cleared,
               listed: listed.length,
               finished: listed.length > 0 && cleared === listed.length,
-              lastAt: p.lastAt.toISOString(),
+              lastAt: p.lastAt ? p.lastAt.toISOString() : "",
+              lastLabel: p.lastAt ? formatDateTime(p.lastAt) : "",
               signupState: p.signup?.state ?? null,
             };
           })}

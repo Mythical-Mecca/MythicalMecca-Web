@@ -8,6 +8,7 @@ import {
   signInPlayer,
 } from "@/lib/event-player";
 import { acknowledgeSignup, dismissSignupReminder } from "@/lib/signup";
+import { revalidateHuntsForEvent } from "@/lib/revalidate-hunt";
 
 export type PlayerFormState = {
   error?: string;
@@ -48,6 +49,7 @@ export async function playerSignIn(
   // The page this was submitted from renders completely differently once
   // there's a player, so it has to be rebuilt rather than patched.
   if (path) revalidatePath(path);
+  if (mode !== "return") await revalidateHuntsForEvent(eventId);
   return {};
 }
 

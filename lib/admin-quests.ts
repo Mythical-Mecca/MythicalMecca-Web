@@ -13,6 +13,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { connection } from "next/server";
 import { tagUrl, MissingSigningSecretError } from "@/lib/qr";
 import type {
   ClaimMode,
@@ -96,6 +97,7 @@ export interface AdminQuestDetail extends AdminQuestRow {
 
 export async function listQuestsAdmin(): Promise<AdminQuestRow[]> {
   if (!useDb) return [];
+  await connection();
   try {
     const rows = await db
       .select({
@@ -103,7 +105,15 @@ export async function listQuestsAdmin(): Promise<AdminQuestRow[]> {
         eventTitle: events.title,
         eventSlug: events.slug,
         objectives: sql<number>`(select count(*) from ${huntSteps} where ${huntSteps.huntId} = ${scavengerHunts.id})`,
-        players: sql<number>`(select count(distinct ${huntProgress.userId}) from ${huntProgress} where ${huntProgress.huntId} = ${scavengerHunts.id})`,
+        // Event handles who have signed in, plus members who have checked in.
+        // Counting only hunt_progress.userId hid every no-data player — and
+        // anyone who had signed in but not yet scanned.
+        players: sql<number>`(
+          (select count(*) from ${eventPlayers} where ${eventPlayers.eventId} = ${scavengerHunts.eventId})
+          + (select count(distinct ${huntProgress.userId}) from ${huntProgress}
+             where ${huntProgress.huntId} = ${scavengerHunts.id}
+               and ${huntProgress.userId} is not null)
+        )`,
       })
       .from(scavengerHunts)
       .innerJoin(events, eq(scavengerHunts.eventId, events.id))
@@ -131,6 +141,7 @@ export async function getQuestAdmin(
   slug: string
 ): Promise<AdminQuestDetail | null> {
   if (!useDb) return null;
+  await connection();
   try {
     const [row] = await db
       .select({
@@ -187,7 +198,10 @@ export async function getQuestAdmin(
 
     const players = await db
       .select({
-        n: sql<number>`count(distinct ${huntProgress.userId})`,
+        n: sql<number>`(
+          (select count(*) from ${eventPlayers} where ${eventPlayers.eventId} = ${row.h.eventId})
+          + count(distinct ${huntProgress.userId})
+        )`,
       })
       .from(huntProgress)
       .where(eq(huntProgress.huntId, row.h.id));
@@ -251,7 +265,8 @@ export interface QuestParticipant {
   name: string;
   completedStepIds: string[];
   points: number;
-  lastAt: Date;
+  /** Null until they have checked in at least once. */
+  lastAt: Date | null;
   /** Null for a member — the sign-up step only exists for event players. */
   signup: { state: SignupState; externalId: string | null } | null;
 }
@@ -259,46 +274,67 @@ export interface QuestParticipant {
 /**
  * Who is on this quest, and how far each of them has got.
  *
- * One row per adventurer, built from `hunt_progress` rather than the public
- * leaderboard. The board caps at twenty and only cares about points; this
- * list is the whole field, with every objective they have cleared, so an
- * organiser can see who is stuck, who has finished, and who found a hidden
- * extra.
+ * Built from two sources, because "signed up" and "checked in" are different
+ * moments. `hunt_progress` is the trail; `event_players` is everyone who
+ * claimed a handle at the event. Listing only check-ins made the roster look
+ * cached: a new username never appeared until they cleared a stand.
  */
 export async function questRoster(
-  huntId: string
+  huntId: string,
+  eventId: string
 ): Promise<QuestParticipant[]> {
   if (!useDb) return [];
+  await connection();
   try {
-    const rows = await db
-      .select({
-        userId: huntProgress.userId,
-        playerId: huntProgress.playerId,
-        userName: users.name,
-        handle: eventPlayers.handle,
-        acknowledgedAt: eventPlayers.signupAcknowledgedAt,
-        confirmedAt: playerSignups.receivedAt,
-        externalId: playerSignups.externalId,
-        stepId: huntProgress.stepId,
-        points: huntProgress.pointsAwarded,
-        completedAt: huntProgress.completedAt,
-      })
-      .from(huntProgress)
-      .leftJoin(users, eq(users.id, huntProgress.userId))
-      .leftJoin(eventPlayers, eq(eventPlayers.id, huntProgress.playerId))
-      // Sign-ups are matched by handle at read time — see playerSignups.
-      .leftJoin(
-        playerSignups,
-        and(
-          eq(playerSignups.eventId, eventPlayers.eventId),
-          sql`lower(${playerSignups.handle}) = lower(${eventPlayers.handle})`
+    const [progressRows, signedIn] = await Promise.all([
+      db
+        .select({
+          userId: huntProgress.userId,
+          playerId: huntProgress.playerId,
+          userName: users.name,
+          handle: eventPlayers.handle,
+          acknowledgedAt: eventPlayers.signupAcknowledgedAt,
+          confirmedAt: playerSignups.receivedAt,
+          externalId: playerSignups.externalId,
+          stepId: huntProgress.stepId,
+          points: huntProgress.pointsAwarded,
+          completedAt: huntProgress.completedAt,
+        })
+        .from(huntProgress)
+        .leftJoin(users, eq(users.id, huntProgress.userId))
+        .leftJoin(eventPlayers, eq(eventPlayers.id, huntProgress.playerId))
+        .leftJoin(
+          playerSignups,
+          and(
+            eq(playerSignups.eventId, eventPlayers.eventId),
+            sql`lower(${playerSignups.handle}) = lower(${eventPlayers.handle})`
+          )
         )
-      )
-      .where(eq(huntProgress.huntId, huntId))
-      .orderBy(asc(huntProgress.completedAt));
+        .where(eq(huntProgress.huntId, huntId))
+        .orderBy(asc(huntProgress.completedAt)),
+      db
+        .select({
+          playerId: eventPlayers.id,
+          handle: eventPlayers.handle,
+          createdAt: eventPlayers.createdAt,
+          lastSeenAt: eventPlayers.lastSeenAt,
+          acknowledgedAt: eventPlayers.signupAcknowledgedAt,
+          confirmedAt: playerSignups.receivedAt,
+          externalId: playerSignups.externalId,
+        })
+        .from(eventPlayers)
+        .leftJoin(
+          playerSignups,
+          and(
+            eq(playerSignups.eventId, eventPlayers.eventId),
+            sql`lower(${playerSignups.handle}) = lower(${eventPlayers.handle})`
+          )
+        )
+        .where(eq(eventPlayers.eventId, eventId)),
+    ]);
 
     const byId = new Map<string, QuestParticipant>();
-    for (const r of rows) {
+    for (const r of progressRows) {
       const id = r.userId ?? r.playerId;
       if (!id) continue;
       const seen = byId.get(id);
@@ -324,8 +360,30 @@ export async function questRoster(
       }
       seen.completedStepIds.push(r.stepId);
       seen.points += r.points;
-      if (r.completedAt > seen.lastAt) seen.lastAt = r.completedAt;
+      if (r.completedAt > (seen.lastAt ?? r.completedAt)) {
+        seen.lastAt = r.completedAt;
+      }
     }
+
+    for (const r of signedIn) {
+      if (byId.has(r.playerId)) continue;
+      byId.set(r.playerId, {
+        id: r.playerId,
+        name: r.handle,
+        completedStepIds: [],
+        points: 0,
+        lastAt: r.lastSeenAt ?? r.createdAt,
+        signup: {
+          state: r.confirmedAt
+            ? "confirmed"
+            : r.acknowledgedAt
+              ? "claimed"
+              : "none",
+          externalId: r.externalId,
+        },
+      });
+    }
+
     return [...byId.values()];
   } catch {
     return [];

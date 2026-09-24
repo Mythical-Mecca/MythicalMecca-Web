@@ -12,6 +12,7 @@ import {
 } from "@/lib/hunts";
 import { claimantId } from "@/lib/claimant";
 import { logActivity } from "@/lib/logging";
+import { revalidateHunt } from "@/lib/revalidate-hunt";
 
 /**
  * The vendor scanned a player's pass. Everything needed to trust this is
@@ -59,13 +60,16 @@ export async function POST(
     claimantName(who),
   ]);
 
-  if (outcome === "ok" && who.kind === "member") {
-    await logActivity({
-      actorId: claimantId(who),
-      action: "quest.objective.claim",
-      entityType: "hunt_step",
-      entityId: stepId,
-    });
+  if (outcome === "ok") {
+    revalidateHunt(target.huntSlug);
+    if (who.kind === "member") {
+      await logActivity({
+        actorId: claimantId(who),
+        action: "quest.objective.claim",
+        entityType: "hunt_step",
+        entityId: stepId,
+      });
+    }
   }
 
   return NextResponse.json({

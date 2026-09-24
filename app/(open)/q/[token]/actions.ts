@@ -1,9 +1,9 @@
 "use server";
 
 import { headers } from "next/headers";
-import { revalidatePath } from "next/cache";
 import { verifyTagToken } from "@/lib/qr";
 import { claimantFor, claimantId } from "@/lib/claimant";
+import { revalidateHunt } from "@/lib/revalidate-hunt";
 import {
   claimObjective,
   forClaimant,
@@ -80,7 +80,7 @@ export async function submitClaim(
         entityId: stepId,
       });
     }
-    revalidatePath(`/quests/${target.huntSlug}`);
+    revalidateHunt(target.huntSlug);
   }
 
   return { outcome };

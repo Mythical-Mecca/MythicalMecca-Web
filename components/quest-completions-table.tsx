@@ -5,7 +5,7 @@ import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
 import { Flash } from "@/components/flash";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { deleteQuestParticipants } from "@/app/(admin)/actions";
 
 export interface CompletionRow {
@@ -17,7 +17,53 @@ export interface CompletionRow {
   finished: boolean;
   /** ISO instant of the last check-in. */
   lastAt: string;
+  /** Server-formatted, so the cell doesn't disagree with the client locale. */
+  lastLabel: string;
   signupState: "confirmed" | "claimed" | "none" | null;
+}
+
+function lastActionLabel(r: CompletionRow) {
+  if (!r.lastLabel) return "—";
+  if (r.cleared === 0 && r.points === 0) {
+    return (
+      <span className="text-[var(--mm-text-dim)]">
+        Signed in · {r.lastLabel}
+      </span>
+    );
+  }
+  return r.lastLabel;
+}
+
+/** Local calendar day key — winners are a floor concern, not UTC. */
+function dayKey(iso: string): string {
+  if (!iso) return "none";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "none";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function groupRowsByDay(
+  rows: CompletionRow[]
+): { key: string; label: string; rows: CompletionRow[] }[] {
+  const byDay = new Map<string, CompletionRow[]>();
+  for (const r of rows) {
+    const key = dayKey(r.lastAt);
+    const list = byDay.get(key);
+    if (list) list.push(r);
+    else byDay.set(key, [r]);
+  }
+  return [...byDay.entries()]
+    .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+    .map(([key, dayRows]) => ({
+      key,
+      label: dayRows[0].lastAt
+        ? formatDate(dayRows[0].lastAt)
+        : "Not yet checked in",
+      rows: dayRows,
+    }));
 }
 
 /**
@@ -64,6 +110,11 @@ export function QuestCompletionsTable({
                 Says signed up
               </Badge>
             )}
+            {r.cleared === 0 && r.points === 0 && (
+              <Badge color="var(--mm-text-dim)" icon="mdi:login">
+                Signed in
+              </Badge>
+            )}
           </span>
         ),
       },
@@ -106,7 +157,7 @@ export function QuestCompletionsTable({
         kind: "datetime",
         value: (r) => r.lastAt,
         width: "12rem",
-        render: (r) => formatDateTime(r.lastAt),
+        render: (r) => lastActionLabel(r),
       },
       {
         key: "day",
@@ -115,25 +166,37 @@ export function QuestCompletionsTable({
         value: (r) => dayKey(r.lastAt),
         width: "9rem",
         hiddenByDefault: true,
-        render: (r) => formatDate(r.lastAt),
+        render: (r) => (r.lastAt ? formatDate(r.lastAt) : "—"),
       },
     ],
     [accent]
   );
 
   const runDelete = (ids: string[], clear: () => void) => {
+    const removable = rows.filter(
+      (r) => ids.includes(r.id) && (r.cleared > 0 || r.points > 0)
+    );
+    if (removable.length === 0) {
+      setBulkError(
+        "Those adventurers have signed in but have not checked in yet — there is no quest progress to remove."
+      );
+      return;
+    }
     if (
       !window.confirm(
-        `Remove progress for ${ids.length} adventurer${
-          ids.length === 1 ? "" : "s"
-        }? Their check-ins on this quest are deleted.`
+        `Remove progress for ${removable.length} adventurer${
+          removable.length === 1 ? "" : "s"
+        }? Their check-ins on this quest are deleted. Sign-in handles stay on the roster.`
       )
     ) {
       return;
     }
     setBulkError(null);
     startBulk(async () => {
-      const res = await deleteQuestParticipants(questSlug, ids);
+      const res = await deleteQuestParticipants(
+        questSlug,
+        removable.map((r) => r.id)
+      );
       if (res.ok) clear();
       else setBulkError(res.error);
     });
@@ -174,11 +237,12 @@ export function QuestCompletionsTable({
           className="text-[var(--mm-text-dim)]"
         />
         <h3 className="mt-4 font-[family-name:var(--font-display)] text-xl">
-          No completions yet
+          Nobody signed in yet
         </h3>
         <p className="mt-2 max-w-md text-sm text-[var(--mm-text-dim)]">
-          As adventurers check in, they land here — ready to export, clean up,
-          or pick a winner for the day.
+          Adventurers land here as soon as they pick a handle — even before
+          their first check-in. Export, clean up, or pick a winner from here
+          once the floor is moving.
         </p>
       </div>
     );
@@ -197,7 +261,7 @@ export function QuestCompletionsTable({
           initialSort={{ key: "points", dir: "desc" }}
           caption="Quest completions"
           searchPlaceholder="Search adventurers…"
-          emptyMessage="No completions yet."
+          emptyMessage="Nobody signed in yet."
           toolbar={toolbar}
           bulkActions={bulk}
         />
@@ -246,32 +310,4 @@ export function QuestCompletionsTable({
       ))}
     </div>
   );
-}
-
-/** Local calendar day key — winners are a floor concern, not UTC. */
-function dayKey(iso: string): string {
-  const d = new Date(iso);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function groupRowsByDay(
-  rows: CompletionRow[]
-): { key: string; label: string; rows: CompletionRow[] }[] {
-  const byDay = new Map<string, CompletionRow[]>();
-  for (const r of rows) {
-    const key = dayKey(r.lastAt);
-    const list = byDay.get(key);
-    if (list) list.push(r);
-    else byDay.set(key, [r]);
-  }
-  return [...byDay.entries()]
-    .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
-    .map(([key, dayRows]) => ({
-      key,
-      label: formatDate(dayRows[0].lastAt),
-      rows: dayRows,
-    }));
 }

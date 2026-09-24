@@ -5,6 +5,8 @@ import { QuestsTable } from "@/components/quests-table";
 import { Flash } from "@/components/flash";
 import { ACCENT } from "@/lib/accents";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = { title: "Quests · Admin" };
 
 export default async function AdminQuestsPage({

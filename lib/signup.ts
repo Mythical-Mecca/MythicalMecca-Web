@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { eventPlayers, events, playerSignups } from "@/lib/db/schema";
 import { normalizeHandle } from "@/lib/event-player";
 import { appUrl } from "@/lib/qr";
+import { revalidateHuntsForEvent } from "@/lib/revalidate-hunt";
 
 const useDb = !!process.env.DATABASE_URL;
 
@@ -136,6 +137,7 @@ export async function recordExternalSignup(input: {
         )
       )
       .limit(1);
+    await revalidateHuntsForEvent(event.id);
     return { ok: true, matched: !!player, handle };
   } catch {
     return { ok: false, reason: "unavailable" };

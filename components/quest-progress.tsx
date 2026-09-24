@@ -35,7 +35,7 @@ function sortRoster(
     const bN = listedDone(b, listed);
     if (bN !== aN) return bN - aN;
     if (b.points !== a.points) return b.points - a.points;
-    return a.lastAt.getTime() - b.lastAt.getTime();
+    return (b.lastAt?.getTime() ?? 0) - (a.lastAt?.getTime() ?? 0);
   });
 }
 
@@ -278,8 +278,8 @@ function EmptyProgress({
           body: "The trail is ready, but nobody can check in while this quest is offline. Flip the live switch when the floor is open — adventurers will appear here as they scan.",
         }
       : {
-          title: "Waiting for the first scan",
-          body: "The quest is live. The first adventurer who checks in will show up here, with how far they have got and when they last scanned.",
+          title: "Waiting for the first sign-in",
+          body: "The quest is live. Adventurers appear here as they pick a handle — their check-ins fill in as they scan.",
         };
 
   return (
