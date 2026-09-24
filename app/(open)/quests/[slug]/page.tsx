@@ -757,6 +757,37 @@ function GroupDetail({
   );
 }
 
+/**
+ * The quest blurb, parked until someone asks for it.
+ *
+ * The Comic Con write-up is a paragraph people need once, then never again —
+ * leaving it open on every visit pushes the trail off the first screen. Closed
+ * by default; a card they can tap is enough to find it.
+ */
+function MoreInfoCard({ children }: { children: React.ReactNode }) {
+  return (
+    <details className="group mt-3 overflow-hidden rounded-[20px] border border-[color-mix(in_srgb,var(--mm-border)_65%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_92%,transparent)] text-left shadow-[inset_0_1px_0_color-mix(in_srgb,white_7%,transparent)]">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.5 text-sm [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center gap-2">
+          <Icon
+            icon="mdi:information-outline"
+            width={16}
+            className="shrink-0 text-[var(--mm-gold)]"
+          />
+          <span className="group-open:hidden">Click here for more info</span>
+          <span className="hidden group-open:inline">More info</span>
+        </span>
+        <span className="shrink-0 text-[var(--mm-text-dim)] transition-transform group-open:rotate-180">
+          <Icon icon="mdi:chevron-down" width={18} />
+        </span>
+      </summary>
+      <p className="border-t border-[color-mix(in_srgb,var(--mm-divider)_70%,transparent)] px-4 py-3 text-sm text-[var(--mm-text-dim)]">
+        {children}
+      </p>
+    </details>
+  );
+}
+
 /** The public view: what this is, how long it runs, whose event it belongs to. */
 function QuestTeaser({
   hunt,
@@ -782,9 +813,7 @@ function QuestTeaser({
           {hunt.title}
         </h1>
         {hunt.description && (
-          <p className="mx-auto mt-3 max-w-lg text-[var(--mm-text-dim)]">
-            {hunt.description}
-          </p>
+          <MoreInfoCard>{hunt.description}</MoreInfoCard>
         )}
         {hunt.eventTitle && (
           <p className="mt-3 inline-flex items-center gap-1.5 text-sm text-[var(--mm-gold)]">
@@ -1011,11 +1040,7 @@ export default async function HuntDetailPage({
         <h1 className="mt-1 text-balance font-[family-name:var(--font-display)] text-2xl leading-tight tracking-wide sm:text-3xl">
           {hunt.title}
         </h1>
-        {hunt.description && (
-          <p className="mt-1.5 text-sm text-[var(--mm-text-dim)]">
-            {hunt.description}
-          </p>
-        )}
+        {hunt.description && <MoreInfoCard>{hunt.description}</MoreInfoCard>}
       </header>
 
       <PlayerStrip

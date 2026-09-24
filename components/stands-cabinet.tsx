@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icon";
 
 export interface Stand {
@@ -36,15 +36,15 @@ export interface Stand {
 /**
  * The stands, as a cabinet of medallions.
  *
- * A list answers "what is next"; a grid answers "what have I got" — and on a
- * free-order quest the second is the real question. It also fits a
- * twenty-stand trail on one screen, which neither the column of cards nor a
- * scrolling row managed.
+ * A wrapping grid used to answer "what have I got", but a twenty-stand trail
+ * ate the page before the player reached the stand they had open. One
+ * scrolling row keeps the collection in view and leaves the vertical room
+ * for the detail — pick a face, read what to do there.
  *
  * One medallion per *stand*, not per objective. The people running the event
  * think in vendors — "click on each clue and there are two tokens" — and a
- * grid with every vendor's face on it twice reads as forty errands instead
- * of twenty visits.
+ * face for every token twice over reads as forty errands instead of twenty
+ * visits.
  *
  * Only the overview lives here. Every stand's detail — where it is, what it
  * pays, the forms and the scan instruction — is rendered on the server and
@@ -84,7 +84,7 @@ export function StandsCabinet({
     <section className="mt-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-[family-name:var(--font-display)] text-lg uppercase tracking-[0.16em] text-[var(--mm-gold)]">
-          Stands
+          Quests
         </h2>
         <div className="flex items-center gap-3">
           <span className="text-sm text-[var(--mm-text-dim)]">{note}</span>
@@ -111,19 +111,12 @@ export function StandsCabinet({
         />
       ) : (
         <>
-          <div className="mt-3 grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-5 md:grid-cols-6">
-            {stands.map((s, i) => (
-              <Medallion
-                key={s.id}
-                stand={s}
-                selected={i === picked}
-                onPick={() => setPicked(i)}
-              />
-            ))}
-            {Array.from({ length: hiddenRemaining }, (_, i) => (
-              <SecretMedallion key={`secret-${i}`} />
-            ))}
-          </div>
+          <MedallionRail
+            stands={stands}
+            hiddenRemaining={hiddenRemaining}
+            picked={picked}
+            onPick={setPicked}
+          />
 
           {/* The detail for whichever medallion is open. aria-live so a
               screen reader hears the panel change rather than being left on
@@ -150,6 +143,59 @@ export function StandsCabinet({
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * One snapping row of faces. The selected coin is scrolled into the middle
+ * so a long trail never leaves "the one I am looking at" off the edge.
+ */
+function MedallionRail({
+  stands,
+  hiddenRemaining,
+  picked,
+  onPick,
+}: {
+  stands: Stand[];
+  hiddenRemaining: number;
+  picked: number;
+  onPick: (index: number) => void;
+}) {
+  const scroller = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const root = scroller.current;
+    if (!root) return;
+    const el = root.querySelector<HTMLElement>(
+      `[data-stand-index="${picked}"]`
+    );
+    if (!el) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const left = el.offsetLeft - root.clientWidth / 2 + el.clientWidth / 2;
+    root.scrollTo({
+      left,
+      behavior: reduce ? "instant" : "smooth",
+    });
+  }, [picked]);
+
+  return (
+    <div
+      ref={scroller}
+      className="mm-scroll mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto scroll-px-4 py-2"
+    >
+      {stands.map((s, i) => (
+        <Medallion
+          key={s.id}
+          stand={s}
+          selected={i === picked}
+          onPick={() => onPick(i)}
+          index={i}
+        />
+      ))}
+      {Array.from({ length: hiddenRemaining }, (_, i) => (
+        <SecretMedallion key={`secret-${i}`} />
+      ))}
+    </div>
   );
 }
 
@@ -206,22 +252,22 @@ function EasyList({
 function SecretMedallion() {
   return (
     <div
-      className="flex flex-col items-center gap-1.5"
+      className="flex w-[4.25rem] shrink-0 snap-center flex-col items-center gap-1"
       aria-label="Hidden stand"
     >
       <span
-        className="grid h-[78px] w-[78px] place-items-center rounded-full"
+        className="grid h-[64px] w-[64px] place-items-center rounded-full"
         style={{
           background: "transparent",
           border: "2px dashed color-mix(in srgb, var(--mm-divider) 85%, transparent)",
           color: "color-mix(in srgb, var(--mm-text-dim) 70%, transparent)",
         }}
       >
-        <span className="font-[family-name:var(--font-display)] text-[1.75rem] leading-none">
+        <span className="font-[family-name:var(--font-display)] text-[1.5rem] leading-none">
           ?
         </span>
       </span>
-      <span className="line-clamp-2 text-center text-[0.68rem] leading-tight text-[var(--mm-text-dim)]">
+      <span className="w-full truncate text-center text-[0.68rem] leading-tight text-[var(--mm-text-dim)]">
         Hidden
       </span>
     </div>
@@ -232,10 +278,12 @@ function Medallion({
   stand,
   selected,
   onPick,
+  index,
 }: {
   stand: Stand;
   selected: boolean;
   onPick: () => void;
+  index: number;
 }) {
   const done = stand.state === "done";
   const locked = stand.state === "locked";
@@ -255,9 +303,11 @@ function Medallion({
     <button
       type="button"
       onClick={onPick}
+      data-stand-index={index}
       aria-pressed={selected}
       aria-controls="stand-detail"
-      className="group flex flex-col items-center gap-1.5 focus:outline-none"
+      title={stand.label}
+      className="group flex w-[4.25rem] shrink-0 snap-center flex-col items-center gap-1 focus:outline-none"
     >
       <span
         className="relative transition-transform duration-200"
@@ -266,7 +316,7 @@ function Medallion({
         }}
       >
         <span
-          className="grid h-[78px] w-[78px] place-items-center overflow-hidden rounded-full transition-[box-shadow,opacity,filter] duration-200"
+          className="grid h-[64px] w-[64px] place-items-center overflow-hidden rounded-full transition-[box-shadow,opacity,filter] duration-200"
           style={{
             background: done
               ? "linear-gradient(150deg, color-mix(in oklab, var(--mm-live) 22%, var(--mm-surface)), var(--mm-surface))"
@@ -305,7 +355,7 @@ function Medallion({
             />
           ) : stand.initial ? (
             <span
-              className="font-[family-name:var(--font-display)] text-[1.9rem]"
+              className="font-[family-name:var(--font-display)] text-[1.55rem]"
               style={{ color: done ? "var(--mm-live)" : "var(--mm-gold-hi)" }}
             >
               {stand.initial}
@@ -313,7 +363,7 @@ function Medallion({
           ) : (
             <Icon
               icon={locked ? "mdi:lock-outline" : stand.icon}
-              width={27}
+              width={24}
               className={
                 locked ? "text-[var(--mm-text-dim)]" : "text-[var(--mm-gold)]"
               }
@@ -346,7 +396,7 @@ function Medallion({
       </span>
 
       <span
-        className={`line-clamp-2 text-center text-[0.68rem] leading-tight transition-colors ${
+        className={`w-full truncate text-center text-[0.68rem] leading-tight transition-colors ${
           selected
             ? done
               ? "font-medium text-[var(--mm-live)]"

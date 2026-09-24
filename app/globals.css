@@ -123,6 +123,7 @@ html {
 }
 .mm-scroll::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 .mm-scroll::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--mm-gold) 32%, var(--mm-border));
