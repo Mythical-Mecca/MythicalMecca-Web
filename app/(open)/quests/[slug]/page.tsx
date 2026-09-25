@@ -1100,6 +1100,7 @@ export default async function HuntDetailPage({
         note={hunt.sequential ? "In order" : "Any order"}
         helpNote="Stuck, or a code that won't take? Find the Mythical Mecca stand and ask — we're around all day."
         initial={openIndex}
+        explicitInitial={!!(ok || fail)}
         hiddenRemaining={hunt.hiddenRemaining}
         easyModeHtml={hunt.easyModeHtml || undefined}
         stands={groups.map((g) => {
