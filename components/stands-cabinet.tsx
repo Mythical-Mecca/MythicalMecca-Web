@@ -52,6 +52,8 @@ export interface Stand {
  * of that logic crosses into the browser.
  */
 export function StandsCabinet({
+  questSlug,
+  sequential,
   stands,
   details,
   initial,
@@ -60,6 +62,8 @@ export function StandsCabinet({
   hiddenRemaining = 0,
   easyModeHtml,
 }: {
+  questSlug: string;
+  sequential: boolean;
   stands: Stand[];
   /** Parallel to `stands`. Server-rendered; this only chooses which shows. */
   details: React.ReactNode[];
@@ -73,15 +77,65 @@ export function StandsCabinet({
   /** Authored Easy-mode directory. When set, replaces the auto vendor list. */
   easyModeHtml?: string;
 }) {
-  const [picked, setPicked] = useState(initial);
+  const [pickedId, setPickedId] = useState(stands[initial]?.id);
   // Easy mode: the same stands as a plain list of names and stall numbers.
   // Some people walk a hall off a list, not a game board, and a phone held
   // up beside a floor map wants the words, not the faces.
   const [easy, setEasy] = useState(false);
-  const current = stands[picked];
+  const [weights, setWeights] = useState<Record<string, number> | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (sequential) {
+      setWeights(null);
+      return;
+    }
+    const key = `quest-weights-${questSlug}`;
+    const stored = sessionStorage.getItem(key);
+    let currentWeights: Record<string, number> = {};
+    if (stored) {
+      try {
+        currentWeights = JSON.parse(stored);
+      } catch (e) {
+        // ignore error
+      }
+    }
+    let updated = false;
+    for (const stand of stands) {
+      if (!(stand.id in currentWeights) && stand.state !== "locked") {
+        currentWeights[stand.id] = Math.random();
+        updated = true;
+      }
+    }
+    if (updated) {
+      sessionStorage.setItem(key, JSON.stringify(currentWeights));
+    }
+    setWeights(currentWeights);
+  }, [questSlug, sequential, stands]);
+
+  let displayStands = stands;
+  let displayDetails = details;
+  if (weights) {
+    const zipped = stands.map((s, i) => {
+      const isLocked = s.state === "locked";
+      const w = isLocked ? 1000 + i : (weights[s.id] ?? i);
+      return { s, d: details[i], w };
+    });
+    zipped.sort((a, b) => a.w - b.w);
+    displayStands = zipped.map(x => x.s);
+    displayDetails = zipped.map(x => x.d);
+  }
+
+  const foundIndex = pickedId ? displayStands.findIndex(s => s.id === pickedId) : -1;
+  const displayPickedIndex = foundIndex >= 0 ? foundIndex : initial;
+  const current = displayStands[displayPickedIndex];
 
   return (
-    <section className="mt-5">
+    <section className={`mt-5 transition-opacity duration-300 ${!mounted && !sequential ? "opacity-0" : "opacity-100"}`}>
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-[family-name:var(--font-display)] text-lg uppercase tracking-[0.16em] text-[var(--mm-gold)]">
           Quests
@@ -105,17 +159,17 @@ export function StandsCabinet({
 
       {easy ? (
         <EasyList
-          stands={stands}
+          stands={displayStands}
           helpNote={helpNote}
           html={easyModeHtml}
         />
       ) : (
         <>
           <MedallionRail
-            stands={stands}
+            stands={displayStands}
             hiddenRemaining={hiddenRemaining}
-            picked={picked}
-            onPick={setPicked}
+            picked={displayPickedIndex}
+            onPick={(i) => setPickedId(displayStands[i].id)}
           />
 
           {/* The detail for whichever medallion is open. aria-live so a
@@ -138,7 +192,7 @@ export function StandsCabinet({
                 "inset 0 1px 0 color-mix(in srgb, white 7%, transparent)",
             }}
           >
-            {details[picked]}
+            {displayDetails[displayPickedIndex]}
           </div>
         </>
       )}

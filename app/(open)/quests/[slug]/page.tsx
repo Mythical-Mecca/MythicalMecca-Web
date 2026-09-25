@@ -1095,6 +1095,8 @@ export default async function HuntDetailPage({
       )}
 
       <StandsCabinet
+        questSlug={hunt.slug}
+        sequential={hunt.sequential}
         note={hunt.sequential ? "In order" : "Any order"}
         helpNote="Stuck, or a code that won't take? Find the Mythical Mecca stand and ask — we're around all day."
         initial={openIndex}
@@ -1128,6 +1130,16 @@ export default async function HuntDetailPage({
       />
 
       <PlayerQuestActions questSlug={hunt.slug} />
+
+      {signup && !signup.confirmed && !gated && (
+        <div className="mt-8 border-t border-[color-mix(in_srgb,var(--mm-divider)_70%,transparent)] pt-6 text-center text-sm text-[var(--mm-text-dim)]">
+          <p>Haven&apos;t filled out the event sign-up form yet?</p>
+          <a href={signup.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-[var(--mm-gold)] hover:underline">
+            <Icon icon="mdi:open-in-new" width={16} />
+            {signup.label}
+          </a>
+        </div>
+      )}
         </>
       )}
     </div>
