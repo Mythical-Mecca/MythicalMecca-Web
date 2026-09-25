@@ -1130,17 +1130,16 @@ export default async function HuntDetailPage({
         ))}
       />
 
-      <PlayerQuestActions questSlug={hunt.slug} />
-
       {signup && !signup.confirmed && !gated && (
-        <div className="mt-8 border-t border-[color-mix(in_srgb,var(--mm-divider)_70%,transparent)] pt-6 text-center text-sm text-[var(--mm-text-dim)]">
-          <p>Haven&apos;t filled out the event sign-up form yet?</p>
-          <a href={signup.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-[var(--mm-gold)] hover:underline">
-            <Icon icon="mdi:open-in-new" width={16} />
+        <div className="mt-4 text-center">
+          <a href={signup.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[var(--mm-border)] px-3 py-1 text-xs text-[var(--mm-text-dim)] transition-colors hover:border-[var(--mm-gold)] hover:text-[var(--mm-text)]">
+            <Icon icon="mdi:open-in-new" width={14} />
             {signup.label}
           </a>
         </div>
       )}
+
+      <PlayerQuestActions questSlug={hunt.slug} />
         </>
       )}
     </div>
