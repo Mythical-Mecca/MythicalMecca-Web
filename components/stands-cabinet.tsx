@@ -57,6 +57,7 @@ export function StandsCabinet({
   stands,
   details,
   initial,
+  explicitInitial,
   note,
   helpNote,
   hiddenRemaining = 0,
@@ -68,6 +69,7 @@ export function StandsCabinet({
   /** Parallel to `stands`. Server-rendered; this only chooses which shows. */
   details: React.ReactNode[];
   initial: number;
+  explicitInitial?: boolean;
   /** Whether the quest ranks its stands — the grid itself cannot say. */
   note: string;
   /** Where to go when stuck. Shown on the easy-mode list. */
@@ -77,7 +79,7 @@ export function StandsCabinet({
   /** Authored Easy-mode directory. When set, replaces the auto vendor list. */
   easyModeHtml?: string;
 }) {
-  const [pickedId, setPickedId] = useState(stands[initial]?.id);
+  const [pickedId, setPickedId] = useState<string | null>(null);
   // Easy mode: the same stands as a plain list of names and stall numbers.
   // Some people walk a hall off a list, not a game board, and a phone held
   // up beside a floor map wants the words, not the faces.
@@ -130,7 +132,16 @@ export function StandsCabinet({
     displayDetails = zipped.map(x => x.d);
   }
 
-  const foundIndex = pickedId ? displayStands.findIndex(s => s.id === pickedId) : -1;
+  let activeId = pickedId;
+  if (!activeId) {
+    if (explicitInitial) {
+      activeId = stands[initial]?.id;
+    } else {
+      activeId = displayStands.find(s => s.state === "open")?.id ?? displayStands[0]?.id;
+    }
+  }
+
+  const foundIndex = activeId ? displayStands.findIndex(s => s.id === activeId) : -1;
   const displayPickedIndex = foundIndex >= 0 ? foundIndex : initial;
   const current = displayStands[displayPickedIndex];
 
