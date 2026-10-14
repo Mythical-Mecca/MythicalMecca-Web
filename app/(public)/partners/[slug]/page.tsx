@@ -16,6 +16,9 @@ import { formatDateTime } from "@/lib/format";
 import { pageMetadata } from "@/lib/metadata";
 import { parseReturn, withReturn } from "@/lib/return-to";
 import { BackLink } from "@/components/back-link";
+import { PartnerGallerySection } from "@/components/partner-gallery-section";
+import { PartnerOfferingsSection } from "@/components/partner-offerings-section";
+import { ExpandableImage } from "@/components/expandable-image";
 
 const FALLBACK = "Browse the stalls of the Mythical Mecca partner directory.";
 
@@ -119,11 +122,14 @@ export default async function PartnerPage({
       )}
 
       {partner.bannerUrl && (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
+        <ExpandableImage
           src={partner.bannerUrl}
-          alt=""
-          className="mt-6 h-48 w-full rounded-2xl border border-[var(--mm-border)] object-cover md:h-64"
+          alt={partner.businessName}
+          title={partner.businessName}
+          caption={partner.tagline || undefined}
+          badge="Banner"
+          containerClassName="mt-6 rounded-2xl border border-[var(--mm-border)] shadow-md"
+          className="h-48 w-full object-cover md:h-64"
         />
       )}
 
@@ -202,85 +208,20 @@ export default async function PartnerPage({
 
       {/* ---------------- Products & services ---------------- */}
       {partner.offerings.length > 0 && (
-        <section className="mt-12">
-          <h2 className="font-[family-name:var(--font-display)] text-2xl">
-            Products &amp; services
-          </h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {partner.offerings.map((o) => {
-              const card = (
-                <>
-                  {o.imageUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={o.imageUrl}
-                      alt=""
-                      className="h-40 w-full rounded-xl object-cover"
-                    />
-                  ) : (
-                    <div
-                      className="h-40 w-full rounded-xl"
-                      style={{
-                        background:
-                          "linear-gradient(135deg, rgba(47,75,224,0.35), rgba(124,58,237,0.35))",
-                      }}
-                    />
-                  )}
-                  <div className="mt-3 flex items-start justify-between gap-2">
-                    <h3 className="font-[family-name:var(--font-display)] text-base">
-                      {o.name}
-                    </h3>
-                    <Badge
-                      color={
-                        o.kind === "service"
-                          ? "var(--mm-violet)"
-                          : "var(--mm-gold)"
-                      }
-                    >
-                      {o.kind === "service" ? "Service" : "Product"}
-                    </Badge>
-                  </div>
-                  {o.description && (
-                    <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
-                      {o.description}
-                    </p>
-                  )}
-                  <p className="mt-2 text-sm text-[var(--mm-gold)]">
-                    {o.price ?? "Price on request"}
-                  </p>
-                </>
-              );
-              return o.externalUrl ? (
-                <a
-                  key={o.id}
-                  href={o.externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mm-glass group p-4 transition hover:border-[var(--mm-gold)]"
-                >
-                  {card}
-                  <span className="mt-2 inline-flex items-center gap-1 text-xs text-[var(--mm-text-dim)] group-hover:text-[var(--mm-gold)]">
-                    <Icon icon="mdi:open-in-new" width={14} /> View
-                  </span>
-                </a>
-              ) : (
-                <div key={o.id} className="mm-glass p-4">
-                  {card}
-                </div>
-              );
-            })}
-          </div>
-        </section>
+        <PartnerOfferingsSection
+          offerings={partner.offerings}
+          partnerName={partner.businessName}
+        />
       )}
 
       {/* ---------------- Gallery (gated) ---------------- */}
       {partner.showGallery && (
         <>
           {partner.showArt && artItems.length > 0 && (
-            <GallerySection title="Art" items={artItems} />
+            <PartnerGallerySection title="Art" items={artItems} />
           )}
           {partner.showProducts && productItems.length > 0 && (
-            <GallerySection title="Products" items={productItems} />
+            <PartnerGallerySection title="Products" items={productItems} />
           )}
         </>
       )}
@@ -388,53 +329,5 @@ export default async function PartnerPage({
         Trade comes later — for now, reach this artisan via the links above.
       </p>
     </div>
-  );
-}
-
-function GallerySection({
-  title,
-  items,
-}: {
-  title: string;
-  items: { title: string; caption: string; imageUrl?: string }[];
-}) {
-  return (
-    <>
-      <h2 className="mt-12 font-[family-name:var(--font-display)] text-xl tracking-wide">
-        {title}
-      </h2>
-      <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((g, i) => (
-          <div key={i} className="mm-glass overflow-hidden p-0">
-            {g.imageUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={g.imageUrl}
-                alt={g.title || g.caption || ""}
-                className="h-44 w-full object-cover"
-              />
-            ) : (
-              <div
-                className="h-40 w-full"
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgba(124,58,237,0.45), rgba(245,196,81,0.35))",
-                }}
-              />
-            )}
-            {(g.title || g.caption) && (
-              <div className="p-4">
-                {g.title && <p className="font-medium">{g.title}</p>}
-                {g.caption && (
-                  <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
-                    {g.caption}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </>
   );
 }

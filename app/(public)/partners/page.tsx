@@ -3,6 +3,7 @@ import { getPartnersByCategory } from "@/lib/content";
 import { Badge } from "@/components/badge";
 import { Icon } from "@/components/icon";
 import { SectionHero } from "@/components/section-hero";
+import { PartnerTileGrid } from "@/components/partner-tile-grid";
 import { pageMetadata } from "@/lib/metadata";
 import { withReturn } from "@/lib/return-to";
 
@@ -71,70 +72,10 @@ export default async function PartnersPage() {
                 </p>
               )}
 
-              <div className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {group.partners.map((p) => {
-                  // Prefer the partner's own imagery; fall back to the gradient
-                  // placeholder this page has always used.
-                  const hero = p.bannerUrl ?? p.gallery.find((g) => g.imageUrl)?.imageUrl;
-                  return (
-                    <Link
-                      key={p.slug}
-                      href={withReturn(`/partners/${p.slug}`, {
-                        href: "/partners",
-                        label: "Partners",
-                      })}
-                      className="mm-glass group overflow-hidden p-0 transition hover:border-[var(--mm-violet)]"
-                    >
-                      {hero ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={hero}
-                          alt=""
-                          className="h-36 w-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="h-36 w-full"
-                          style={{
-                            background:
-                              "linear-gradient(135deg, rgba(47,75,224,0.5), rgba(124,58,237,0.5))",
-                          }}
-                        />
-                      )}
-                      <div className="p-5">
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          {p.isPremium ? (
-                            <Badge color="var(--mm-gold)" icon="mdi:crown">
-                              Premium
-                            </Badge>
-                          ) : (
-                            <span />
-                          )}
-                          <span className="text-xs text-[var(--mm-text-dim)]">
-                            {p.gallery.length} items
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2.5">
-                          {p.logoUrl && (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img
-                              src={p.logoUrl}
-                              alt=""
-                              className="h-8 w-8 shrink-0 rounded-lg object-cover"
-                            />
-                          )}
-                          <h3 className="font-medium group-hover:text-[var(--mm-gold)]">
-                            {p.businessName}
-                          </h3>
-                        </div>
-                        <p className="mt-1.5 text-sm text-[var(--mm-text-dim)]">
-                          {p.tagline}
-                        </p>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
+              <PartnerTileGrid
+                partners={group.partners}
+                categoryName={group.name}
+              />
             </section>
           ))}
         </div>
