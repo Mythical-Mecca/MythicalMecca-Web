@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@/components/icon";
 import { SiteNav } from "@/components/site-nav";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { HOME_SECTIONS } from "@/components/public-top-nav";
+import { HOME_SECTIONS } from "@/lib/navigation";
 import { withReturn } from "@/lib/return-to";
 
 const Footer = () => (

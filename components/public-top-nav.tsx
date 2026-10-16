@@ -8,17 +8,8 @@ import { Brand } from "@/components/brand";
 import { DevLoginTrigger } from "@/components/dev-login-trigger";
 import { publicSignOut } from "@/app/(public)/actions";
 
-/** Nav items configuration: general sections plus dedicated partner category tabs. */
-export const HOME_SECTIONS = [
-  { href: "/#about", label: "About" },
-  { href: "/#gallery", label: "Gallery" },
-  { href: "/#calendar", label: "Calendar" },
-  { href: "/#quests", label: "Quests" },
-  { href: "/partners", label: "Partners" },
-  { href: "/#vendors", partnerHref: "/partners#vendors", label: "Vendors" },
-  { href: "/#artists", partnerHref: "/partners#artists", label: "Artists" },
-  { href: "/#collaborators", partnerHref: "/partners#collaborators", label: "Collaborators" },
-];
+import { HOME_SECTIONS, type NavSection } from "@/lib/navigation";
+export { HOME_SECTIONS };
 
 export function PublicTopNav({
   signedIn = false,
