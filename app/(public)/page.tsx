@@ -92,9 +92,8 @@ export default async function HomePage() {
   ] = await Promise.all([
     getEventsPage(),
     getGalleryImages(),
-    // Grouped under admin-controlled category headings, ordered by category
-    // `sort`, and limited to categories flagged "featured on home".
-    getPartnersByCategory({ featuredOnly: true }),
+    // Grouped under category headings (Vendors, Artists, Collaborators)
+    getPartnersByCategory(),
     // Only quests whose window is open right now — see openPredicate().
     listHunts(),
   ]);
@@ -421,7 +420,7 @@ export default async function HomePage() {
               )}
 
               {/* Full month view — event pages are public */}
-              <div className="mt-6">
+              <div id="calendar" className="mt-6 scroll-mt-24">
                 <EventCalendar
                   events={calEvents}
                   todayIso={nowIso}
@@ -571,7 +570,7 @@ export default async function HomePage() {
           ) : (
             <div className="mt-10 space-y-12">
               {partnerGroups.map((group) => (
-                <div key={group.slug}>
+                <div key={group.slug} id={group.slug} className="scroll-mt-24">
                   {/* A dot, not the category icon. Each category carries its
                       own icon and colour from the admin, and a row of
                       different glyphs down the page read as five unrelated
@@ -588,11 +587,7 @@ export default async function HomePage() {
                       ({group.partners.length})
                     </span>
                   </div>
-                  {/* Faces, not cards. A stall is a person as much as a shop,
-                      so the directory reads better as a wall of portraits than
-                      as a column of panels — and it fits far more of them on a
-                      phone. Two up on a small phone, climbing to six across a
-                      desktop container. */}
+                  {/* Faces, not cards. All blocks same size with uniform layout */}
                   <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                     {group.partners.map((p) => (
                       <Link
@@ -601,51 +596,50 @@ export default async function HomePage() {
                           href: "/",
                           label: "home",
                         })}
-                        className="group flex aspect-square flex-col items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--mm-border)_55%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_55%,transparent)] p-3 text-center transition-colors hover:border-[var(--mm-gold)] hover:bg-[color-mix(in_srgb,var(--mm-surface)_80%,transparent)]"
+                        className="group flex aspect-square flex-col items-center justify-between rounded-2xl border border-[color-mix(in_srgb,var(--mm-border)_55%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_55%,transparent)] p-3.5 text-center transition-all duration-300 hover:scale-105 hover:border-[var(--mm-gold)] hover:bg-[color-mix(in_srgb,var(--mm-surface)_80%,transparent)] hover:shadow-lg"
                       >
-                        <span className="relative">
-                          {p.logoUrl ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img
-                              src={p.logoUrl}
-                              alt=""
-                              className="h-16 w-16 rounded-full object-cover ring-1 ring-[var(--mm-border)] sm:h-20 sm:w-20"
-                            />
-                          ) : (
-                            /* No logo yet: the initial, rather than a shared
-                               glyph that would make every such stall look like
-                               the same shop. */
-                            <span
-                              aria-hidden
-                              className="grid h-16 w-16 place-items-center rounded-full bg-[var(--mm-elevated)] font-[family-name:var(--font-display)] text-2xl text-[var(--mm-gold)] ring-1 ring-[var(--mm-border)] sm:h-20 sm:w-20"
-                            >
-                              {p.businessName.trim().charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                          {p.isPremium && (
-                            /* Ringed in the tile's own colour, so the crown
-                               reads as sitting on the card rather than
-                               floating over whatever the backdrop is doing. */
-                            <span
-                              className="absolute right-0 bottom-0 grid h-6 w-6 place-items-center rounded-full ring-2 ring-[var(--mm-surface)]"
-                              style={{
-                                background: "var(--mm-gold)",
-                                color: "var(--mm-bg)",
-                              }}
-                            >
-                              <Icon icon="mdi:crown" width={13} />
-                              <span className="sr-only">Premium stall</span>
-                            </span>
-                          )}
-                        </span>
-                        <span className="mt-2.5 line-clamp-2 font-[family-name:var(--font-display)] text-sm tracking-wide transition-colors group-hover:text-[var(--mm-gold)]">
-                          {p.businessName}
-                        </span>
-                        {p.tagline && (
-                          <span className="mt-1 line-clamp-2 text-xs text-[var(--mm-text-dim)]">
-                            {p.tagline}
+                        <div className="flex flex-1 items-center justify-center">
+                          <span className="relative">
+                            {p.logoUrl ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
+                                src={p.logoUrl}
+                                alt=""
+                                className="h-16 w-16 rounded-full object-cover ring-1 ring-[var(--mm-border)] sm:h-20 sm:w-20"
+                              />
+                            ) : (
+                              /* No logo yet: the initial, rather than a shared
+                                 glyph that would make every such stall look like
+                                 the same shop. */
+                              <span
+                                aria-hidden
+                                className="grid h-16 w-16 place-items-center rounded-full bg-[var(--mm-elevated)] font-[family-name:var(--font-display)] text-2xl text-[var(--mm-gold)] ring-1 ring-[var(--mm-border)] sm:h-20 sm:w-20"
+                              >
+                                {p.businessName.trim().charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                            {p.isPremium && (
+                              /* Ringed in the tile's own colour, so the crown
+                                 reads as sitting on the card rather than
+                                 floating over whatever the backdrop is doing. */
+                              <span
+                                className="absolute right-0 bottom-0 grid h-6 w-6 place-items-center rounded-full ring-2 ring-[var(--mm-surface)]"
+                                style={{
+                                  background: "var(--mm-gold)",
+                                  color: "var(--mm-bg)",
+                                }}
+                              >
+                                <Icon icon="mdi:crown" width={13} />
+                                <span className="sr-only">Premium stall</span>
+                              </span>
+                            )}
                           </span>
-                        )}
+                        </div>
+                        <div className="flex h-10 w-full items-center justify-center">
+                          <span className="line-clamp-2 font-[family-name:var(--font-display)] text-xs sm:text-sm font-medium tracking-wide transition-colors group-hover:text-[var(--mm-gold)] leading-snug">
+                            {p.businessName}
+                          </span>
+                        </div>
                       </Link>
                     ))}
                   </div>

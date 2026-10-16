@@ -19,3 +19,8 @@ export async function countGalleryView(id: string): Promise<void> {
   if (!z.uuid().safeParse(id).success) return;
   await recordGalleryView(id);
 }
+
+export async function publicSignOut(): Promise<void> {
+  const { signOut } = await import("@/lib/auth");
+  await signOut({ redirectTo: "/" });
+}

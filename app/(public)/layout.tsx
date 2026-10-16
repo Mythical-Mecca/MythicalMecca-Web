@@ -10,7 +10,7 @@ const Footer = () => (
     <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
       {HOME_SECTIONS.map((s) => (
         <a
-          key={s.href}
+          key={s.label}
           href={s.href}
           className="inline-flex min-h-6 items-center hover:text-[var(--mm-text)]"
         >

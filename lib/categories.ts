@@ -86,7 +86,7 @@ const sampleCategories: PartnerCategory[] = [
     showSocials: true,
     showGallery: false,
     hasPremiumOption: false,
-    featuredOnHome: false,
+    featuredOnHome: true,
   },
 ];
 

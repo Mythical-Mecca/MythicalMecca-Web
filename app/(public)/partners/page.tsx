@@ -51,7 +51,7 @@ export default async function PartnersPage() {
       ) : (
         <div className="space-y-14 pt-8 pb-24">
           {groups.map((group) => (
-            <section key={group.slug}>
+            <section key={group.slug} id={group.slug} className="scroll-mt-24">
               <div className="flex items-baseline gap-2.5">
                 {/* See the note on the home page: a dot rather than each
                     category own icon, so the list reads as one list. */}

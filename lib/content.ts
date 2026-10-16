@@ -233,6 +233,21 @@ export const samplePartners: PartnerView[] = [
       { title: "Squadron poster", caption: "Limited print", kind: "art" },
     ],
   },
+  {
+    id: "sample-guild-tavern",
+    slug: "guild-tavern",
+    businessName: "The Guild Tavern",
+    tagline: "Tabletop gathering space, refreshments & hospitality partner",
+    bio: "Our partner tavern providing tables, hearty refreshments, and gathering space for our seasonal meetups.",
+    isPremium: true,
+    categorySlug: "collaborators",
+    categoryName: "Collaborators",
+    ...partnerDefaults,
+    socials: parseSocials([{ label: "Website", url: "https://example.com" }]),
+    gallery: [
+      { title: "Tavern Hall", caption: "Community gaming tables setup", kind: "art" },
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------------------
