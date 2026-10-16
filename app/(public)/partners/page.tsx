@@ -44,6 +44,34 @@ export default async function PartnersPage() {
         }
       />
 
+      {/* Category Navigation Tabs */}
+      {groups.length > 0 && (
+        <div className="mt-8 flex flex-wrap items-center gap-2 border-b border-[var(--mm-border)] pb-4">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--mm-text-dim)] mr-2">
+            Categories:
+          </span>
+          <a
+            href="#all"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--mm-border)] bg-[var(--mm-elevated)] px-3 py-1.5 text-xs font-medium text-[var(--mm-gold)] shadow-sm hover:border-[var(--mm-gold)] transition"
+          >
+            <Icon icon="game-icons:anvil" width={14} />
+            All Partners ({groups.reduce((acc, g) => acc + g.partners.length, 0)})
+          </a>
+          {groups.map((group) => (
+            <a
+              key={group.slug}
+              href={`#${group.slug}`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_60%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)] hover:border-[var(--mm-gold)] transition"
+            >
+              <span>{group.name}</span>
+              <span className="rounded-full bg-white/10 px-1.5 py-0.2 text-[10px]">
+                {group.partners.length}
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
+
       {groups.length === 0 ? (
         <p className="py-16 text-center text-[var(--mm-text-dim)]">
           The first stalls are still being set up.

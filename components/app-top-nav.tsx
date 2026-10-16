@@ -18,6 +18,24 @@ const ITEMS = {
     icon: "game-icons:anvil",
     color: ACCENT.partners,
   },
+  vendors: {
+    href: "/partners#vendors",
+    title: "Vendors",
+    icon: "game-icons:shop",
+    color: ACCENT.marketplace,
+  },
+  artists: {
+    href: "/partners#artists",
+    title: "Artists",
+    icon: "game-icons:paint-brush",
+    color: ACCENT.marketplace,
+  },
+  collaborators: {
+    href: "/partners#collaborators",
+    title: "Collaborators",
+    icon: "mdi:handshake-outline",
+    color: ACCENT.marketplace,
+  },
   partnerHub: {
     href: "/partner-hub",
     title: "Partner Hub",
@@ -47,6 +65,9 @@ function buildItems(role: Role, hasPartner: boolean): NavMenuItem[] {
   const isPartner = hasPartner || roleAtLeast(role, "admin");
   return [
     ITEMS.partners,
+    ITEMS.vendors,
+    ITEMS.artists,
+    ITEMS.collaborators,
     isPartner ? ITEMS.partnerHub : ITEMS.apply,
     ...(roleAtLeast(role, "admin") ? [ITEMS.admin] : []),
   ];
@@ -77,20 +98,52 @@ export function AppTopNav({
           <li>
             <Link
               href="/"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 text-sm text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
             >
-              <Icon icon="mdi:home" width={17} />
+              <Icon icon="mdi:home" width={14} />
               Home
             </Link>
           </li>
           <li>
-            <Link
-              href="/partners"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 text-sm text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+            <a
+              href="/#calendar"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs text-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--mm-gold)_20%,transparent)] hover:text-[var(--mm-text)]"
             >
-              <Icon icon="game-icons:anvil" width={17} />
-              Partners
-            </Link>
+              <Icon icon="mdi:calendar-month-outline" width={14} />
+              Calendar
+            </a>
+          </li>
+          <li>
+            <div className="flex items-center rounded-xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_70%,transparent)] p-1 gap-0.5 ml-1">
+              <Link
+                href="/partners"
+                className="inline-flex min-h-7 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)] transition"
+              >
+                <Icon icon="game-icons:anvil" width={13} />
+                Partners
+              </Link>
+              <a
+                href="/partners#vendors"
+                className="inline-flex min-h-7 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)] transition"
+              >
+                <Icon icon="game-icons:shop" width={13} />
+                Vendors
+              </a>
+              <a
+                href="/partners#artists"
+                className="inline-flex min-h-7 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)] transition"
+              >
+                <Icon icon="game-icons:paint-brush" width={13} />
+                Artists
+              </a>
+              <a
+                href="/partners#collaborators"
+                className="inline-flex min-h-7 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)] transition"
+              >
+                <Icon icon="mdi:handshake-outline" width={13} />
+                Collaborators
+              </a>
+            </div>
           </li>
         </ul>
         <div className="ml-auto shrink-0">

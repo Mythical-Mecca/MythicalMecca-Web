@@ -7,8 +7,8 @@ import { Icon } from "@/components/icon";
 import { Brand } from "@/components/brand";
 import { DevLoginTrigger } from "@/components/dev-login-trigger";
 import { publicSignOut } from "@/app/(public)/actions";
-
 import { HOME_SECTIONS, type NavSection } from "@/lib/navigation";
+
 export { HOME_SECTIONS };
 
 export function PublicTopNav({
@@ -21,6 +21,16 @@ export function PublicTopNav({
   const pathname = usePathname();
   const [visible, setVisible] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeHash, setActiveHash] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setActiveHash(window.location.hash);
+      const onHashChange = () => setActiveHash(window.location.hash);
+      window.addEventListener("hashchange", onHashChange);
+      return () => window.removeEventListener("hashchange", onHashChange);
+    }
+  }, []);
 
   // Scroll detection: slide up out of view on scroll down, slide down on slight scroll up
   useEffect(() => {
@@ -59,64 +69,107 @@ export function PublicTopNav({
     return () => window.removeEventListener("scroll", handleScroll);
   }, [mobileMenuOpen]);
 
-  // Determine dynamic target href based on current route
-  const getHref = (item: (typeof HOME_SECTIONS)[number]) => {
-    if (pathname === "/partners" || pathname.startsWith("/partners/")) {
-      return item.partnerHref ?? item.href;
-    }
-    return item.href;
-  };
+  const isPartnersPage = pathname === "/partners" || pathname.startsWith("/partners/");
+
+  // Dynamic link targets
+  const calendarHref = isPartnersPage ? "/#calendar" : "#calendar";
+  const partnersBaseHref = "/partners";
+  const vendorsHref = isPartnersPage ? "#vendors" : "/partners#vendors";
+  const artistsHref = isPartnersPage ? "#artists" : "/partners#artists";
+  const collaboratorsHref = isPartnersPage ? "#collaborators" : "/partners#collaborators";
+
+  const partnerTabs = [
+    { label: "Partners", href: partnersBaseHref, icon: "game-icons:anvil" },
+    { label: "Vendors", href: vendorsHref, icon: "game-icons:shop" },
+    { label: "Artists", href: artistsHref, icon: "game-icons:paint-brush" },
+    { label: "Collaborators", href: collaboratorsHref, icon: "mdi:handshake-outline" },
+  ];
 
   return (
     <header
-      className={`sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_90%,transparent)] backdrop-blur-md transition-transform duration-300 ease-in-out ${
+      className={`sticky top-0 z-40 border-b border-[color-mix(in_srgb,var(--mm-border)_70%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_92%,transparent)] backdrop-blur-md transition-transform duration-300 ease-in-out ${
         visible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
       <nav
         aria-label="Primary"
-        className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5"
+        className="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3"
       >
         <div className="flex items-center gap-3">
           {process.env.NODE_ENV === "development" ? (
             <DevLoginTrigger>
-              <Brand href="/" className="text-lg" />
+              <Brand href="/" className="text-base sm:text-lg" />
             </DevLoginTrigger>
           ) : (
-            <Brand href="/" className="text-lg" />
+            <Brand href="/" className="text-base sm:text-lg" />
           )}
         </div>
 
-        {/* Desktop Tabs */}
-        <div className="flex items-center gap-1">
+        {/* Center / Navigation Controls */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Main sections */}
           <nav
             aria-label="Page sections"
-            className="mr-2 hidden items-center gap-1 lg:flex"
+            className="hidden items-center gap-0.5 md:flex"
           >
-            {HOME_SECTIONS.map((s) => {
-              const isPartnerCategory =
-                s.label === "Vendors" ||
-                s.label === "Artists" ||
-                s.label === "Collaborators";
+            <a
+              href="/#about"
+              className="inline-flex min-h-8 items-center rounded-lg px-2 text-xs font-medium text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+            >
+              About
+            </a>
+            <a
+              href="/#gallery"
+              className="inline-flex min-h-8 items-center rounded-lg px-2 text-xs font-medium text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+            >
+              Gallery
+            </a>
+            <a
+              href={calendarHref}
+              className="inline-flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--mm-gold)_20%,transparent)] hover:text-[var(--mm-text)]"
+            >
+              <Icon icon="mdi:calendar-month-outline" width={14} />
+              <span>Calendar</span>
+            </a>
+            <a
+              href="/#quests"
+              className="inline-flex min-h-8 items-center rounded-lg px-2 text-xs font-medium text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+            >
+              Quests
+            </a>
+          </nav>
+
+          {/* DEDICATED PARTNER CATEGORY TABS SEGMENT */}
+          <div
+            aria-label="Partner category tabs"
+            className="hidden md:flex items-center rounded-xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_70%,transparent)] p-1 gap-0.5 shadow-sm"
+          >
+            {partnerTabs.map((tab) => {
+              const isActive =
+                (tab.label === "Partners" && isPartnersPage && !activeHash) ||
+                (tab.label === "Vendors" && activeHash === "#vendors") ||
+                (tab.label === "Artists" && activeHash === "#artists") ||
+                (tab.label === "Collaborators" && activeHash === "#collaborators");
 
               return (
                 <a
-                  key={s.label}
-                  href={getHref(s)}
-                  className={`inline-flex min-h-9 items-center rounded-lg px-2.5 text-xs font-medium transition-colors ${
-                    isPartnerCategory
-                      ? "text-[var(--mm-text-dim)] hover:bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)] hover:text-[var(--mm-gold)]"
+                  key={tab.label}
+                  href={tab.href}
+                  className={`inline-flex min-h-7 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-all ${
+                    isActive
+                      ? "bg-[var(--mm-gold)] text-[var(--mm-bg)] font-semibold shadow-sm"
                       : "text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
                   }`}
                 >
-                  {s.label}
+                  <Icon icon={tab.icon} width={13} />
+                  <span>{tab.label}</span>
                 </a>
               );
             })}
-          </nav>
+          </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-2">
+          {/* User Sign In / Out Actions */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {signedIn ? (
               <>
                 {showApply && (
@@ -124,7 +177,7 @@ export function PublicTopNav({
                     href="/apply"
                     className="mm-btn mm-btn-ghost text-xs max-sm:px-2.5"
                   >
-                    <Icon icon="game-icons:shop" width={15} />
+                    <Icon icon="game-icons:shop" width={14} />
                     <span className="max-sm:hidden">Apply</span>
                   </Link>
                 )}
@@ -133,7 +186,7 @@ export function PublicTopNav({
                     type="submit"
                     className="mm-btn mm-btn-ghost text-xs max-sm:px-2.5"
                   >
-                    <Icon icon="mdi:logout" width={15} />
+                    <Icon icon="mdi:logout" width={14} />
                     <span className="max-sm:hidden">Sign out</span>
                   </button>
                 </form>
@@ -143,7 +196,7 @@ export function PublicTopNav({
                 href="/login"
                 className="mm-btn mm-btn-primary text-xs max-sm:px-3"
               >
-                <Icon icon="mdi:account" width={15} />
+                <Icon icon="mdi:account" width={14} />
                 <span className="max-sm:hidden">Sign in</span>
               </Link>
             )}
@@ -154,7 +207,7 @@ export function PublicTopNav({
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileMenuOpen}
-              className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--mm-border)] text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)] lg:hidden transition"
+              className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--mm-border)] text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)] md:hidden transition"
             >
               <Icon
                 icon={mobileMenuOpen ? "mdi:close" : "mdi:menu"}
@@ -165,40 +218,64 @@ export function PublicTopNav({
         </div>
       </nav>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer with Segmented Tabs */}
       {mobileMenuOpen && (
-        <div className="border-t border-[var(--mm-divider)] bg-[var(--mm-surface)] px-6 py-4 lg:hidden">
-          <nav aria-label="Mobile sections" className="grid grid-cols-2 gap-2">
-            {HOME_SECTIONS.map((s) => {
-              const isPartnerCategory =
-                s.label === "Vendors" ||
-                s.label === "Artists" ||
-                s.label === "Collaborators";
+        <div className="border-t border-[var(--mm-divider)] bg-[var(--mm-surface)] px-4 py-4 md:hidden space-y-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--mm-text-dim)] mb-2">
+              Sections
+            </p>
+            <nav className="grid grid-cols-2 gap-1.5">
+              <a
+                href="/#about"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+              >
+                About
+              </a>
+              <a
+                href="/#gallery"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+              >
+                Gallery
+              </a>
+              <a
+                href={calendarHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)] font-medium"
+              >
+                <Icon icon="mdi:calendar-month-outline" width={14} />
+                Calendar
+              </a>
+              <a
+                href="/#quests"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+              >
+                Quests
+              </a>
+            </nav>
+          </div>
 
-              return (
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--mm-gold)] mb-2">
+              Partner Tabs
+            </p>
+            <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_50%,transparent)] p-1.5">
+              {partnerTabs.map((tab) => (
                 <a
-                  key={s.label}
-                  href={getHref(s)}
+                  key={tab.label}
+                  href={tab.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition ${
-                    isPartnerCategory
-                      ? "text-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-gold)_8%,transparent)]"
-                      : "text-[var(--mm-text)] hover:bg-[var(--mm-elevated)]"
-                  }`}
+                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-[var(--mm-text)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-gold)] transition"
                 >
-                  <span
-                    aria-hidden
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      isPartnerCategory
-                        ? "bg-[var(--mm-gold)]"
-                        : "bg-[var(--mm-blue)]"
-                    }`}
-                  />
-                  {s.label}
+                  <Icon icon={tab.icon} width={15} className="text-[var(--mm-gold)]" />
+                  {tab.label}
                 </a>
-              );
-            })}
-          </nav>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </header>
