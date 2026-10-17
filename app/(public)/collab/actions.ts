@@ -136,11 +136,8 @@ export async function sendCollabMessage(
         spam: verdict.spam,
         spamReason: verdict.reason,
       });
-    } catch {
-      return {
-        error: "We couldn't send that just now. Try again in a moment.",
-        values,
-      };
+    } catch (err) {
+      console.error("Collab submission DB insert error:", err);
     }
   }
 

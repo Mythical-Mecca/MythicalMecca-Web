@@ -17,12 +17,6 @@ const Footer = () => (
           {s.label}
         </a>
       ))}
-      <Link
-        href={withReturn("/collab", { href: "/", label: "home" })}
-        className="inline-flex min-h-6 items-center hover:text-[var(--mm-text)]"
-      >
-        Contact
-      </Link>
     </nav>
     <a
       href="https://discord.gg/NKWMAtq2B"

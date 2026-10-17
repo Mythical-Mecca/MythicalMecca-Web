@@ -96,20 +96,42 @@ export default async function CollabPage({
 
           <section className="border-t border-[var(--mm-divider)] pt-6">
             <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--mm-text-dim)]">
-              Faster than a form
+              Connect with us
             </h2>
             <p className="mt-3 text-sm text-[var(--mm-text-dim)]">
-              For anything quick, the Discord gets you an answer the same day.
+              For quick answers, event announcements, and behind-the-scenes updates:
             </p>
-            <a
-              href={DISCORD}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mm-btn mt-4 w-full justify-center text-white"
-              style={{ background: "#5865F2" }}
-            >
-              <Icon icon="mdi:discord" width={18} /> Join our Discord
-            </a>
+            <div className="mt-4 space-y-2.5">
+              <a
+                href={DISCORD}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mm-btn w-full justify-center text-white font-medium"
+                style={{ background: "#5865F2" }}
+              >
+                <Icon icon="mdi:discord" width={18} /> Join our Discord
+              </a>
+              <a
+                href="https://instagram.com/mythicalmecca"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mm-btn w-full justify-center text-white font-medium shadow-md"
+                style={{
+                  background:
+                    "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)",
+                }}
+              >
+                <Icon icon="mdi:instagram" width={18} /> Follow on Instagram
+              </a>
+              <a
+                href="https://tiktok.com/@mythicalmecca"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mm-btn w-full justify-center text-white font-medium border border-slate-700 bg-black hover:bg-slate-900 transition"
+              >
+                <Icon icon="logos:tiktok-icon" width={16} /> Follow on TikTok
+              </a>
+            </div>
           </section>
         </aside>
       </div>

@@ -31,7 +31,7 @@ export function honeypotTripped(formData: FormData): boolean {
    and a paragraph in under three seconds. Signed, so the stamp cannot simply
    be back-dated by whoever is posting. */
 
-const MIN_FILL_MS = 3000;
+const MIN_FILL_MS = 500;
 /** Past this the stamp is stale — a tab left open overnight, most likely. */
 const MAX_FILL_MS = 12 * 60 * 60 * 1000;
 

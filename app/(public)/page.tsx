@@ -467,23 +467,19 @@ export default async function HomePage() {
 
            Absent rather than empty when nothing is running. A quest only
            exists during an event, so an empty board here would be the normal
-           state for most of the year and would say nothing worth the scroll. */}
-      {quests.length > 0 && (
-        <section id="quests" className="scroll-mt-20 bg-[var(--mm-bg)]">
-          <div className="mx-auto max-w-6xl px-6 py-20">
-            <SectionTitle
-              icon="game-icons:treasure-map"
-              lead="Open"
-              accent="quests"
-            />
-            <p className="mt-3 max-w-2xl text-[var(--mm-text-dim)]">
-              Trails running at our gatherings right now. Walk one at the venue
-              and check in as you go.
-            </p>
+      {/* ---------------- Quests ---------------- */}
+      <section id="quests" className="scroll-mt-24 bg-[var(--mm-bg)]">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <SectionTitle
+            icon="game-icons:treasure-map"
+            lead="Community"
+            accent="quests"
+          />
+          <p className="mt-3 max-w-2xl text-[var(--mm-text-dim)]">
+            Trails running at our gatherings. Walk one at the venue and check in as you go to earn event medallions.
+          </p>
 
-            {/* One per row on a phone, where a full-width target is the whole
-                point; two or three across from tablet up, where a row of
-                full-width bars would just be a stack of stretched buttons. */}
+          {quests.length > 0 ? (
             <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
               {quests.map((q) => (
                 <Link
@@ -521,9 +517,28 @@ export default async function HomePage() {
                 </Link>
               ))}
             </div>
-          </div>
-        </section>
-      )}
+          ) : (
+            <div className="mm-glass mt-8 flex flex-col items-center px-6 py-14 text-center">
+              <Icon
+                icon="game-icons:treasure-map"
+                width={48}
+                className="text-[var(--mm-gold)]"
+              />
+              <h3 className="mt-4 font-[family-name:var(--font-display)] text-2xl tracking-wide">
+                No active quests right now
+              </h3>
+              <p className="mx-auto mt-2 max-w-md text-sm text-[var(--mm-text-dim)]">
+                Scavenger trails run during our seasonal festival gatherings. Keep an eye on the calendar for the next gathering and check back when the gates open!
+              </p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <a href="#calendar" className="mm-btn mm-btn-primary text-xs">
+                  <Icon icon="mdi:calendar-month-outline" width={16} /> View upcoming gatherings
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* ---------------- Partners ---------------- */}
       <section

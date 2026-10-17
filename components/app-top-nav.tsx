@@ -36,6 +36,12 @@ const ITEMS = {
     icon: "mdi:handshake-outline",
     color: ACCENT.marketplace,
   },
+  quests: {
+    href: "/quests",
+    title: "Quests",
+    icon: "game-icons:treasure-map",
+    color: ACCENT.quests,
+  },
   partnerHub: {
     href: "/partner-hub",
     title: "Partner Hub",
@@ -64,10 +70,8 @@ const ITEMS = {
 function buildItems(role: Role, hasPartner: boolean): NavMenuItem[] {
   const isPartner = hasPartner || roleAtLeast(role, "admin");
   return [
+    ITEMS.quests,
     ITEMS.partners,
-    ITEMS.vendors,
-    ITEMS.artists,
-    ITEMS.collaborators,
     isPartner ? ITEMS.partnerHub : ITEMS.apply,
     ...(roleAtLeast(role, "admin") ? [ITEMS.admin] : []),
   ];
@@ -112,6 +116,15 @@ export function AppTopNav({
               <Icon icon="mdi:calendar-month-outline" width={14} />
               Calendar
             </a>
+          </li>
+          <li>
+            <Link
+              href="/quests"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+            >
+              <Icon icon="game-icons:treasure-map" width={14} />
+              Quests
+            </Link>
           </li>
           <li>
             <div className="flex items-center rounded-xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_70%,transparent)] p-1 gap-0.5 ml-1">

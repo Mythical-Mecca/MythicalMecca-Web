@@ -7,7 +7,12 @@ import { Icon } from "@/components/icon";
 import { Brand } from "@/components/brand";
 import { DevLoginTrigger } from "@/components/dev-login-trigger";
 import { publicSignOut } from "@/app/(public)/actions";
-import { HOME_SECTIONS, type NavSection } from "@/lib/navigation";
+import {
+  DESKTOP_SECTIONS,
+  DESKTOP_PARTNER_TABS,
+  BURGER_SECTIONS,
+  HOME_SECTIONS,
+} from "@/lib/navigation";
 
 export { HOME_SECTIONS };
 
@@ -71,19 +76,13 @@ export function PublicTopNav({
 
   const isPartnersPage = pathname === "/partners" || pathname.startsWith("/partners/");
 
-  // Dynamic link targets
-  const calendarHref = isPartnersPage ? "/#calendar" : "#calendar";
-  const partnersBaseHref = "/partners";
-  const vendorsHref = isPartnersPage ? "#vendors" : "/partners#vendors";
-  const artistsHref = isPartnersPage ? "#artists" : "/partners#artists";
-  const collaboratorsHref = isPartnersPage ? "#collaborators" : "/partners#collaborators";
-
-  const partnerTabs = [
-    { label: "Partners", href: partnersBaseHref, icon: "game-icons:anvil" },
-    { label: "Vendors", href: vendorsHref, icon: "game-icons:shop" },
-    { label: "Artists", href: artistsHref, icon: "game-icons:paint-brush" },
-    { label: "Collaborators", href: collaboratorsHref, icon: "mdi:handshake-outline" },
-  ];
+  // Dynamic link targets for partner tabs
+  const getPartnerTabHref = (tab: (typeof DESKTOP_PARTNER_TABS)[number]) => {
+    if (isPartnersPage && tab.partnerHref) {
+      return tab.partnerHref.replace("/partners", "");
+    }
+    return tab.partnerHref ?? tab.href;
+  };
 
   return (
     <header
@@ -107,44 +106,37 @@ export function PublicTopNav({
 
         {/* Center / Navigation Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Main sections */}
+          {/* Main sections on Base PC */}
           <nav
             aria-label="Page sections"
             className="hidden items-center gap-0.5 md:flex"
           >
-            <a
-              href="/#about"
-              className="inline-flex min-h-8 items-center rounded-lg px-2 text-xs font-medium text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
-            >
-              About
-            </a>
-            <a
-              href="/#gallery"
-              className="inline-flex min-h-8 items-center rounded-lg px-2 text-xs font-medium text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
-            >
-              Gallery
-            </a>
-            <a
-              href={calendarHref}
-              className="inline-flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--mm-gold)_20%,transparent)] hover:text-[var(--mm-text)]"
-            >
-              <Icon icon="mdi:calendar-month-outline" width={14} />
-              <span>Calendar</span>
-            </a>
-            <a
-              href="/#quests"
-              className="inline-flex min-h-8 items-center rounded-lg px-2 text-xs font-medium text-[var(--mm-text-dim)] transition-colors hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
-            >
-              Quests
-            </a>
+            {DESKTOP_SECTIONS.map((s) => {
+              const isCalendar = s.label === "Calendar";
+              return (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  className={`inline-flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium transition-colors ${
+                    isCalendar
+                      ? "text-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)] hover:bg-[color-mix(in_srgb,var(--mm-gold)_20%,transparent)] hover:text-[var(--mm-text)]"
+                      : "text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+                  }`}
+                >
+                  {s.icon && <Icon icon={s.icon} width={13} />}
+                  <span>{s.label}</span>
+                </a>
+              );
+            })}
           </nav>
 
-          {/* DEDICATED PARTNER CATEGORY TABS SEGMENT */}
+          {/* DEDICATED PARTNER CATEGORY TABS SEGMENT (Base PC only) */}
           <div
             aria-label="Partner category tabs"
             className="hidden md:flex items-center rounded-xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_70%,transparent)] p-1 gap-0.5 shadow-sm"
           >
-            {partnerTabs.map((tab) => {
+            {DESKTOP_PARTNER_TABS.map((tab) => {
+              const targetHref = getPartnerTabHref(tab);
               const isActive =
                 (tab.label === "Partners" && isPartnersPage && !activeHash) ||
                 (tab.label === "Vendors" && activeHash === "#vendors") ||
@@ -154,14 +146,14 @@ export function PublicTopNav({
               return (
                 <a
                   key={tab.label}
-                  href={tab.href}
+                  href={targetHref}
                   className={`inline-flex min-h-7 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-all ${
                     isActive
                       ? "bg-[var(--mm-gold)] text-[var(--mm-bg)] font-semibold shadow-sm"
                       : "text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
                   }`}
                 >
-                  <Icon icon={tab.icon} width={13} />
+                  {tab.icon && <Icon icon={tab.icon} width={13} />}
                   <span>{tab.label}</span>
                 </a>
               );
@@ -218,64 +210,43 @@ export function PublicTopNav({
         </div>
       </nav>
 
-      {/* Mobile Drawer with Segmented Tabs */}
+      {/* Burger Menu Drawer (Mobile) - Contains ONLY the Partner tab, omitting Vendors/Artists/Collaborators */}
       {mobileMenuOpen && (
-        <div className="border-t border-[var(--mm-divider)] bg-[var(--mm-surface)] px-4 py-4 md:hidden space-y-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--mm-text-dim)] mb-2">
-              Sections
-            </p>
-            <nav className="grid grid-cols-2 gap-1.5">
-              <a
-                href="/#about"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
-              >
-                About
-              </a>
-              <a
-                href="/#gallery"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
-              >
-                Gallery
-              </a>
-              <a
-                href={calendarHref}
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)] font-medium"
-              >
-                <Icon icon="mdi:calendar-month-outline" width={14} />
-                Calendar
-              </a>
-              <a
-                href="/#quests"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
-              >
-                Quests
-              </a>
-            </nav>
-          </div>
+        <div className="border-t border-[var(--mm-divider)] bg-[var(--mm-surface)] px-5 py-4 md:hidden">
+          <nav aria-label="Mobile navigation" className="flex flex-col gap-1.5">
+            {BURGER_SECTIONS.map((s) => {
+              const isCalendar = s.label === "Calendar";
+              const isPartner = s.label === "Partners";
+              const isQuests = s.label === "Quests";
 
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--mm-gold)] mb-2">
-              Partner Tabs
-            </p>
-            <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_50%,transparent)] p-1.5">
-              {partnerTabs.map((tab) => (
+              return (
                 <a
-                  key={tab.label}
-                  href={tab.href}
+                  key={s.label}
+                  href={s.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-[var(--mm-text)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-gold)] transition"
+                  className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
+                    isCalendar
+                      ? "text-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)]"
+                      : isPartner
+                        ? "text-[var(--mm-text)] bg-[var(--mm-elevated)] border border-[var(--mm-border)]"
+                        : "text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+                  }`}
                 >
-                  <Icon icon={tab.icon} width={15} className="text-[var(--mm-gold)]" />
-                  {tab.label}
+                  <span className="flex items-center gap-2">
+                    {s.icon ? (
+                      <Icon icon={s.icon} width={17} />
+                    ) : isQuests ? (
+                      <Icon icon="game-icons:treasure-map" width={17} />
+                    ) : (
+                      <span className="h-1.5 w-1.5 rounded-full bg-[var(--mm-blue)]" />
+                    )}
+                    <span>{s.label}</span>
+                  </span>
+                  <Icon icon="mdi:chevron-right" width={16} className="text-[var(--mm-text-dim)]" />
                 </a>
-              ))}
-            </div>
-          </div>
+              );
+            })}
+          </nav>
         </div>
       )}
     </header>
