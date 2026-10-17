@@ -17,12 +17,7 @@ export default async function QuestsPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 sm:px-8 py-8 sm:py-12">
-      <SectionHero
-        section="quests"
-        lead="Festival"
-        accent="Quests"
-        summary="Interactive scavenger trails at our gatherings. Walk the hall, find hidden station codes and earn badges."
-      />
+      <SectionHero section="quests" />
 
       <div className="mt-8 sm:mt-12">
         {quests.length > 0 ? (
