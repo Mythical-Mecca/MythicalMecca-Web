@@ -18,14 +18,38 @@ const Footer = () => (
         </a>
       ))}
     </nav>
-    <a
-      href="https://discord.gg/NKWMAtq2B"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex min-h-6 items-center gap-1.5 hover:text-[var(--mm-text)]"
-    >
-      <Icon icon="mdi:discord" width={16} /> Join our Discord
-    </a>
+    <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
+      <a
+        href="https://discord.gg/X5YHrR33T"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex min-h-6 items-center gap-1.5 hover:text-[var(--mm-gold)]"
+      >
+        <Icon icon="mdi:discord" width={16} /> Discord
+      </a>
+      <a
+        href="https://instagram.com/mythicalmecca"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex min-h-6 items-center gap-1.5 hover:text-[var(--mm-gold)]"
+      >
+        <Icon icon="mdi:instagram" width={16} /> Instagram
+      </a>
+      <a
+        href="https://tiktok.com/@mythical.mecca"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex min-h-6 items-center gap-1.5 hover:text-[var(--mm-gold)]"
+      >
+        <Icon icon="logos:tiktok-icon" width={15} /> TikTok
+      </a>
+      <a
+        href="mailto:information@mythical-mecca.com"
+        className="inline-flex min-h-6 items-center gap-1.5 hover:text-[var(--mm-gold)]"
+      >
+        <Icon icon="mdi:email-outline" width={16} /> information@mythical-mecca.com
+      </a>
+    </div>
     <span>Mythical Mecca — a hearth for the geek community.</span>
   </footer>
 );

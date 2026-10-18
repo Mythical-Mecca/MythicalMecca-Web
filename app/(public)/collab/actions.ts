@@ -12,6 +12,7 @@ import {
   tooManyFromIp,
 } from "@/lib/spam";
 import { TURNSTILE_FIELD, verifyTurnstile } from "@/lib/turnstile";
+import { sendCollabNotification } from "@/lib/mail";
 
 /**
  * Messages are written for the person filling the form, not for a log. Each
@@ -142,6 +143,12 @@ export async function sendCollabMessage(
   }
 
   if (!verdict.spam) {
+    try {
+      await sendCollabNotification(data);
+    } catch (err) {
+      console.error("Collab notification mail send error:", err);
+    }
+
     await logActivity({
       action: "collab.submit",
       metadata: { email: data.email },

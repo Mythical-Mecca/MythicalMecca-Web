@@ -14,7 +14,7 @@ import "server-only";
  */
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "";
-const FROM = process.env.MAIL_FROM ?? "Mythical Mecca <noreply@mythicalmecca.co.za>";
+const FROM = process.env.MAIL_FROM ?? "Mythical Mecca <information@mythical-mecca.com>";
 
 export function absoluteUrl(path: string): string {
   if (!APP_URL) return path;
@@ -83,3 +83,33 @@ export async function sendPartnerInvite(o: {
     ].join("\n"),
   });
 }
+
+/** Notification forwarded to the team when a visitor fills out the Contact form. */
+export async function sendCollabNotification(o: {
+  name: string;
+  email: string;
+  org?: string;
+  message: string;
+}): Promise<boolean> {
+  const targetEmail = process.env.CONTACT_EMAIL || "information@mythical-mecca.com";
+  return deliver({
+    to: targetEmail,
+    subject: `[Mythical Mecca Contact] New message from ${o.name}`,
+    text: [
+      `New message received via the mythicalmecca.com contact form:`,
+      "",
+      `From: ${o.name}`,
+      `Email: ${o.email}`,
+      o.org ? `Organization: ${o.org}` : null,
+      "",
+      `Message:`,
+      o.message,
+      "",
+      `---`,
+      `Reply directly to: ${o.email}`,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  });
+}
+

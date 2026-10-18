@@ -35,7 +35,7 @@ export const metadata = pageMetadata({
 const TAVERN = "/MythicMechaBackground.webp";
 const BG2 = "/MythicMechaBackground2.webp";
 const BG3 = "/MythicMechaBackground3.webp";
-const DISCORD = "https://discord.gg/NKWMAtq2B";
+const DISCORD = "https://discord.gg/X5YHrR33T";
 
 const heroOverlay =
   "linear-gradient(to bottom, rgba(11,15,28,0.72) 0%, rgba(11,15,28,0.42) 42%, rgba(11,15,28,0.86) 86%, #0b0f1c 100%)";

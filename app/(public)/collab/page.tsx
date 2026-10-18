@@ -12,7 +12,7 @@ export const metadata = pageMetadata({
     "Want to collaborate, sponsor a night, host an event or take a stall? Send us a message and we will write back.",
 });
 
-const DISCORD = "https://discord.gg/NKWMAtq2B";
+const DISCORD = "https://discord.gg/X5YHrR33T";
 
 /** What people actually write in about, so the form is not a blank stare. */
 const REASONS = [
@@ -124,12 +124,18 @@ export default async function CollabPage({
                 <Icon icon="mdi:instagram" width={18} /> Follow on Instagram
               </a>
               <a
-                href="https://tiktok.com/@mythicalmecca"
+                href="https://tiktok.com/@mythical.mecca"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mm-btn w-full justify-center text-white font-medium border border-slate-700 bg-black hover:bg-slate-900 transition"
               >
                 <Icon icon="logos:tiktok-icon" width={16} /> Follow on TikTok
+              </a>
+              <a
+                href="mailto:information@mythical-mecca.com"
+                className="mm-btn w-full justify-center text-white font-medium border border-[var(--mm-border)] bg-[var(--mm-elevated)] hover:border-[var(--mm-gold)] hover:text-[var(--mm-gold)] transition"
+              >
+                <Icon icon="mdi:email-outline" width={18} /> Email us directly
               </a>
             </div>
           </section>

@@ -167,22 +167,31 @@ export function CollabForm({
         </>
       )}
 
-      <button
-        disabled={pending}
-        className="mm-btn mm-btn-primary w-full justify-center py-3.5 disabled:opacity-60 sm:w-auto sm:px-8"
-      >
-        {pending ? (
-          <>
-            <Icon icon="mdi:loading" width={18} className="animate-spin" />
-            Sending
-          </>
-        ) : (
-          <>
-            <Icon icon="mdi:send-outline" width={18} />
-            Send message
-          </>
-        )}
-      </button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-2">
+        <button
+          disabled={pending}
+          className="mm-btn mm-btn-primary w-full justify-center py-3.5 disabled:opacity-60 sm:w-auto sm:px-8"
+        >
+          {pending ? (
+            <>
+              <Icon icon="mdi:loading" width={18} className="animate-spin" />
+              Sending
+            </>
+          ) : (
+            <>
+              <Icon icon="mdi:send-outline" width={18} />
+              Send message
+            </>
+          )}
+        </button>
+        <a
+          href="mailto:information@mythical-mecca.com"
+          className="inline-flex items-center gap-1.5 text-xs text-[var(--mm-text-dim)] hover:text-[var(--mm-gold)] transition"
+        >
+          <Icon icon="mdi:email-outline" width={15} />
+          <span>Or email us: information@mythical-mecca.com</span>
+        </a>
+      </div>
     </form>
   );
 }
