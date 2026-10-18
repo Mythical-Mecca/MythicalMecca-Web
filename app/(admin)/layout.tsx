@@ -12,6 +12,7 @@ const NAV: NavItem[] = [
   { href: "/admin/events", label: "Events", sub: "Schedule & moderation", icon: "game-icons:campfire", color: ACCENT.events },
   { href: "/admin/gallery", label: "Gallery", sub: "Homepage photos", icon: "mdi:image-multiple", color: ACCENT.gallery },
   { href: "/admin/partners", label: "Partners", sub: "Partners & applications", icon: "game-icons:anvil", color: ACCENT.partners },
+  { href: "/admin/messages", label: "Messages", sub: "Contact inquiries", icon: "mdi:email-outline", color: "#5865F2" },
   { href: "/admin/quests", label: "Quests", sub: "Venue trails & tags", icon: "game-icons:treasure-map", color: ACCENT.quests },
   { href: "/admin/reviews", label: "Reviews", sub: "Approve testimonials", icon: "mdi:star-outline", color: ACCENT.reviews },
   { href: "/admin/users", label: "Members", sub: "Roles, admin & bans", icon: "mdi:account-group-outline", color: ACCENT.admin },

@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import Script from "next/script";
 import { Icon } from "@/components/icon";
 import { TextField, TextareaField } from "@/components/form";
+import { EmailContactButton } from "@/components/email-contact-button";
 import {
   sendCollabMessage,
   type CollabState,
@@ -63,12 +64,14 @@ export function CollabForm({
           We read everything that comes through here and reply to the address
           you gave us. Give us a few days over a busy event week.
         </p>
-        {/* The receipt used to be the end of the road: nothing to press, and
-            the only way to write again was a page reload. */}
+        <div className="mt-6 w-full max-w-sm">
+          <p className="text-xs text-[var(--mm-text-dim)] mb-2 font-medium">Need to send attachments or follow up directly?</p>
+          <EmailContactButton label="Email information@mythical-mecca.com" showAddress={true} />
+        </div>
         <button
           type="button"
           onClick={() => setWritingAnother(true)}
-          className="mm-btn mm-btn-ghost mt-6"
+          className="mm-btn mm-btn-ghost mt-4"
         >
           <Icon icon="mdi:pencil-outline" width={16} /> Send another message
         </button>
@@ -184,13 +187,9 @@ export function CollabForm({
             </>
           )}
         </button>
-        <a
-          href="mailto:information@mythical-mecca.com"
-          className="inline-flex items-center gap-1.5 text-xs text-[var(--mm-text-dim)] hover:text-[var(--mm-gold)] transition"
-        >
-          <Icon icon="mdi:email-outline" width={15} />
-          <span>Or email us: information@mythical-mecca.com</span>
-        </a>
+        <div className="w-full sm:w-auto min-w-[220px]">
+          <EmailContactButton label="Or copy direct email" showAddress={true} />
+        </div>
       </div>
     </form>
   );

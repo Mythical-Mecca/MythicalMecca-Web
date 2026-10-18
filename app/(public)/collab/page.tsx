@@ -1,6 +1,7 @@
 import { Icon } from "@/components/icon";
 import { BackLink } from "@/components/back-link";
 import { CollabForm } from "@/components/collab-form";
+import { EmailContactButton } from "@/components/email-contact-button";
 import { parseReturn } from "@/lib/return-to";
 import { formStamp, HONEYPOT_FIELD } from "@/lib/spam";
 import { turnstileSiteKey } from "@/lib/turnstile";
@@ -131,12 +132,9 @@ export default async function CollabPage({
               >
                 <Icon icon="logos:tiktok-icon" width={16} /> Follow on TikTok
               </a>
-              <a
-                href="mailto:information@mythical-mecca.com"
-                className="mm-btn w-full justify-center text-white font-medium border border-[var(--mm-border)] bg-[var(--mm-elevated)] hover:border-[var(--mm-gold)] hover:text-[var(--mm-gold)] transition"
-              >
-                <Icon icon="mdi:email-outline" width={18} /> Email us directly
-              </a>
+              <div className="pt-1">
+                <EmailContactButton label="Email us directly" showAddress={true} />
+              </div>
             </div>
           </section>
         </aside>
