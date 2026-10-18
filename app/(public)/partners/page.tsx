@@ -13,23 +13,22 @@ export const metadata = pageMetadata({
     "The traders, makers and studios of Mythical Mecca — miniatures, games, art, apparel and more, listed by craft. Browse the stalls or apply for one of your own.",
 });
 
-export default async function PartnersPage() {
-  // The full directory: every category with partners, not just the featured
-  // ones the homepage shows.
-  const groups = await getPartnersByCategory();
+export default async function PartnersPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ category?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const activeCategory = resolvedSearchParams.category?.toLowerCase() || "all";
+  const allGroups = await getPartnersByCategory();
+
+  // Filter groups if a specific category tab was selected
+  const groups =
+    activeCategory && activeCategory !== "all"
+      ? allGroups.filter((g) => g.slug.toLowerCase() === activeCategory)
+      : allGroups;
 
   return (
-    /* The public layout leaves `main` unwrapped on purpose — the homepage runs
-       full-bleed sections that each bring their own container. Index pages like
-       this one therefore have to supply it themselves, and this one never did:
-       the headings, the hero and every card sat flush against the viewport
-       edge.
-
-       The gutter is wider than the signed-in shell's `px-6`. The cards here are
-       image-topped and run to the edge of their own box, so the same gutter
-       that suits a page of text left them looking wedged against the viewport.
-       Everything in the page shares this container, so the hero, the section
-       headings and the cards all still line up with each other. */
     <div className="mx-auto w-full max-w-6xl px-8 pt-8">
       <SectionHero
         section="partners"
@@ -45,44 +44,65 @@ export default async function PartnersPage() {
       />
 
       {/* Category Navigation Tabs */}
-      {groups.length > 0 && (
+      {allGroups.length > 0 && (
         <div className="mt-8 flex flex-wrap items-center gap-2 border-b border-[var(--mm-border)] pb-4">
           <span className="text-xs font-semibold uppercase tracking-wider text-[var(--mm-text-dim)] mr-2">
-            Categories:
+            Tabs:
           </span>
-          <a
-            href="#all"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--mm-border)] bg-[var(--mm-elevated)] px-3 py-1.5 text-xs font-medium text-[var(--mm-gold)] shadow-sm hover:border-[var(--mm-gold)] transition"
+          <Link
+            href="/partners"
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium shadow-sm transition ${
+              activeCategory === "all"
+                ? "border-[var(--mm-gold)] bg-[var(--mm-gold)] text-[var(--mm-bg)] font-semibold"
+                : "border-[var(--mm-border)] bg-[var(--mm-elevated)] text-[var(--mm-text-dim)] hover:text-[var(--mm-text)] hover:border-[var(--mm-gold)]"
+            }`}
           >
             <Icon icon="game-icons:anvil" width={14} />
-            All Partners ({groups.reduce((acc, g) => acc + g.partners.length, 0)})
-          </a>
-          {groups.map((group) => (
-            <a
-              key={group.slug}
-              href={`#${group.slug}`}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_60%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)] hover:border-[var(--mm-gold)] transition"
-            >
-              <span>{group.name}</span>
-              <span className="rounded-full bg-white/10 px-1.5 py-0.2 text-[10px]">
-                {group.partners.length}
-              </span>
-            </a>
-          ))}
+            All Partners ({allGroups.reduce((acc, g) => acc + g.partners.length, 0)})
+          </Link>
+          {allGroups.map((group) => {
+            const isActive = activeCategory === group.slug.toLowerCase();
+            return (
+              <Link
+                key={group.slug}
+                href={`/partners?category=${group.slug}`}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                  isActive
+                    ? "border-[var(--mm-gold)] bg-[var(--mm-gold)] text-[var(--mm-bg)] font-semibold shadow-sm"
+                    : "border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_60%,transparent)] text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)] hover:border-[var(--mm-gold)]"
+                }`}
+              >
+                <span>{group.name}</span>
+                <span
+                  className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                    isActive
+                      ? "bg-black/20 text-[var(--mm-bg)] font-bold"
+                      : "bg-white/10"
+                  }`}
+                >
+                  {group.partners.length}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       )}
 
       {groups.length === 0 ? (
-        <p className="py-16 text-center text-[var(--mm-text-dim)]">
-          The first stalls are still being set up.
-        </p>
+        <div className="py-16 text-center text-[var(--mm-text-dim)]">
+          <p>No stalls found in this category.</p>
+          <Link
+            href="/partners"
+            className="mt-3 inline-block text-xs text-[var(--mm-gold)] underline"
+          >
+            View all partners
+          </Link>
+        </div>
       ) : (
         <div className="space-y-14 pt-8 pb-24">
           {groups.map((group) => (
             <section key={group.slug} id={group.slug} className="scroll-mt-24">
               <div className="flex items-baseline gap-2.5">
-                {/* See the note on the home page: a dot rather than each
-                    category own icon, so the list reads as one list. */}
                 <span
                   aria-hidden
                   className="h-2.5 w-2.5 shrink-0 self-center rounded-full bg-[var(--mm-blue)]"

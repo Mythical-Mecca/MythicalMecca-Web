@@ -46,7 +46,6 @@ const nextConfig: NextConfig = {
       { source: "/profile", destination: "/auth/continue", permanent: false },
       { source: "/events/submit", destination: "/", permanent: false },
       { source: "/events", destination: "/", permanent: false },
-      { source: "/quests", destination: "/", permanent: false },
       // events (was /news-and-events, with events nested a level deeper)
       { source: "/news-and-events", destination: "/", permanent: false },
       { source: "/news-and-events/events/:path*", destination: "/events/:path*", permanent: false },
