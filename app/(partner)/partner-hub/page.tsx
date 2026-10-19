@@ -38,11 +38,22 @@ export default async function PartnerHubPage({
         <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
           Partner <span className="mm-gradient-text">Hub</span>
         </h1>
-        {canCreate && (
-          <Link href="/partner-hub/new" className="mm-btn mm-btn-ghost text-sm">
-            <Icon icon="mdi:plus" width={16} /> New stall
-          </Link>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {memberships.length > 0 && (
+            <Link
+              href={`/partner-hub/${memberships[0].partnerId}/events#new-event`}
+              className="mm-btn mm-btn-primary text-xs sm:text-sm font-semibold"
+            >
+              <Icon icon="mdi:calendar-plus" width={16} />
+              <span>Add Event to Calendar</span>
+            </Link>
+          )}
+          {canCreate && (
+            <Link href="/partner-hub/new" className="mm-btn mm-btn-ghost text-xs sm:text-sm">
+              <Icon icon="mdi:plus" width={16} /> New stall
+            </Link>
+          )}
+        </div>
       </div>
 
       {denied && (

@@ -92,7 +92,7 @@ export function EmailContactButton({
 
       {/* Options Dropdown */}
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-full min-w-[240px] rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface)] p-2 shadow-2xl backdrop-blur-xl">
+        <div className="absolute right-0 top-full z-50 mt-2 w-full min-w-[200px] max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface)] p-2 shadow-2xl backdrop-blur-xl">
           <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--mm-text-dim)]">
             Send message to:
           </div>

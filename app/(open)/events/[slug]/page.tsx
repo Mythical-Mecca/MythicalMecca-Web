@@ -190,7 +190,19 @@ function EventTeaser({
               width={17}
               className="mt-0.5 shrink-0 text-[var(--mm-gold)]"
             />
-            <span>Hosted by {event.partnerName}</span>
+            <span>
+              Hosted by{" "}
+              {event.partnerSlug ? (
+                <Link
+                  href={`/partners/${event.partnerSlug}`}
+                  className="text-[var(--mm-gold)] hover:underline font-semibold"
+                >
+                  {event.partnerName}
+                </Link>
+              ) : (
+                event.partnerName
+              )}
+            </span>
           </p>
         )}
       </section>

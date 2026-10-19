@@ -29,7 +29,7 @@ export default async function PartnersPage({
       : allGroups;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-8 pt-8">
+    <div className="mx-auto w-full max-w-6xl px-4 sm:px-8 pt-6 sm:pt-8 overflow-x-hidden">
       <SectionHero
         section="partners"
         actions={

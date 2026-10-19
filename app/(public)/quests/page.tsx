@@ -16,7 +16,7 @@ export default async function QuestsPage() {
   const quests = await listHunts();
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 sm:px-8 py-8 sm:py-12">
+    <div className="mx-auto w-full max-w-6xl px-4 sm:px-8 py-8 sm:py-12 overflow-x-hidden">
       <SectionHero section="quests" />
 
       <div className="mt-8 sm:mt-12">

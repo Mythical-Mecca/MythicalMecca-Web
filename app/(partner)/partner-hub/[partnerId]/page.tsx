@@ -94,7 +94,18 @@ export default async function StallOverviewPage({
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Link href={`/partner-hub/${partner.id}/events`} className="mm-glass p-5 hover:border-[var(--mm-gold)] transition group">
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-widest text-[var(--mm-gold)]">
+              Calendar Events
+            </p>
+            <Icon icon="mdi:calendar-plus" width={18} className="text-[var(--mm-gold)] group-hover:scale-110 transition-transform" />
+          </div>
+          <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
+            Schedule tournaments, demos &amp; meetups →
+          </p>
+        </Link>
         <Link href={`/partner-hub/${partner.id}/gallery`} className="mm-glass p-5">
           <p className="text-xs uppercase tracking-widest text-[var(--mm-text-dim)]">
             Gallery items

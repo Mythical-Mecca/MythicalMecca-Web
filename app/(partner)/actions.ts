@@ -10,6 +10,7 @@ import {
   partnerMembers,
   partnerInvites,
   partnerOfferings,
+  events,
   users,
 } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -747,3 +748,122 @@ export async function removeGalleryItem(formData: FormData) {
   revalidatePartner(membership.partnerId, membership.slug);
   redirect(`${base}?saved=1`);
 }
+
+const PartnerEventSchema = z.object({
+  title: z.string().trim().min(2, "Title must be at least 2 characters").max(120),
+  summary: z.string().trim().max(300).optional(),
+  bodyMd: z.string().trim().max(4000).optional(),
+  startsAt: z.string().min(1, "Pick a start date and time"),
+  endsAt: z.string().min(1, "Pick an end date and time"),
+  location: z.string().trim().max(160).optional(),
+  externalUrl: z.string().trim().max(500).optional(),
+});
+
+/** Allows a registered partner to add an event directly to the communal calendar. */
+export async function createPartnerEvent(formData: FormData) {
+  const ctx = await authorizePartnerAction(formData, "manager");
+  if (!ctx) redirect("/partner-hub?denied=1");
+  const { session, membership } = ctx;
+  const base = `/partner-hub/${membership.partnerId}/events`;
+
+  const raw = {
+    title: String(formData.get("title") ?? ""),
+    summary: String(formData.get("summary") ?? "").trim() || undefined,
+    bodyMd: String(formData.get("bodyMd") ?? "").trim() || undefined,
+    startsAt: String(formData.get("startsAt") ?? ""),
+    endsAt: String(formData.get("endsAt") ?? ""),
+    location: String(formData.get("location") ?? "").trim() || undefined,
+    externalUrl: String(formData.get("externalUrl") ?? "").trim() || undefined,
+  };
+
+  const parsed = PartnerEventSchema.safeParse(raw);
+  if (!parsed.success) {
+    redirect(`${base}?error=validation`);
+  }
+
+  const starts = new Date(parsed.data.startsAt);
+  const ends = new Date(parsed.data.endsAt);
+  if (isNaN(starts.getTime()) || isNaN(ends.getTime())) {
+    redirect(`${base}?error=invalid_dates`);
+  }
+  if (ends < starts) {
+    redirect(`${base}?error=end_before_start`);
+  }
+
+  const slug = `${slugify(parsed.data.title)}-${Date.now().toString(36)}`;
+
+  if (process.env.DATABASE_URL) {
+    try {
+      await db.insert(events).values({
+        slug,
+        title: parsed.data.title,
+        summary: parsed.data.summary ?? null,
+        bodyMd: parsed.data.bodyMd ?? null,
+        startsAt: starts,
+        endsAt: ends,
+        location: parsed.data.location ?? null,
+        externalUrl: parsed.data.externalUrl ?? null,
+        status: "published",
+        origin: "partner",
+        partnerId: membership.partnerId,
+        createdBy: session.user.id,
+      });
+    } catch (err) {
+      console.error("Failed to create partner event:", err);
+      redirect(`${base}?error=db`);
+    }
+  }
+
+  await logActivity({
+    actorId: session.user.id,
+    action: "partner.event.create",
+    entityType: "event",
+    entityId: membership.partnerId,
+    metadata: { title: parsed.data.title, slug },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/events");
+  revalidatePath(`/partners/${membership.slug}`);
+  revalidatePath(base);
+  redirect(`${base}?saved=1`);
+}
+
+/** Allows a partner to cancel or delete an event they created. */
+export async function deletePartnerEvent(formData: FormData) {
+  const ctx = await authorizePartnerAction(formData, "manager");
+  if (!ctx) redirect("/partner-hub?denied=1");
+  const { session, membership } = ctx;
+  const base = `/partner-hub/${membership.partnerId}/events`;
+  const eventId = String(formData.get("eventId") ?? "");
+
+  if (process.env.DATABASE_URL && eventId) {
+    try {
+      await db
+        .delete(events)
+        .where(
+          and(
+            eq(events.id, eventId),
+            eq(events.partnerId, membership.partnerId)
+          )
+        );
+    } catch (err) {
+      console.error("Failed to delete partner event:", err);
+      redirect(`${base}?error=delete`);
+    }
+  }
+
+  await logActivity({
+    actorId: session.user.id,
+    action: "partner.event.delete",
+    entityType: "event",
+    entityId: eventId,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/events");
+  revalidatePath(`/partners/${membership.slug}`);
+  revalidatePath(base);
+  redirect(`${base}?deleted=1`);
+}
+

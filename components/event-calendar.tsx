@@ -33,6 +33,7 @@ export function EventCalendar({
   todayIso,
   headingLevel = "h2",
   returnTo,
+  action,
 }: {
   events: CalEvent[];
   todayIso: string;
@@ -45,6 +46,7 @@ export function EventCalendar({
    * hard-coded to h3 and produced an h1 -> h3 skip on /events.
    */
   headingLevel?: "h2" | "h3";
+  action?: React.ReactNode;
 }) {
   const MonthHeading = headingLevel;
   /** The day whose sheet is open, as a `dayKey`. */
@@ -251,6 +253,7 @@ export function EventCalendar({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {action}
           <button
             type="button"
             aria-label="Previous month"
@@ -337,7 +340,7 @@ export function EventCalendar({
           );
 
           const cellCls = [
-            "group/cell relative flex min-h-16 flex-col rounded-xl border p-1.5 text-left transition sm:min-h-20",
+            "group/cell relative flex min-h-14 sm:min-h-20 min-w-0 flex-col rounded-xl border p-1 sm:p-1.5 text-left transition overflow-hidden",
             has
               ? "border-[color-mix(in_srgb,var(--mm-gold)_45%,transparent)] bg-[color-mix(in_srgb,var(--mm-gold)_8%,transparent)] shadow-[0_0_16px_-6px_var(--mm-gold)]"
               : "border-[color-mix(in_srgb,var(--mm-divider)_70%,transparent)]",

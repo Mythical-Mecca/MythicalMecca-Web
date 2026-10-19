@@ -17,6 +17,7 @@ export function PartnerHubTabs({ partnerId }: { partnerId: string }) {
   const items = [
     { href: base, label: "Overview" },
     { href: `${base}/profile`, label: "Profile" },
+    { href: `${base}/events`, label: "Events" },
     { href: `${base}/gallery`, label: "Gallery" },
     { href: `${base}/offerings`, label: "Products" },
     { href: `${base}/team`, label: "Team" },

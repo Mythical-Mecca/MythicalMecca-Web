@@ -60,12 +60,12 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col overflow-x-hidden max-w-full w-full">
       <a href="#main-content" className="mm-skip">
         Skip to content
       </a>
       <SiteNav />
-      <main id="main-content" tabIndex={-1} className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1 overflow-x-hidden max-w-full w-full">
         <div className="mx-auto max-w-6xl px-6 empty:hidden [&:not(:empty)]:pt-6">
           <Breadcrumbs />
         </div>

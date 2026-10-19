@@ -6,6 +6,7 @@ import {
   partnerGalleryItems,
   partnerMembers,
   partnerOfferings,
+  events,
 } from "@/lib/db/schema";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { toMediaSrc } from "@/lib/media";
@@ -307,3 +308,61 @@ export async function getPartnerById(id: string): Promise<AdminPartner | null> {
     return null;
   }
 }
+
+export interface PartnerEventItem {
+  id: string;
+  slug: string | null;
+  title: string;
+  summary: string | null;
+  bodyMd: string | null;
+  startsAt: string;
+  endsAt: string;
+  location: string | null;
+  externalUrl: string | null;
+  status: string;
+  createdAt: string;
+}
+
+/** Lists events created by or attached to this partner stall. */
+export async function listPartnerEvents(
+  partnerId: string
+): Promise<PartnerEventItem[]> {
+  if (!useDb) return [];
+  try {
+    const rows = await db
+      .select({
+        id: events.id,
+        slug: events.slug,
+        title: events.title,
+        summary: events.summary,
+        bodyMd: events.bodyMd,
+        startsAt: events.startsAt,
+        endsAt: events.endsAt,
+        location: events.location,
+        externalUrl: events.externalUrl,
+        status: events.status,
+        createdAt: events.createdAt,
+      })
+      .from(events)
+      .where(eq(events.partnerId, partnerId))
+      .orderBy(desc(events.startsAt));
+
+    return rows.map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      title: r.title,
+      summary: r.summary,
+      bodyMd: r.bodyMd,
+      startsAt: (r.startsAt ?? r.createdAt).toISOString(),
+      endsAt: (r.endsAt ?? r.createdAt).toISOString(),
+      location: r.location,
+      externalUrl: r.externalUrl,
+      status: r.status,
+      createdAt: r.createdAt.toISOString(),
+    }));
+  } catch (err) {
+    console.error("Failed to list partner events:", err);
+    return [];
+  }
+}
+
