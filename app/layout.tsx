@@ -1,6 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Alegreya_Sans_SC, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 // Display: a small-caps humanist SANS — keeps the carved-inscription fantasy
 // character Cinzel gave us, but far more readable at every size.

@@ -738,10 +738,12 @@ function SectionTitle({
   right?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <h2 className="flex items-center gap-3 font-[family-name:var(--font-display)] text-2xl tracking-wide md:text-3xl">
-        <Icon icon={icon} width={30} className="text-[var(--mm-gold)]" />
-        {lead} <span className="mm-gradient-text">{accent}</span>
+    <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+      <h2 className="flex min-w-0 items-center gap-2.5 sm:gap-3 font-[family-name:var(--font-display)] text-2xl tracking-wide md:text-3xl">
+        <Icon icon={icon} width={28} className="shrink-0 text-[var(--mm-gold)] sm:w-[30px]" />
+        <span>
+          {lead} <span className="mm-gradient-text">{accent}</span>
+        </span>
       </h2>
       {right}
     </div>

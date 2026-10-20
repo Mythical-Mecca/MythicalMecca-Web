@@ -59,7 +59,8 @@ html {
      here, once, for all of them. */
   color-scheme: dark;
   overflow-x: hidden;
-  max-width: 100vw;
+  overflow-x: clip;
+  max-width: 100%;
   width: 100%;
 }
 
@@ -82,8 +83,10 @@ body {
   color: var(--mm-text);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
-  max-width: 100vw;
+  overflow-x: clip;
+  max-width: 100%;
   width: 100%;
+  position: relative;
 }
 
 /* ---------------------------------------------------------------------------

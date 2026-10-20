@@ -45,9 +45,9 @@ const Footer = () => (
       </a>
       <a
         href="mailto:information@mythical-mecca.com"
-        className="inline-flex min-h-6 items-center gap-1.5 hover:text-[var(--mm-gold)]"
+        className="inline-flex min-h-6 max-w-full items-center gap-1.5 hover:text-[var(--mm-gold)] break-all"
       >
-        <Icon icon="mdi:email-outline" width={16} /> information@mythical-mecca.com
+        <Icon icon="mdi:email-outline" width={16} className="shrink-0" /> <span>information@mythical-mecca.com</span>
       </a>
     </div>
     <span>Mythical Mecca — a hearth for the geek community.</span>

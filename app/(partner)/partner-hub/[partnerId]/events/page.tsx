@@ -195,10 +195,11 @@ export default async function StallEventsPage({
       <section id="new-event" className="scroll-mt-24 pt-4">
         <FormCard
           title="Add Event to Calendar"
-          subtitle="Publish a gathering or activity hosted by your stall."
-          action={createPartnerEvent}
+          icon="mdi:calendar-plus"
+          accent="#E18D01"
         >
-          <input type="hidden" name="partnerId" value={partner.id} />
+          <form action={createPartnerEvent} className="space-y-5">
+            <input type="hidden" name="partnerId" value={partner.id} />
 
           <TextField
             name="title"
@@ -287,7 +288,8 @@ export default async function StallEventsPage({
               Events are published immediately and visible to all visitors.
             </span>
           </div>
-        </FormCard>
+        </form>
+      </FormCard>
       </section>
     </div>
   );

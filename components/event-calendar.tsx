@@ -233,43 +233,45 @@ export function EventCalendar({
       />
 
       {/* Header */}
-      <div className="relative mb-5 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+      <div className="relative mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
           <Icon
             icon="game-icons:moon"
             width={20}
-            className="text-[var(--mm-gold)]"
+            className="shrink-0 text-[var(--mm-gold)]"
           />
-          <div>
-            <MonthHeading className="font-[family-name:var(--font-display)] text-xl tracking-wide md:text-2xl">
+          <div className="min-w-0">
+            <MonthHeading className="truncate font-[family-name:var(--font-display)] text-xl tracking-wide md:text-2xl">
               {MONTHS[m]}{" "}
               <span className="mm-gradient-text">{y}</span>
             </MonthHeading>
-            <p className="text-[11px] uppercase tracking-widest text-[var(--mm-text-dim)]">
+            <p className="text-[11px] uppercase tracking-widest text-[var(--mm-text-dim)] truncate">
               {monthCount === 0
                 ? "No gatherings this moon"
                 : `${monthCount} gathering${monthCount > 1 ? "s" : ""} this moon`}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0 max-sm:w-full max-sm:justify-between">
           {action}
-          <button
-            type="button"
-            aria-label="Previous month"
-            onClick={() => move(-1)}
-            className="grid h-11 w-11 place-items-center rounded-full border border-[var(--mm-border)] text-[var(--mm-text-dim)] transition hover:border-[var(--mm-gold)] hover:text-[var(--mm-gold)]"
-          >
-            <Icon icon="mdi:chevron-left" width={18} />
-          </button>
-          <button
-            type="button"
-            aria-label="Next month"
-            onClick={() => move(1)}
-            className="grid h-11 w-11 place-items-center rounded-full border border-[var(--mm-border)] text-[var(--mm-text-dim)] transition hover:border-[var(--mm-gold)] hover:text-[var(--mm-gold)]"
-          >
-            <Icon icon="mdi:chevron-right" width={18} />
-          </button>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              aria-label="Previous month"
+              onClick={() => move(-1)}
+              className="grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-full border border-[var(--mm-border)] text-[var(--mm-text-dim)] transition hover:border-[var(--mm-gold)] hover:text-[var(--mm-gold)]"
+            >
+              <Icon icon="mdi:chevron-left" width={18} />
+            </button>
+            <button
+              type="button"
+              aria-label="Next month"
+              onClick={() => move(1)}
+              className="grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-full border border-[var(--mm-border)] text-[var(--mm-text-dim)] transition hover:border-[var(--mm-gold)] hover:text-[var(--mm-gold)]"
+            >
+              <Icon icon="mdi:chevron-right" width={18} />
+            </button>
+          </div>
         </div>
       </div>
 
