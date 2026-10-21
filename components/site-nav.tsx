@@ -18,5 +18,5 @@ export async function SiteNav() {
     return <AppTopNav role={session.user.role} hasPartner={hasPartner} />;
   }
 
-  return <PublicTopNav signedIn showApply />;
+  return <PublicTopNav signedIn showApply={!hasPartner} hasPartner={hasPartner} />;
 }

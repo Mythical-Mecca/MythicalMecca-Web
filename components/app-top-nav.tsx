@@ -12,6 +12,18 @@ async function signOutAction() {
 }
 
 const ITEMS = {
+  home: {
+    href: "/",
+    title: "Home",
+    icon: "mdi:home",
+    color: "#4aa8ff",
+  },
+  calendar: {
+    href: "/#calendar",
+    title: "Calendar",
+    icon: "mdi:calendar-month-outline",
+    color: "#E18D01",
+  },
   partners: {
     href: "/partners",
     title: "Partners",
@@ -46,7 +58,7 @@ const ITEMS = {
     href: "/partner-hub",
     title: "Partner Hub",
     icon: "mdi:storefront-outline",
-    color: ACCENT.marketplace,
+    color: "#E18D01",
   },
   apply: {
     href: "/apply",
@@ -70,6 +82,8 @@ const ITEMS = {
 function buildItems(role: Role, hasPartner: boolean): NavMenuItem[] {
   const isPartner = hasPartner || roleAtLeast(role, "admin");
   return [
+    ITEMS.home,
+    ITEMS.calendar,
     ITEMS.quests,
     ITEMS.partners,
     isPartner ? ITEMS.partnerHub : ITEMS.apply,

@@ -29,6 +29,7 @@ export const BURGER_SECTIONS: NavSection[] = [
   { href: "/#calendar", label: "Calendar", icon: "mdi:calendar-month-outline" },
   { href: "/quests", label: "Quests" },
   { href: "/partners", label: "Partners", icon: "game-icons:anvil" },
+  { href: "/partner-hub", label: "Partner Hub", icon: "mdi:storefront-outline" },
   { href: "/collab", label: "Contact" },
 ];
 

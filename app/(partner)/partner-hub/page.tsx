@@ -3,12 +3,14 @@ import { auth } from "@/lib/auth";
 import { listMyPartners } from "@/lib/partner-access";
 import { listPendingInvitesForUser } from "@/lib/partner-invites";
 import { stationsForPartner } from "@/lib/hunts";
+import { listPartnerEvents } from "@/lib/partner";
 import { acceptPartnerInviteById } from "../actions";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/badge";
 import { Flash } from "@/components/flash";
 import { PartnerStatusBadge } from "@/components/partner-status-badge";
 import { withReturn } from "@/lib/return-to";
+import { formatDateTime } from "@/lib/format";
 
 export const metadata = { title: "Partner Hub" };
 
@@ -32,20 +34,42 @@ export default async function PartnerHubPage({
   const liveStations = stations.filter((s) => s.open);
   const canCreate = memberships.some((m) => m.status === "approved");
 
+  // Fetch partner events for all user's stalls to surface in Event Application section
+  const eventsByStall = await Promise.all(
+    memberships.map(async (m) => {
+      const items = await listPartnerEvents(m.partnerId);
+      return items.map((e) => ({
+        ...e,
+        partnerId: m.partnerId,
+        stallName: m.businessName,
+      }));
+    })
+  );
+  const allEvents = eventsByStall.flat();
+  const now = Date.now();
+
+  const primaryStall = memberships[0];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Top Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide">
-          Partner <span className="mm-gradient-text">Hub</span>
-        </h1>
+        <div>
+          <h1 className="font-[family-name:var(--font-display)] text-2xl tracking-wide sm:text-3xl">
+            Partner <span className="mm-gradient-text">Hub</span>
+          </h1>
+          <p className="mt-1 text-xs text-[var(--mm-text-dim)] sm:text-sm">
+            Manage your listed stalls and submit event applications for the calendar.
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
-          {memberships.length > 0 && (
+          {primaryStall && (
             <Link
-              href={`/partner-hub/${memberships[0].partnerId}/events#new-event`}
-              className="mm-btn mm-btn-primary text-xs sm:text-sm font-semibold"
+              href={`/partner-hub/${primaryStall.partnerId}/events#new-event`}
+              className="mm-btn mm-btn-primary text-xs sm:text-sm font-semibold shadow-sm"
             >
               <Icon icon="mdi:calendar-plus" width={16} />
-              <span>Add Event to Calendar</span>
+              <span>Submit Event Application</span>
             </Link>
           )}
           {canCreate && (
@@ -139,8 +163,261 @@ export default async function PartnerHubPage({
         </section>
       )}
 
+      {/* ---------------- EVENT APPLICATION SECTION ---------------- */}
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-xl tracking-wide text-white">
+              <Icon icon="mdi:calendar-plus" width={22} className="text-[var(--mm-gold)]" />
+              <span>Event Application</span>
+              <span className="rounded-full bg-[color-mix(in_srgb,var(--mm-gold)_15%,transparent)] border border-[color-mix(in_srgb,var(--mm-gold)_30%,transparent)] px-2.5 py-0.5 text-xs font-semibold text-[var(--mm-gold)]">
+                Calendar
+              </span>
+            </h2>
+            <p className="mt-1 text-xs text-[var(--mm-text-dim)] sm:text-sm">
+              Schedule tournaments, workshops, showcases, or gatherings for your stall on the communal calendar.
+            </p>
+          </div>
+          {primaryStall && (
+            <Link
+              href={`/partner-hub/${primaryStall.partnerId}/events#new-event`}
+              className="mm-btn mm-btn-primary text-xs sm:text-sm font-semibold"
+            >
+              <Icon icon="mdi:plus-circle-outline" width={16} />
+              <span>New Event Application</span>
+            </Link>
+          )}
+        </div>
+
+        {/* Event Application Card & Events Overview */}
+        <div className="mm-glass rounded-2xl border border-[color-mix(in_srgb,var(--mm-gold)_30%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_70%,transparent)] p-5 sm:p-6 shadow-sm">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2 max-w-xl">
+              <div className="inline-flex items-center gap-1.5 rounded-md bg-[var(--mm-elevated)] px-2.5 py-1 text-xs font-medium text-[var(--mm-gold)]">
+                <Icon icon="game-icons:campfire" width={14} />
+                <span>Host on the Community Calendar</span>
+              </div>
+              <h3 className="font-[family-name:var(--font-display)] text-lg text-white">
+                Submit an Event Application for your Stall
+              </h3>
+              <p className="text-xs sm:text-sm text-[var(--mm-text-dim)] leading-relaxed">
+                As an approved partner, your events appear directly on the communal calendar and your stall page. Provide event title, date, time, and details to publish for adventurers.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:shrink-0">
+              {memberships.length === 1 ? (
+                <Link
+                  href={`/partner-hub/${memberships[0].partnerId}/events#new-event`}
+                  className="mm-btn mm-btn-primary text-xs sm:text-sm font-semibold justify-center"
+                >
+                  <Icon icon="mdi:calendar-plus" width={16} />
+                  <span>Submit Event Application</span>
+                </Link>
+              ) : memberships.length > 1 ? (
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-medium uppercase tracking-wider text-[var(--mm-text-dim)]">
+                    Select Stall to Apply:
+                  </span>
+                  <div className="flex flex-col gap-1.5">
+                    {memberships.map((m) => (
+                      <Link
+                        key={m.partnerId}
+                        href={`/partner-hub/${m.partnerId}/events#new-event`}
+                        className="mm-btn mm-btn-ghost text-xs justify-start hover:border-[var(--mm-gold)]"
+                      >
+                        <Icon icon="game-icons:shop" width={14} className="text-[var(--mm-gold)]" />
+                        <span className="truncate">Apply for {m.businessName}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <span className="text-xs text-[var(--mm-text-dim)]">
+                  Stall required to submit events.
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Existing submitted events list */}
+          <div className="mt-6 border-t border-[var(--mm-divider)] pt-5">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-xs uppercase tracking-widest font-semibold text-[var(--mm-text-dim)]">
+                Your Scheduled Calendar Gatherings ({allEvents.length})
+              </h4>
+              {primaryStall && (
+                <Link
+                  href={`/partner-hub/${primaryStall.partnerId}/events`}
+                  className="text-xs text-[var(--mm-gold)] hover:underline"
+                >
+                  Manage all events →
+                </Link>
+              )}
+            </div>
+
+            {allEvents.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[var(--mm-border)] bg-[color-mix(in_srgb,var(--mm-surface)_50%,transparent)] p-6 text-center">
+                <p className="text-xs sm:text-sm text-[var(--mm-text-dim)]">
+                  No event applications submitted yet. Fill out the application form to host your next gathering!
+                </p>
+                {primaryStall && (
+                  <Link
+                    href={`/partner-hub/${primaryStall.partnerId}/events#new-event`}
+                    className="mm-btn mm-btn-ghost mt-3 text-xs inline-flex items-center gap-1.5"
+                  >
+                    <Icon icon="mdi:calendar-plus" width={14} />
+                    <span>Create first event</span>
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {allEvents.slice(0, 4).map((e) => {
+                  const startMs = new Date(e.startsAt).getTime();
+                  const endMs = new Date(e.endsAt).getTime();
+                  const isLive = now >= startMs && now <= endMs;
+                  const isUpcoming = startMs > now;
+
+                  return (
+                    <div
+                      key={e.id}
+                      className="rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface)] p-3.5 flex flex-col justify-between gap-2"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate text-xs font-medium text-[var(--mm-text-dim)]">
+                            {e.stallName}
+                          </span>
+                          {isLive && (
+                            <Badge color="var(--mm-live)" dot>
+                              Live
+                            </Badge>
+                          )}
+                          {isUpcoming && (
+                            <Badge color="var(--mm-gold)">Upcoming</Badge>
+                          )}
+                          {!isLive && !isUpcoming && (
+                            <Badge color="var(--mm-text-dim)">Ended</Badge>
+                          )}
+                        </div>
+                        <h5 className="font-semibold text-sm text-white mt-1 truncate">
+                          {e.title}
+                        </h5>
+                        <p className="text-xs text-[var(--mm-gold)] mt-0.5 flex items-center gap-1">
+                          <Icon icon="mdi:clock-outline" width={13} />
+                          {formatDateTime(e.startsAt)}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between pt-1 border-t border-[var(--mm-divider)] text-xs">
+                        {e.location ? (
+                          <span className="text-[var(--mm-text-dim)] truncate max-w-[150px]">
+                            {e.location}
+                          </span>
+                        ) : (
+                          <span className="text-[var(--mm-text-dim)]">Communal Hearth</span>
+                        )}
+                        <Link
+                          href={`/partner-hub/${e.partnerId}/events`}
+                          className="text-[var(--mm-gold)] hover:underline shrink-0"
+                        >
+                          Details →
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------- CURRENTLY LISTED STALLS SECTION ---------------- */}
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-xl tracking-wide text-white">
+              <Icon icon="game-icons:shop" width={22} className="text-[var(--mm-gold)]" />
+              <span>Your Listed Stalls</span>
+              <span className="rounded-full bg-[var(--mm-elevated)] px-2.5 py-0.5 text-xs text-[var(--mm-text-dim)]">
+                {memberships.length}
+              </span>
+            </h2>
+            <p className="mt-1 text-xs text-[var(--mm-text-dim)] sm:text-sm">
+              Your stalls, shopfronts, and partner profiles in the Mythical Mecca bazaar.
+            </p>
+          </div>
+          {canCreate && (
+            <Link href="/partner-hub/new" className="mm-btn mm-btn-ghost text-xs">
+              <Icon icon="mdi:plus" width={15} /> Add another stall
+            </Link>
+          )}
+        </div>
+
+        {memberships.length === 0 ? (
+          <div className="mm-glass border-[var(--mm-gold)] p-6 text-sm text-[var(--mm-text-dim)]">
+            No stall loaded yet. Once your petition is approved, your shop fills
+            in here.
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {memberships.map((m) => (
+              <Link
+                key={m.partnerId}
+                href={`/partner-hub/${m.partnerId}`}
+                className="mm-glass group flex flex-col p-5 transition hover:border-[var(--mm-gold)] rounded-2xl"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--mm-elevated)] text-[var(--mm-gold)]">
+                      <Icon icon="game-icons:shop" width={22} />
+                    </div>
+                    <div>
+                      <h3 className="font-[family-name:var(--font-display)] text-lg text-white group-hover:text-[var(--mm-gold)] transition-colors">
+                        {m.businessName}
+                      </h3>
+                      <span className="text-xs text-[var(--mm-text-dim)]">
+                        /{m.slug}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    <PartnerStatusBadge status={m.status} />
+                    {m.role === "owner" && (
+                      <Badge color="var(--mm-violet)" icon="mdi:key-variant">
+                        Owner
+                      </Badge>
+                    )}
+                    {!m.active && (
+                      <Badge color="var(--mm-danger)" icon="mdi:pause-circle-outline">
+                        Paused
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-2 pt-3 border-t border-[var(--mm-divider)] text-xs text-[var(--mm-text-dim)]">
+                  <span className="flex items-center gap-1 hover:text-[var(--mm-gold)]">
+                    <Icon icon="mdi:image-outline" width={14} /> Gallery
+                  </span>
+                  <span>·</span>
+                  <span className="flex items-center gap-1 hover:text-[var(--mm-gold)]">
+                    <Icon icon="mdi:tag-outline" width={14} /> Offerings
+                  </span>
+                  <span>·</span>
+                  <span className="flex items-center gap-1 text-[var(--mm-gold)] font-medium ml-auto group-hover:translate-x-0.5 transition-transform">
+                    Manage Stall →
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
       {stations.length > 0 && liveStations.length === 0 && (
-        <section className="mm-glass p-5">
+        <section className="mm-glass p-5 rounded-2xl">
           <h2 className="flex items-center gap-2 font-medium">
             <Icon
               icon="game-icons:treasure-map"
@@ -150,8 +427,7 @@ export default async function PartnerHubPage({
             Your quest stations
           </h2>
           <p className="mt-1 text-sm text-[var(--mm-text-dim)]">
-            Nothing running right now. Your station goes live when the quest
-            does.
+            Nothing running right now. Your station goes live when the quest does.
           </p>
           <div className="mt-3 space-y-1.5">
             {stations.map((s) => (
@@ -169,59 +445,6 @@ export default async function PartnerHubPage({
           </div>
         </section>
       )}
-
-      <section>
-        <h2 className="mb-3 font-[family-name:var(--font-display)] text-lg">
-          Your stalls{" "}
-          <span className="text-sm text-[var(--mm-text-dim)]">
-            ({memberships.length})
-          </span>
-        </h2>
-
-        {memberships.length === 0 ? (
-          <div className="mm-glass border-[var(--mm-gold)] p-6 text-sm text-[var(--mm-text-dim)]">
-            No stall loaded yet. Once your petition is approved, your shop fills
-            in here.
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {memberships.map((m) => (
-              <Link
-                key={m.partnerId}
-                href={`/partner-hub/${m.partnerId}`}
-                className="mm-glass group flex flex-col p-5 transition hover:border-[var(--mm-gold)]"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <Icon
-                    icon="game-icons:shop"
-                    width={24}
-                    className="text-[var(--mm-gold)]"
-                  />
-                  <div className="flex flex-wrap justify-end gap-1.5">
-                    <PartnerStatusBadge status={m.status} />
-                    {m.role === "owner" && (
-                      <Badge color="var(--mm-violet)" icon="mdi:key-variant">
-                        Owner
-                      </Badge>
-                    )}
-                    {!m.active && (
-                      <Badge color="var(--mm-danger)" icon="mdi:pause-circle-outline">
-                        Paused
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <h3 className="mt-3 font-[family-name:var(--font-display)] text-lg group-hover:text-[var(--mm-gold)]">
-                  {m.businessName}
-                </h3>
-                <span className="mt-1 text-sm text-[var(--mm-text-dim)]">
-                  Manage profile, gallery &amp; more →
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 }

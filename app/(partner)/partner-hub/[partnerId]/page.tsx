@@ -98,12 +98,12 @@ export default async function StallOverviewPage({
         <Link href={`/partner-hub/${partner.id}/events`} className="mm-glass p-5 hover:border-[var(--mm-gold)] transition group">
           <div className="flex items-center justify-between">
             <p className="text-xs uppercase tracking-widest text-[var(--mm-gold)]">
-              Calendar Events
+              Event Application
             </p>
             <Icon icon="mdi:calendar-plus" width={18} className="text-[var(--mm-gold)] group-hover:scale-110 transition-transform" />
           </div>
           <p className="mt-2 text-sm text-[var(--mm-text-dim)]">
-            Schedule tournaments, demos &amp; meetups →
+            Host tournaments, demos &amp; calendar events →
           </p>
         </Link>
         <Link href={`/partner-hub/${partner.id}/gallery`} className="mm-glass p-5">

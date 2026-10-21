@@ -273,15 +273,6 @@ export default async function HomePage() {
             icon="game-icons:campfire"
             lead="What's"
             accent="on"
-            right={
-              <Link
-                href="/partner-hub"
-                className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl border border-[var(--mm-border)] bg-[var(--mm-elevated)] px-3 py-1.5 text-xs font-semibold text-[var(--mm-gold)] hover:border-[var(--mm-gold)] hover:bg-[color-mix(in_srgb,var(--mm-surface)_80%,transparent)] transition"
-              >
-                <Icon icon="mdi:calendar-plus" width={16} />
-                <span>Partner: Add event</span>
-              </Link>
-            }
           />
           <p className="mt-3 max-w-2xl text-[var(--mm-text-dim)]">
             We list every gathering the community is running: feasts,
@@ -438,17 +429,6 @@ export default async function HomePage() {
                   events={calEvents}
                   todayIso={nowIso}
                   headingLevel="h3"
-                  action={
-                    <Link
-                      href="/partner-hub"
-                      className="inline-flex items-center gap-1 rounded-full border border-[var(--mm-border)] bg-[var(--mm-surface)] px-2.5 py-1 text-xs font-medium text-[var(--mm-gold)] hover:border-[var(--mm-gold)] transition"
-                      title="Partners can add gatherings and tournaments to the calendar"
-                    >
-                      <Icon icon="mdi:calendar-plus" width={14} />
-                      <span className="hidden sm:inline">Partner: Add event</span>
-                      <span className="sm:hidden">+ Event</span>
-                    </Link>
-                  }
                 />
               </div>
             </>
@@ -468,15 +448,10 @@ export default async function HomePage() {
                 No new events
               </h3>
               <p className="mx-auto mt-3 max-w-md text-[var(--mm-text-dim)]">
-                We have not booked the next one yet. Registered partners can add their own stalls and tournaments directly to the calendar.
+                We have not booked the next one yet. Join the Discord where the
+                talk carries on between gatherings.
               </p>
               <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-                <Link
-                  href="/partner-hub"
-                  className="mm-btn mm-btn-primary text-xs"
-                >
-                  <Icon icon="mdi:calendar-plus" width={16} /> Partner: Add event
-                </Link>
                 <a
                   href={DISCORD}
                   target="_blank"

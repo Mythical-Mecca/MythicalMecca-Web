@@ -35,6 +35,17 @@ export default async function PartnerLayout({
       icon: "mdi:view-dashboard-outline",
       color: ACCENT.dashboard,
     },
+    ...(memberships.length > 0
+      ? [
+          {
+            href: `/partner-hub/${memberships[0].partnerId}/events`,
+            label: "Event Application",
+            sub: "Calendar gatherings",
+            icon: "mdi:calendar-plus",
+            color: "#E18D01",
+          },
+        ]
+      : []),
     ...memberships.map((m) => ({
       href: `/partner-hub/${m.partnerId}`,
       label: m.businessName,

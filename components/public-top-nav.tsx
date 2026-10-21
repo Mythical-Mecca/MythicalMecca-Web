@@ -19,9 +19,11 @@ export { HOME_SECTIONS };
 export function PublicTopNav({
   signedIn = false,
   showApply = false,
+  hasPartner = false,
 }: {
   signedIn?: boolean;
   showApply?: boolean;
+  hasPartner?: boolean;
 }) {
   const pathname = usePathname();
   const [visible, setVisible] = useState(true);
@@ -164,6 +166,14 @@ export function PublicTopNav({
           <div className="flex items-center gap-1.5 sm:gap-2">
             {signedIn ? (
               <>
+                <Link
+                  href="/partner-hub"
+                  className="mm-btn mm-btn-ghost text-xs max-sm:px-2.5 text-[var(--mm-gold)] hover:border-[var(--mm-gold)]"
+                  title="Open Partner Hub"
+                >
+                  <Icon icon="mdi:storefront-outline" width={14} />
+                  <span className="max-sm:hidden">Partner Hub</span>
+                </Link>
                 {showApply && (
                   <Link
                     href="/apply"
@@ -210,13 +220,14 @@ export function PublicTopNav({
         </div>
       </nav>
 
-      {/* Burger Menu Drawer (Mobile) - Contains ONLY the Partner tab, omitting Vendors/Artists/Collaborators */}
+      {/* Burger Menu Drawer (Mobile) */}
       {mobileMenuOpen && (
         <div className="border-t border-[var(--mm-divider)] bg-[var(--mm-surface)] px-5 py-4 md:hidden">
           <nav aria-label="Mobile navigation" className="flex flex-col gap-1.5">
             {BURGER_SECTIONS.map((s) => {
               const isCalendar = s.label === "Calendar";
               const isPartner = s.label === "Partners";
+              const isPartnerHub = s.label === "Partner Hub";
               const isQuests = s.label === "Quests";
 
               return (
@@ -225,16 +236,22 @@ export function PublicTopNav({
                   href={s.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
-                    isCalendar
-                      ? "text-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)]"
-                      : isPartner
-                        ? "text-[var(--mm-text)] bg-[var(--mm-elevated)] border border-[var(--mm-border)]"
-                        : "text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
+                    isPartnerHub
+                      ? "text-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-gold)_14%,transparent)] border border-[color-mix(in_srgb,var(--mm-gold)_35%,transparent)] font-semibold shadow-sm"
+                      : isCalendar
+                        ? "text-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-gold)_10%,transparent)]"
+                        : isPartner
+                          ? "text-[var(--mm-text)] bg-[var(--mm-elevated)] border border-[var(--mm-border)]"
+                          : "text-[var(--mm-text-dim)] hover:bg-[var(--mm-elevated)] hover:text-[var(--mm-text)]"
                   }`}
                 >
                   <span className="flex items-center gap-2">
                     {s.icon ? (
-                      <Icon icon={s.icon} width={17} />
+                      <Icon
+                        icon={s.icon}
+                        width={17}
+                        className={isPartnerHub ? "text-[var(--mm-gold)]" : undefined}
+                      />
                     ) : isQuests ? (
                       <Icon icon="game-icons:treasure-map" width={17} />
                     ) : (
@@ -242,7 +259,11 @@ export function PublicTopNav({
                     )}
                     <span>{s.label}</span>
                   </span>
-                  <Icon icon="mdi:chevron-right" width={16} className="text-[var(--mm-text-dim)]" />
+                  <Icon
+                    icon="mdi:chevron-right"
+                    width={16}
+                    className={isPartnerHub ? "text-[var(--mm-gold)]" : "text-[var(--mm-text-dim)]"}
+                  />
                 </a>
               );
             })}
