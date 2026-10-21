@@ -34,7 +34,8 @@ export default async function NewStallPage({
   // Opening another stall is a privilege of already running an approved one.
   // Re-checked in the action; this is just so nobody stares at a dead form.
   const isAdmin = roleAtLeast(session!.user.role, "admin");
-  if (!isAdmin && !mine.some((m) => m.status === "approved")) redirect("/apply");
+  const isPartner = roleAtLeast(session!.user.role, "partner");
+  if (!isAdmin && !isPartner && mine.length === 0) redirect("/apply");
 
   return (
     <div className="max-w-2xl space-y-6">

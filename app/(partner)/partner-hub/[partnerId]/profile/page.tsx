@@ -42,9 +42,10 @@ export default async function StallProfilePage({
             Business name
           </label>
           <input
-            value={partner.businessName}
-            disabled
-            className={`${inputCls} opacity-60`}
+            name="businessName"
+            defaultValue={partner.businessName}
+            required
+            className={inputCls}
           />
         </div>
         <div>

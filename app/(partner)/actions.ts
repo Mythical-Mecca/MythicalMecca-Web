@@ -78,9 +78,8 @@ export async function createPartnerPage(formData: FormData) {
 
   const mine = await listMyPartners(session.user.id);
   const isAdmin = roleAtLeast(session.user.role, "admin");
-  // Opening another stall is a privilege of already running an approved one;
-  // first-timers still go through /apply.
-  if (!isAdmin && !mine.some((m) => m.status === "approved")) redirect("/apply");
+  const isPartner = roleAtLeast(session.user.role, "partner");
+  if (!isAdmin && !isPartner && mine.length === 0) redirect("/apply");
   // Count only stalls they own — being invited to manage other people's stalls
   // shouldn't consume their own allowance.
   const owned = mine.filter((m) => m.role === "owner").length;
@@ -606,6 +605,7 @@ export async function setPartnerMemberRole(formData: FormData) {
 }
 
 const profileSchema = z.object({
+  businessName: z.string().min(2).max(120).optional(),
   tagline: z.string().max(160).optional(),
   bio: z.string().max(2000).optional(),
   socials: z.string().max(500).optional(),
@@ -620,6 +620,7 @@ export async function updatePartnerProfile(formData: FormData) {
   const base = `/partner-hub/${membership.partnerId}/profile`;
 
   const parsed = profileSchema.safeParse({
+    businessName: formData.get("businessName") || undefined,
     tagline: formData.get("tagline") || undefined,
     bio: formData.get("bio") || undefined,
     socials: formData.get("socials") || undefined,
@@ -642,6 +643,7 @@ export async function updatePartnerProfile(formData: FormData) {
       await db
         .update(partners)
         .set({
+          ...(parsed.data.businessName ? { businessName: parsed.data.businessName } : {}),
           tagline: parsed.data.tagline,
           bio: parsed.data.bio,
           shopUrl: parsed.data.shopUrl ?? null,

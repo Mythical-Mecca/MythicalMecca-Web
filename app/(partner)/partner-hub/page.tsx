@@ -72,11 +72,13 @@ export default async function PartnerHubPage({
               <span>Submit Event Application</span>
             </Link>
           )}
-          {canCreate && (
-            <Link href="/partner-hub/new" className="mm-btn mm-btn-ghost text-xs sm:text-sm">
-              <Icon icon="mdi:plus" width={16} /> New stall
-            </Link>
-          )}
+          <Link
+            href="/partner-hub/new"
+            className="mm-btn mm-btn-ghost text-xs sm:text-sm font-medium border border-[var(--mm-border)] hover:border-[var(--mm-gold)]"
+          >
+            <Icon icon="mdi:plus" width={16} />
+            <span>Add new stall</span>
+          </Link>
         </div>
       </div>
 
@@ -233,9 +235,17 @@ export default async function PartnerHubPage({
                   </div>
                 </div>
               ) : (
-                <span className="text-xs text-[var(--mm-text-dim)]">
-                  Stall required to submit events.
-                </span>
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs text-[var(--mm-text-dim)]">
+                    Create a stall first to submit events to the calendar.
+                  </span>
+                  <Link
+                    href="/partner-hub/new"
+                    className="mm-btn mm-btn-primary text-xs font-semibold"
+                  >
+                    <Icon icon="mdi:plus" width={14} /> Create Stall
+                  </Link>
+                </div>
               )}
             </div>
           </div>
@@ -348,70 +358,131 @@ export default async function PartnerHubPage({
               Your stalls, shopfronts, and partner profiles in the Mythical Mecca bazaar.
             </p>
           </div>
-          {canCreate && (
-            <Link href="/partner-hub/new" className="mm-btn mm-btn-ghost text-xs">
-              <Icon icon="mdi:plus" width={15} /> Add another stall
-            </Link>
-          )}
+          <Link
+            href="/partner-hub/new"
+            className="mm-btn mm-btn-primary text-xs sm:text-sm font-semibold shadow-sm"
+          >
+            <Icon icon="mdi:plus" width={16} />
+            <span>Add New Stall</span>
+          </Link>
         </div>
 
         {memberships.length === 0 ? (
-          <div className="mm-glass border-[var(--mm-gold)] p-6 text-sm text-[var(--mm-text-dim)]">
-            No stall loaded yet. Once your petition is approved, your shop fills
-            in here.
+          <div className="mm-glass rounded-2xl border border-dashed border-[var(--mm-gold)] p-8 text-center space-y-3">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--mm-elevated)] text-[var(--mm-gold)] mx-auto">
+              <Icon icon="game-icons:shop" width={28} />
+            </div>
+            <h3 className="font-[family-name:var(--font-display)] text-lg text-white">
+              No stalls listed yet
+            </h3>
+            <p className="max-w-md mx-auto text-xs sm:text-sm text-[var(--mm-text-dim)]">
+              Create your stall to start listing products, showcasing your gallery, and publishing events to the community calendar.
+            </p>
+            <Link href="/partner-hub/new" className="mm-btn mm-btn-primary text-xs sm:text-sm font-semibold inline-flex items-center gap-1.5 mt-2">
+              <Icon icon="mdi:plus" width={16} />
+              <span>Create Your First Stall</span>
+            </Link>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {memberships.map((m) => (
-              <Link
+              <div
                 key={m.partnerId}
-                href={`/partner-hub/${m.partnerId}`}
-                className="mm-glass group flex flex-col p-5 transition hover:border-[var(--mm-gold)] rounded-2xl"
+                className="mm-glass rounded-2xl p-5 border border-[var(--mm-border)] hover:border-[var(--mm-gold)]/60 transition-colors flex flex-col justify-between gap-4"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--mm-elevated)] text-[var(--mm-gold)]">
-                      <Icon icon="game-icons:shop" width={22} />
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--mm-elevated)] text-[var(--mm-gold)]">
+                        <Icon icon="game-icons:shop" width={24} />
+                      </div>
+                      <div>
+                        <h3 className="font-[family-name:var(--font-display)] text-lg text-white font-medium">
+                          {m.businessName}
+                        </h3>
+                        <span className="text-xs text-[var(--mm-text-dim)]">
+                          /{m.slug}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-[family-name:var(--font-display)] text-lg text-white group-hover:text-[var(--mm-gold)] transition-colors">
-                        {m.businessName}
-                      </h3>
-                      <span className="text-xs text-[var(--mm-text-dim)]">
-                        /{m.slug}
-                      </span>
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      <PartnerStatusBadge status={m.status} />
+                      {m.role === "owner" && (
+                        <Badge color="var(--mm-violet)" icon="mdi:key-variant">
+                          Owner
+                        </Badge>
+                      )}
+                      {!m.active && (
+                        <Badge color="var(--mm-danger)" icon="mdi:pause-circle-outline">
+                          Paused
+                        </Badge>
+                      )}
                     </div>
-                  </div>
-                  <div className="flex flex-wrap justify-end gap-1.5">
-                    <PartnerStatusBadge status={m.status} />
-                    {m.role === "owner" && (
-                      <Badge color="var(--mm-violet)" icon="mdi:key-variant">
-                        Owner
-                      </Badge>
-                    )}
-                    {!m.active && (
-                      <Badge color="var(--mm-danger)" icon="mdi:pause-circle-outline">
-                        Paused
-                      </Badge>
-                    )}
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2 pt-3 border-t border-[var(--mm-divider)] text-xs text-[var(--mm-text-dim)]">
-                  <span className="flex items-center gap-1 hover:text-[var(--mm-gold)]">
-                    <Icon icon="mdi:image-outline" width={14} /> Gallery
-                  </span>
-                  <span>·</span>
-                  <span className="flex items-center gap-1 hover:text-[var(--mm-gold)]">
-                    <Icon icon="mdi:tag-outline" width={14} /> Offerings
-                  </span>
-                  <span>·</span>
-                  <span className="flex items-center gap-1 text-[var(--mm-gold)] font-medium ml-auto group-hover:translate-x-0.5 transition-transform">
-                    Manage Stall →
-                  </span>
+                {/* Primary Quick Actions for this Store */}
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--mm-divider)]">
+                  <Link
+                    href={`/partner-hub/${m.partnerId}/profile`}
+                    className="mm-btn mm-btn-primary text-xs font-semibold justify-center py-2 shadow-sm"
+                  >
+                    <Icon icon="mdi:store-edit-outline" width={15} />
+                    <span>Edit Store</span>
+                  </Link>
+                  <Link
+                    href={`/partner-hub/${m.partnerId}/events#new-event`}
+                    className="mm-btn text-xs font-semibold justify-center py-2 bg-[color-mix(in_srgb,var(--mm-gold)_16%,transparent)] text-[var(--mm-gold)] hover:bg-[color-mix(in_srgb,var(--mm-gold)_28%,transparent)] border border-[color-mix(in_srgb,var(--mm-gold)_35%,transparent)] transition"
+                  >
+                    <Icon icon="mdi:calendar-plus" width={15} />
+                    <span>Add Event</span>
+                  </Link>
                 </div>
-              </Link>
+
+                {/* Secondary Hub Sub-Links */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--mm-divider)] text-xs text-[var(--mm-text-dim)]">
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`/partner-hub/${m.partnerId}/offerings`}
+                      className="inline-flex items-center gap-1 hover:text-[var(--mm-gold)] transition-colors"
+                    >
+                      <Icon icon="mdi:tag-outline" width={13} />
+                      <span>Offerings</span>
+                    </Link>
+                    <span>·</span>
+                    <Link
+                      href={`/partner-hub/${m.partnerId}/gallery`}
+                      className="inline-flex items-center gap-1 hover:text-[var(--mm-gold)] transition-colors"
+                    >
+                      <Icon icon="mdi:image-outline" width={13} />
+                      <span>Gallery</span>
+                    </Link>
+                  </div>
+                  <Link
+                    href={`/partner-hub/${m.partnerId}`}
+                    className="inline-flex items-center gap-1 text-[var(--mm-gold)] font-medium hover:underline ml-auto"
+                  >
+                    <span>Manage Stall →</span>
+                  </Link>
+                </div>
+              </div>
             ))}
+
+            {/* Add Another Stall card */}
+            <Link
+              href="/partner-hub/new"
+              className="rounded-2xl border-2 border-dashed border-[var(--mm-border)] hover:border-[var(--mm-gold)] bg-[color-mix(in_srgb,var(--mm-surface)_40%,transparent)] hover:bg-[var(--mm-elevated)] p-6 flex flex-col items-center justify-center text-center gap-2 transition group min-h-[160px]"
+            >
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--mm-surface)] text-[var(--mm-text-dim)] group-hover:text-[var(--mm-gold)] group-hover:scale-105 transition">
+                <Icon icon="mdi:plus" width={22} />
+              </div>
+              <span className="font-[family-name:var(--font-display)] text-sm text-white group-hover:text-[var(--mm-gold)] transition-colors">
+                Add Another Stall
+              </span>
+              <span className="text-xs text-[var(--mm-text-dim)] max-w-xs">
+                Open a new vendor shopfront, artist page, or collaborator profile in the bazaar.
+              </span>
+            </Link>
           </div>
         )}
       </section>

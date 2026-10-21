@@ -18,7 +18,10 @@ export default async function PartnerLayout({
    */
   const session = await requireRole("member");
   const memberships = await listMyPartners(session.user.id);
-  if (memberships.length === 0 && !roleAtLeast(session.user.role, "admin")) {
+  const isPartnerOrAdmin =
+    roleAtLeast(session.user.role, "partner") ||
+    roleAtLeast(session.user.role, "admin");
+  if (memberships.length === 0 && !isPartnerOrAdmin) {
     redirect("/apply");
   }
 
