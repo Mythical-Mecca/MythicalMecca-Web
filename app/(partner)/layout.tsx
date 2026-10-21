@@ -32,23 +32,26 @@ export default async function PartnerLayout({
    */
   const nav: NavItem[] = [
     {
-      href: "/partner-hub",
-      label: "Your stalls",
+      href: "/partner-hub?tab=stalls",
+      label: "Manage Stalls",
       sub: memberships.length === 1 ? "1 stall" : `${memberships.length} stalls`,
-      icon: "mdi:view-dashboard-outline",
-      color: ACCENT.dashboard,
+      icon: "game-icons:shop",
+      color: "#4aa8ff",
     },
-    ...(memberships.length > 0
-      ? [
-          {
-            href: `/partner-hub/${memberships[0].partnerId}/events`,
-            label: "Event Application",
-            sub: "Calendar gatherings",
-            icon: "mdi:calendar-plus",
-            color: "#E18D01",
-          },
-        ]
-      : []),
+    {
+      href: "/partner-hub?tab=events",
+      label: "Event Management",
+      sub: "Calendar gatherings",
+      icon: "mdi:calendar-month-outline",
+      color: "#E18D01",
+    },
+    {
+      href: "/partner-hub/new",
+      label: "New Stall",
+      sub: "Add another shop",
+      icon: "mdi:plus-circle-outline",
+      color: ACCENT.marketplace,
+    },
     ...memberships.map((m) => ({
       href: `/partner-hub/${m.partnerId}`,
       label: m.businessName,
@@ -56,13 +59,6 @@ export default async function PartnerLayout({
       icon: "game-icons:shop",
       color: PARTNER_STATUS[m.status].color,
     })),
-    {
-      href: "/partner-hub/new",
-      label: "New stall",
-      sub: "Add another page",
-      icon: "mdi:plus-circle-outline",
-      color: ACCENT.marketplace,
-    },
   ];
 
   return (

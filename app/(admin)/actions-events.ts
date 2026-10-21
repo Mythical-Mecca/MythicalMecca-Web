@@ -43,7 +43,7 @@ export async function approveCommunityEvent(formData: FormData) {
           reviewNote: note,
           updatedAt: new Date(),
         })
-        .where(and(eq(events.id, id), eq(events.origin, "community")));
+        .where(and(eq(events.id, id), inArray(events.origin, ["community", "partner"])));
     } catch {
       redirect("/admin/events/queue?error=1");
     }
@@ -101,7 +101,7 @@ export async function rejectCommunityEvent(formData: FormData) {
           reviewNote: note,
           updatedAt: new Date(),
         })
-        .where(and(eq(events.id, id), eq(events.origin, "community")));
+        .where(and(eq(events.id, id), inArray(events.origin, ["community", "partner"])));
     } catch {
       redirect("/admin/events/queue?error=1");
     }

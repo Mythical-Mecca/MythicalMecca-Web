@@ -761,12 +761,13 @@ const PartnerEventSchema = z.object({
   externalUrl: z.string().trim().max(500).optional(),
 });
 
-/** Allows a registered partner to add an event directly to the communal calendar. */
+/** Allows a registered partner to submit an event for calendar review. */
 export async function createPartnerEvent(formData: FormData) {
   const ctx = await authorizePartnerAction(formData, "manager");
   if (!ctx) redirect("/partner-hub?denied=1");
   const { session, membership } = ctx;
-  const base = `/partner-hub/${membership.partnerId}/events`;
+  const returnTo = String(formData.get("returnTo") ?? "");
+  const base = returnTo === "hub" ? "/partner-hub?tab=events" : `/partner-hub/${membership.partnerId}/events`;
 
   const raw = {
     title: String(formData.get("title") ?? ""),
@@ -805,7 +806,8 @@ export async function createPartnerEvent(formData: FormData) {
         endsAt: ends,
         location: parsed.data.location ?? null,
         externalUrl: parsed.data.externalUrl ?? null,
-        status: "published",
+        // Requires admin approval before going live on the calendar
+        status: "pending",
         origin: "partner",
         partnerId: membership.partnerId,
         createdBy: session.user.id,
@@ -826,6 +828,7 @@ export async function createPartnerEvent(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/events");
+  revalidatePath("/partner-hub");
   revalidatePath(`/partners/${membership.slug}`);
   revalidatePath(base);
   redirect(`${base}?saved=1`);
@@ -836,7 +839,8 @@ export async function deletePartnerEvent(formData: FormData) {
   const ctx = await authorizePartnerAction(formData, "manager");
   if (!ctx) redirect("/partner-hub?denied=1");
   const { session, membership } = ctx;
-  const base = `/partner-hub/${membership.partnerId}/events`;
+  const returnTo = String(formData.get("returnTo") ?? "");
+  const base = returnTo === "hub" ? "/partner-hub?tab=events" : `/partner-hub/${membership.partnerId}/events`;
   const eventId = String(formData.get("eventId") ?? "");
 
   if (process.env.DATABASE_URL && eventId) {
@@ -864,6 +868,7 @@ export async function deletePartnerEvent(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/events");
+  revalidatePath("/partner-hub");
   revalidatePath(`/partners/${membership.slug}`);
   revalidatePath(base);
   redirect(`${base}?deleted=1`);

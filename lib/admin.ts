@@ -18,7 +18,7 @@ import {
   chatMessages,
   playerSignups,
 } from "@/lib/db/schema";
-import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { sampleEvents } from "@/lib/content";
 import { toMediaSrc } from "@/lib/media";
@@ -242,9 +242,10 @@ export async function listCommunityEventSubmissions(
 ): Promise<CommunityEventSubmission[]> {
   if (!useDb) return [];
   try {
+    const originCondition = inArray(events.origin, ["community", "partner"]);
     const where = status
-      ? and(eq(events.origin, "community"), eq(events.status, status))
-      : eq(events.origin, "community");
+      ? and(originCondition, eq(events.status, status))
+      : originCondition;
     const rows = await db
       .select({ e: events, submitterName: users.name })
       .from(events)
