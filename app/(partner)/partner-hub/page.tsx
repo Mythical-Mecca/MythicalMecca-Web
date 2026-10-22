@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { listMyPartners } from "@/lib/partner-access";
 import { listPendingInvitesForUser } from "@/lib/partner-invites";
 import { stationsForPartner } from "@/lib/hunts";
-import { listPartnerEvents } from "@/lib/partner";
+import { listMySubmittedEvents } from "@/lib/partner";
 import {
   acceptPartnerInviteById,
   createPartnerEvent,
@@ -43,18 +43,11 @@ export default async function PartnerHubPage({
 
   const liveStations = stations.filter((s) => s.open);
 
-  // Fetch partner events for all user's stalls
-  const eventsByStall = await Promise.all(
-    memberships.map(async (m) => {
-      const items = await listPartnerEvents(m.partnerId);
-      return items.map((e) => ({
-        ...e,
-        partnerId: m.partnerId,
-        stallName: m.businessName,
-      }));
-    })
+  // Fetch partner events for all user's stalls and events created by this partner user
+  const allEvents = await listMySubmittedEvents(
+    session!.user.id,
+    memberships.map((m) => m.partnerId)
   );
-  const allEvents = eventsByStall.flat();
 
   return (
     <div className="space-y-6">
@@ -65,7 +58,7 @@ export default async function PartnerHubPage({
             Partner <span className="mm-gradient-text">Hub</span>
           </h1>
           <p className="mt-1 text-xs text-[var(--mm-text-dim)] sm:text-sm">
-            Manage stalls linked to your account and submit events for admin approval.
+            Manage stalls linked to your account and submit events for calendar approval.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -101,7 +94,7 @@ export default async function PartnerHubPage({
       )}
       {saved && (
         <Flash tone="success">
-          Event application submitted! It is awaiting admin approval before going live on the community calendar.
+          Event submitted! It is now pending admin review and will appear on the calendar once approved.
         </Flash>
       )}
       {deleted && <Flash>Event removed.</Flash>}
@@ -137,7 +130,7 @@ export default async function PartnerHubPage({
                 className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
               >
                 <div>
-                  <p className="font-medium text-white">{inv.businessName}</p>
+                  <p className="font-medium text-white">{inv.partnerName}</p>
                   <p className="text-xs text-[var(--mm-text-dim)]">
                     Role: <span className="capitalize text-[var(--mm-gold)]">{inv.role}</span>
                   </p>
@@ -154,7 +147,7 @@ export default async function PartnerHubPage({
         </section>
       )}
 
-      {/* Primary 2 Tabs */}
+      {/* 2 Primary Tabs: Manage Stalls vs Event Management */}
       <div className="flex border-b border-[var(--mm-border)]">
         <Link
           href="/partner-hub?tab=stalls"
@@ -201,7 +194,7 @@ export default async function PartnerHubPage({
             <div>
               <h2 className="flex items-center gap-2 font-[family-name:var(--font-display)] text-xl tracking-wide text-white">
                 <Icon icon="game-icons:shop" width={22} className="text-[var(--mm-blue)]" />
-                <span>Your Stalls &amp; Shopfronts</span>
+                <span>Your Listed Stalls</span>
                 <span className="rounded-full bg-[var(--mm-elevated)] px-2.5 py-0.5 text-xs text-[var(--mm-text-dim)]">
                   {memberships.length}
                 </span>
@@ -223,7 +216,7 @@ export default async function PartnerHubPage({
           <div className="flex items-start gap-3 rounded-xl border border-[color-mix(in_srgb,var(--mm-border)_60%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_50%,transparent)] p-4 text-xs text-[var(--mm-text-dim)]">
             <Icon icon="mdi:shield-check-outline" width={18} className="shrink-0 text-[var(--mm-blue)] mt-0.5" />
             <p>
-              <strong className="text-white">Admin Approval Required:</strong> All newly added stalls stay in <span className="text-amber-300 font-semibold">Draft</span> or <span className="text-amber-300 font-semibold">Pending</span> status. Neither stalls nor events appear on the public directory or communal calendar until approved by an administrator.
+              <strong className="text-white">Admin Approval Required:</strong> All newly added stalls stay in <span className="text-amber-300 font-semibold">Draft</span> or <span className="text-amber-300 font-semibold">Pending</span> status. Stalls do not appear on the public directory until reviewed and approved by an administrator.
             </p>
           </div>
 
@@ -236,7 +229,7 @@ export default async function PartnerHubPage({
                 No stalls listed yet
               </h3>
               <p className="max-w-md mx-auto text-xs sm:text-sm text-[var(--mm-text-dim)]">
-                Create your stall to start listing products, showcasing your gallery, and scheduling gatherings.
+                Create a stall to start listing products, showcasing your gallery, and promoting your offerings.
               </p>
               <Link
                 href="/partner-hub/new"
@@ -382,7 +375,7 @@ export default async function PartnerHubPage({
                 </span>
               </h2>
               <p className="mt-1 text-xs text-[var(--mm-text-dim)] sm:text-sm">
-                Submit tournaments, showcases, workshops, and gatherings for your stalls.
+                Submit tournaments, showcases, workshops, and gatherings. No stall required to submit an event.
               </p>
             </div>
             <a
@@ -390,7 +383,7 @@ export default async function PartnerHubPage({
               className="mm-btn mm-btn-primary text-xs sm:text-sm font-semibold shadow-sm"
             >
               <Icon icon="mdi:plus-circle-outline" width={16} />
-              <span>Submit Event Application</span>
+              <span>Submit New Event</span>
             </a>
           </div>
 
@@ -398,14 +391,14 @@ export default async function PartnerHubPage({
           <div className="flex items-start gap-3 rounded-xl border border-[color-mix(in_srgb,var(--mm-gold)_40%,transparent)] bg-[color-mix(in_srgb,var(--mm-gold)_8%,transparent)] p-4 text-xs text-[var(--mm-text-dim)]">
             <Icon icon="mdi:clock-outline" width={18} className="shrink-0 text-[var(--mm-gold)] mt-0.5" />
             <p>
-              <strong className="text-white">Admin Approval Required:</strong> All partner events are submitted as <span className="text-amber-300 font-semibold">Pending Review</span>. An administrator must approve your event in the queue before it is published live on the communal calendar.
+              <strong className="text-white">Admin Approval Required:</strong> All partner events are submitted as <span className="text-amber-300 font-semibold">Pending Review</span>. An administrator must approve your event in the moderation queue before it goes live on the calendar.
             </p>
           </div>
 
           {/* Submitted Events List */}
           <section className="space-y-4">
             <h3 className="font-[family-name:var(--font-display)] text-lg tracking-wide text-white">
-              Your Scheduled &amp; Submitted Gatherings ({allEvents.length})
+              Your Submitted Events ({allEvents.length})
             </h3>
 
             {allEvents.length === 0 ? (
@@ -417,7 +410,7 @@ export default async function PartnerHubPage({
                   No events submitted yet
                 </h4>
                 <p className="mt-1.5 max-w-sm text-xs sm:text-sm">
-                  Fill out the form below to submit a tournament, workshop, or gathering for administrator approval.
+                  Use the form below to submit a tournament, workshop, or gathering for administrator approval.
                 </p>
                 <a href="#new-event" className="mm-btn mm-btn-primary mt-5 text-xs font-semibold">
                   <Icon icon="mdi:calendar-plus" width={15} /> Create your first event
@@ -463,10 +456,17 @@ export default async function PartnerHubPage({
                           </div>
 
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--mm-text-dim)]">
-                            <span className="flex items-center gap-1 font-medium text-[var(--mm-gold)]">
-                              <Icon icon="game-icons:shop" width={13} />
-                              <span>{e.stallName}</span>
-                            </span>
+                            {e.stallName ? (
+                              <span className="flex items-center gap-1 font-medium text-[var(--mm-gold)]">
+                                <Icon icon="game-icons:shop" width={13} />
+                                <span>{e.stallName}</span>
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-[var(--mm-text-dim)]">
+                                <Icon icon="mdi:account-outline" width={13} />
+                                <span>Partner Event</span>
+                              </span>
+                            )}
                             {e.startsAt && (
                               <span className="flex items-center gap-1">
                                 <Icon icon="mdi:calendar-start" width={13} />
@@ -498,7 +498,6 @@ export default async function PartnerHubPage({
                             </Link>
                           )}
                           <form action={deletePartnerEvent}>
-                            <input type="hidden" name="partnerId" value={e.partnerId} />
                             <input type="hidden" name="eventId" value={e.id} />
                             <input type="hidden" name="returnTo" value="hub" />
                             <button
@@ -518,143 +517,124 @@ export default async function PartnerHubPage({
             )}
           </section>
 
-          {/* Add New Event Form (Similar to Admin Event Creation) */}
+          {/* Add New Event Form (No stall required!) */}
           <section id="new-event" className="scroll-mt-24 pt-4">
             <FormCard
               title="Submit Event for Admin Approval"
               icon="mdi:calendar-plus"
               accent="#E18D01"
             >
-              {memberships.length === 0 ? (
-                <div className="p-4 text-center text-sm text-[var(--mm-text-dim)]">
-                  You need at least one stall to submit events.{" "}
-                  <Link href="/partner-hub/new" className="text-[var(--mm-gold)] underline font-medium">
-                    Create a stall first →
-                  </Link>
-                </div>
-              ) : (
-                <form action={createPartnerEvent} className="space-y-5">
-                  <input type="hidden" name="returnTo" value="hub" />
+              <form action={createPartnerEvent} className="space-y-5">
+                <input type="hidden" name="returnTo" value="hub" />
 
-                  {/* Stall Selector */}
-                  {memberships.length === 1 ? (
-                    <div>
-                      <input type="hidden" name="partnerId" value={memberships[0].partnerId} />
-                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[var(--mm-text-dim)]">
-                        Hosting Stall
-                      </label>
-                      <div className="flex items-center gap-2 rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm text-white">
-                        <Icon icon="game-icons:shop" width={16} className="text-[var(--mm-gold)]" />
-                        <span className="font-medium">{memberships[0].businessName}</span>
-                        <span className="text-xs text-[var(--mm-text-dim)]">({memberships[0].slug})</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--mm-text-dim)]">
-                        <Icon icon="game-icons:shop" width={14} className="text-[var(--mm-gold)]" />
-                        <span>Hosting Stall</span>
-                        <span className="text-[var(--mm-danger)]">*</span>
-                      </label>
-                      <select
-                        name="partnerId"
-                        required
-                        className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm text-white outline-none focus:border-[var(--mm-gold)]"
-                      >
-                        {memberships.map((m) => (
-                          <option key={m.partnerId} value={m.partnerId}>
-                            {m.businessName} (/{m.slug})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  <TextField
-                    name="title"
-                    label="Event title"
-                    icon="mdi:format-title"
-                    placeholder="e.g., Warhammer 40k Paint & Play, Magic Draft, Cosplay Workshop"
-                    required
-                    maxLength={120}
-                  />
-
-                  <TextField
-                    name="summary"
-                    label="Short summary"
-                    icon="mdi:text-short"
-                    placeholder="1-2 sentences shown on calendar cards and previews"
-                    maxLength={300}
-                  />
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--mm-text-dim)]">
-                        <Icon icon="mdi:calendar-start" width={14} className="text-[var(--mm-gold)]" />
-                        <span>Starts at</span>
-                        <span className="text-[var(--mm-danger)]">*</span>
-                      </label>
-                      <input
-                        type="datetime-local"
-                        name="startsAt"
-                        required
-                        className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm text-white outline-none focus:border-[var(--mm-gold)]"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--mm-text-dim)]">
-                        <Icon icon="mdi:calendar-end" width={14} className="text-[var(--mm-gold)]" />
-                        <span>Ends at</span>
-                        <span className="text-[var(--mm-danger)]">*</span>
-                      </label>
-                      <input
-                        type="datetime-local"
-                        name="endsAt"
-                        required
-                        className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm text-white outline-none focus:border-[var(--mm-gold)]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <TextField
-                      name="location"
-                      label="Location / Table"
-                      icon="mdi:map-marker-outline"
-                      placeholder="e.g., Table 4, Main Stage, Workshop Tent B"
-                      maxLength={160}
-                    />
-
-                    <TextField
-                      name="externalUrl"
-                      label="External Link / Registration"
-                      icon="mdi:link-variant"
-                      placeholder="https://..."
-                      maxLength={500}
-                    />
-                  </div>
-
-                  <TextareaField
-                    name="bodyMd"
-                    label="Event details & description"
-                    placeholder="Detailed rules, schedule, prizes, entry fee, or requirements..."
-                    rows={4}
-                  />
-
-                  <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[var(--mm-border)]">
-                    <p className="text-xs text-[var(--mm-text-dim)]">
-                      Submitted events require admin moderation before publication.
-                    </p>
-                    <button
-                      type="submit"
-                      className="mm-btn mm-btn-primary text-sm font-semibold shadow-sm"
+                {/* Optional Stall Selector */}
+                {memberships.length > 0 && (
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--mm-text-dim)]">
+                      <Icon icon="game-icons:shop" width={14} className="text-[var(--mm-gold)]" />
+                      <span>Associated Stall (Optional)</span>
+                    </label>
+                    <select
+                      name="partnerId"
+                      className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm text-white outline-none focus:border-[var(--mm-gold)]"
                     >
-                      <Icon icon="mdi:send-outline" width={16} />
-                      <span>Submit Event for Review</span>
-                    </button>
+                      <option value="none">None (General Partner Event)</option>
+                      {memberships.map((m) => (
+                        <option key={m.partnerId} value={m.partnerId}>
+                          {m.businessName} (/{m.slug})
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-[var(--mm-text-dim)]">
+                      Link this event to one of your stalls, or leave as General Partner Event.
+                    </p>
                   </div>
-                </form>
-              )}
+                )}
+
+                <TextField
+                  name="title"
+                  label="Event title"
+                  icon="mdi:format-title"
+                  placeholder="e.g., Warhammer 40k Paint & Play, Magic Draft, Cosplay Workshop"
+                  required
+                  maxLength={120}
+                />
+
+                <TextField
+                  name="summary"
+                  label="Short summary"
+                  icon="mdi:text-short"
+                  placeholder="1-2 sentences shown on calendar cards and previews"
+                  maxLength={300}
+                />
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--mm-text-dim)]">
+                      <Icon icon="mdi:calendar-start" width={14} className="text-[var(--mm-gold)]" />
+                      <span>Starts at</span>
+                      <span className="text-[var(--mm-danger)]">*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      name="startsAt"
+                      required
+                      className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm text-white outline-none focus:border-[var(--mm-gold)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--mm-text-dim)]">
+                      <Icon icon="mdi:calendar-end" width={14} className="text-[var(--mm-gold)]" />
+                      <span>Ends at</span>
+                      <span className="text-[var(--mm-danger)]">*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      name="endsAt"
+                      required
+                      className="w-full rounded-2xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-sm text-white outline-none focus:border-[var(--mm-gold)]"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <TextField
+                    name="location"
+                    label="Location / Table"
+                    icon="mdi:map-marker-outline"
+                    placeholder="e.g., Table 4, Main Stage, Workshop Tent B"
+                    maxLength={160}
+                  />
+
+                  <TextField
+                    name="externalUrl"
+                    label="External Link / Registration"
+                    icon="mdi:link-variant"
+                    placeholder="https://..."
+                    maxLength={500}
+                  />
+                </div>
+
+                <TextareaField
+                  name="bodyMd"
+                  label="Event details & description"
+                  placeholder="Detailed rules, schedule, prizes, entry fee, or requirements..."
+                  rows={4}
+                />
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[var(--mm-border)]">
+                  <p className="text-xs text-[var(--mm-text-dim)]">
+                    All partner events require admin moderation before publication on the calendar.
+                  </p>
+                  <button
+                    type="submit"
+                    className="mm-btn mm-btn-primary text-sm font-semibold shadow-sm"
+                  >
+                    <Icon icon="mdi:send-outline" width={16} />
+                    <span>Submit Event for Review</span>
+                  </button>
+                </div>
+              </form>
             </FormCard>
           </section>
         </div>

@@ -8,7 +8,7 @@ import {
   partnerOfferings,
   events,
 } from "@/lib/db/schema";
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { toMediaSrc } from "@/lib/media";
 import { parseSocials } from "@/lib/socials";
 import type { PartnerStatus } from "@/lib/partner-access";
@@ -365,4 +365,58 @@ export async function listPartnerEvents(
     return [];
   }
 }
+
+/** Lists events submitted by this partner (both stall-linked and independent partner events). */
+export async function listMySubmittedEvents(
+  userId: string,
+  partnerIds: string[] = []
+): Promise<(PartnerEventItem & { stallName?: string | null })[]> {
+  if (!useDb) return [];
+  try {
+    const conditions = [eq(events.createdBy, userId)];
+    if (partnerIds.length > 0) {
+      conditions.push(inArray(events.partnerId, partnerIds));
+    }
+    const rows = await db
+      .select({
+        id: events.id,
+        slug: events.slug,
+        title: events.title,
+        summary: events.summary,
+        bodyMd: events.bodyMd,
+        startsAt: events.startsAt,
+        endsAt: events.endsAt,
+        location: events.location,
+        externalUrl: events.externalUrl,
+        status: events.status,
+        createdAt: events.createdAt,
+        partnerId: events.partnerId,
+        stallName: partners.businessName,
+      })
+      .from(events)
+      .leftJoin(partners, eq(events.partnerId, partners.id))
+      .where(or(...conditions))
+      .orderBy(desc(events.startsAt));
+
+    return rows.map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      title: r.title,
+      summary: r.summary,
+      bodyMd: r.bodyMd,
+      startsAt: (r.startsAt ?? r.createdAt).toISOString(),
+      endsAt: (r.endsAt ?? r.createdAt).toISOString(),
+      location: r.location,
+      externalUrl: r.externalUrl,
+      status: r.status,
+      createdAt: r.createdAt.toISOString(),
+      partnerId: r.partnerId,
+      stallName: r.stallName,
+    }));
+  } catch (err) {
+    console.error("Failed to list submitted partner events:", err);
+    return [];
+  }
+}
+
 

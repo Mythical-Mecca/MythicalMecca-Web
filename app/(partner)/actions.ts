@@ -761,13 +761,36 @@ const PartnerEventSchema = z.object({
   externalUrl: z.string().trim().max(500).optional(),
 });
 
-/** Allows a registered partner to submit an event for calendar review. */
+/** Allows a registered partner to submit an event for calendar review. Does NOT require a stall. */
 export async function createPartnerEvent(formData: FormData) {
-  const ctx = await authorizePartnerAction(formData, "manager");
-  if (!ctx) redirect("/partner-hub?denied=1");
-  const { session, membership } = ctx;
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
+  const isPartner =
+    roleAtLeast(session.user.role, "partner") ||
+    roleAtLeast(session.user.role, "admin");
+  const mine = await listMyPartners(session.user.id);
+  if (!isPartner && mine.length === 0) {
+    redirect("/apply");
+  }
+
   const returnTo = String(formData.get("returnTo") ?? "");
-  const base = returnTo === "hub" ? "/partner-hub?tab=events" : `/partner-hub/${membership.partnerId}/events`;
+  const rawPartnerId = String(formData.get("partnerId") ?? "").trim();
+  let validPartnerId: string | null = null;
+  let stallSlug: string | null = null;
+
+  if (rawPartnerId && rawPartnerId !== "none") {
+    const matching = mine.find((m) => m.partnerId === rawPartnerId);
+    if (matching || roleAtLeast(session.user.role, "admin")) {
+      validPartnerId = rawPartnerId;
+      stallSlug = matching?.slug ?? null;
+    }
+  }
+
+  const base =
+    returnTo === "hub" || !validPartnerId
+      ? "/partner-hub?tab=events"
+      : `/partner-hub/${validPartnerId}/events`;
 
   const raw = {
     title: String(formData.get("title") ?? ""),
@@ -809,7 +832,7 @@ export async function createPartnerEvent(formData: FormData) {
         // Requires admin approval before going live on the calendar
         status: "pending",
         origin: "partner",
-        partnerId: membership.partnerId,
+        partnerId: validPartnerId,
         createdBy: session.user.id,
       });
     } catch (err) {
@@ -822,37 +845,43 @@ export async function createPartnerEvent(formData: FormData) {
     actorId: session.user.id,
     action: "partner.event.create",
     entityType: "event",
-    entityId: membership.partnerId,
+    entityId: validPartnerId ?? session.user.id,
     metadata: { title: parsed.data.title, slug },
   });
 
   revalidatePath("/");
   revalidatePath("/events");
   revalidatePath("/partner-hub");
-  revalidatePath(`/partners/${membership.slug}`);
-  revalidatePath(base);
+  if (stallSlug && validPartnerId) {
+    revalidatePath(`/partners/${stallSlug}`);
+    revalidatePath(`/partner-hub/${validPartnerId}/events`);
+  }
   redirect(`${base}?saved=1`);
 }
 
 /** Allows a partner to cancel or delete an event they created. */
 export async function deletePartnerEvent(formData: FormData) {
-  const ctx = await authorizePartnerAction(formData, "manager");
-  if (!ctx) redirect("/partner-hub?denied=1");
-  const { session, membership } = ctx;
-  const returnTo = String(formData.get("returnTo") ?? "");
-  const base = returnTo === "hub" ? "/partner-hub?tab=events" : `/partner-hub/${membership.partnerId}/events`;
+  const session = await auth();
+  if (!session?.user) redirect("/login");
   const eventId = String(formData.get("eventId") ?? "");
+  const returnTo = String(formData.get("returnTo") ?? "");
+  const base = returnTo === "hub" ? "/partner-hub?tab=events" : "/partner-hub";
 
   if (process.env.DATABASE_URL && eventId) {
     try {
-      await db
-        .delete(events)
-        .where(
-          and(
-            eq(events.id, eventId),
-            eq(events.partnerId, membership.partnerId)
-          )
-        );
+      const isAdmin = roleAtLeast(session.user.role, "admin");
+      if (isAdmin) {
+        await db.delete(events).where(eq(events.id, eventId));
+      } else {
+        await db
+          .delete(events)
+          .where(
+            and(
+              eq(events.id, eventId),
+              eq(events.createdBy, session.user.id)
+            )
+          );
+      }
     } catch (err) {
       console.error("Failed to delete partner event:", err);
       redirect(`${base}?error=delete`);
@@ -869,8 +898,6 @@ export async function deletePartnerEvent(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/events");
   revalidatePath("/partner-hub");
-  revalidatePath(`/partners/${membership.slug}`);
-  revalidatePath(base);
   redirect(`${base}?deleted=1`);
 }
 
