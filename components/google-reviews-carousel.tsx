@@ -47,8 +47,10 @@ const SAMPLE_REVIEWS: GoogleReview[] = [
 interface GoogleReviewsCarouselProps {
   /** Optional custom reviews list */
   reviews?: GoogleReview[];
-  /** Google Place review URL (e.g. https://search.google.com/local/writereview?placeid=...) */
+  /** Google Place review URL */
   googleReviewUrl?: string;
+  /** Google Maps Place URL */
+  googleMapsUrl?: string;
   /** Overall average rating (e.g. 5.0) */
   averageRating?: number;
   /** Total review count */
@@ -57,7 +59,8 @@ interface GoogleReviewsCarouselProps {
 
 export function GoogleReviewsCarousel({
   reviews = SAMPLE_REVIEWS,
-  googleReviewUrl = "https://search.google.com/local/writereview",
+  googleReviewUrl = "https://g.page/r/CbvIgVowljhSEAE/review",
+  googleMapsUrl = "https://www.google.com/maps/place/?q=place_id:ChIJGxK63Jmig6URu8iBWjCWOFI",
   averageRating = 5.0,
   totalReviews = 48,
 }: GoogleReviewsCarouselProps) {
@@ -125,9 +128,14 @@ export function GoogleReviewsCarousel({
     <div className="mm-glass relative flex flex-col justify-between overflow-hidden rounded-3xl border border-[color-mix(in_srgb,var(--mm-gold)_35%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_65%,transparent)] p-6 shadow-lg backdrop-blur-md">
       {/* Header with Google Logo & Rating */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--mm-divider)] pb-4">
-        <div className="flex items-center gap-2.5">
+        <a
+          href={googleReviewUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2.5 transition hover:opacity-90 group"
+        >
           {/* Google Icon */}
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-white shadow-sm">
+          <div className="grid h-9 w-9 place-items-center rounded-xl bg-white shadow-sm group-hover:scale-105 transition-transform">
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
@@ -149,7 +157,9 @@ export function GoogleReviewsCarousel({
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-white">Google Reviews</span>
+              <span className="font-semibold text-white group-hover:text-[var(--mm-gold)] transition-colors">
+                Google Reviews
+              </span>
               <Icon icon="mdi:check-decagram" width={14} className="text-[#4285F4]" />
             </div>
             <div className="flex items-center gap-1.5 text-xs text-[var(--mm-text-dim)]">
@@ -158,7 +168,7 @@ export function GoogleReviewsCarousel({
               <span>({totalReviews}+ reviews)</span>
             </div>
           </div>
-        </div>
+        </a>
 
         {/* Action button to leave a Google Review */}
         <a
@@ -205,23 +215,34 @@ export function GoogleReviewsCarousel({
 
       {/* Controls & Pagination Footer */}
       <div className="flex items-center justify-between border-t border-[var(--mm-divider)] pt-3 text-xs">
-        {/* Carousel Dots */}
-        <div className="flex items-center gap-1.5">
-          {reviews.map((r, i) => (
-            <button
-              key={r.id}
-              onClick={() => {
-                setActiveIndex(i);
-                resetTimer();
-              }}
-              aria-label={`Go to review ${i + 1}`}
-              className={`h-2 rounded-full transition-all ${
-                i === activeIndex
-                  ? "w-6 bg-[var(--mm-gold)]"
-                  : "w-2 bg-[var(--mm-border)] hover:bg-[var(--mm-text-dim)]"
-              }`}
-            />
-          ))}
+        {/* Carousel Dots & Google Link */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            {reviews.map((r, i) => (
+              <button
+                key={r.id}
+                onClick={() => {
+                  setActiveIndex(i);
+                  resetTimer();
+                }}
+                aria-label={`Go to review ${i + 1}`}
+                className={`h-2 rounded-full transition-all ${
+                  i === activeIndex
+                    ? "w-6 bg-[var(--mm-gold)]"
+                    : "w-2 bg-[var(--mm-border)] hover:bg-[var(--mm-text-dim)]"
+                }`}
+              />
+            ))}
+          </div>
+          <a
+            href={googleReviewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:inline-flex items-center gap-1 text-[var(--mm-gold)] hover:underline font-medium"
+          >
+            <span>Read on Google</span>
+            <Icon icon="mdi:open-in-new" width={11} />
+          </a>
         </div>
 
         {/* Prev / Next Buttons */}
