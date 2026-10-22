@@ -14,6 +14,7 @@ import { Badge } from "@/components/badge";
 import { formatDateTime } from "@/lib/format";
 import { pageMetadata } from "@/lib/metadata";
 import { withReturn } from "@/lib/return-to";
+import { GoogleReviewsCarousel } from "@/components/google-reviews-carousel";
 
 // No title: the root layout's default already names the site, and a template
 // suffix on the landing page would read as a duplicate in the tab.
@@ -154,16 +155,23 @@ export default async function HomePage() {
       {/* ---------------- What we are ---------------- */}
       <section id="about" className="scroll-mt-20 bg-[var(--mm-bg)]">
         <div className="mx-auto max-w-6xl px-6 py-20">
-          <SectionTitle
-            icon="game-icons:castle"
-            lead="What is"
-            accent="Mythical Mecca"
-          />
-          <p className="mt-4 max-w-2xl text-lg text-[var(--mm-text-dim)]">
-            We run the gatherings and the quests, and we give local makers
-            somewhere to set out their wares. Bring whatever flavour of geek you
-            arrived with.
-          </p>
+          <div className="grid items-center gap-8 lg:grid-cols-12 lg:gap-12">
+            <div className="lg:col-span-7">
+              <SectionTitle
+                icon="game-icons:castle"
+                lead="What is"
+                accent="Mythical Mecca"
+              />
+              <p className="mt-4 max-w-xl text-lg text-[var(--mm-text-dim)] leading-relaxed">
+                We run the gatherings and the quests, and we give local makers
+                somewhere to set out their wares. Bring whatever flavour of geek you
+                arrived with.
+              </p>
+            </div>
+            <div className="lg:col-span-5">
+              <GoogleReviewsCarousel />
+            </div>
+          </div>
           {/* Panels, not cards. These describe the place rather than leading
               anywhere, so they carry no surface, no border box and no hover
               state — three of those in a row read as buttons and invite a
