@@ -664,8 +664,8 @@ export default async function PartnerHubPage({
                 })}
                 className="flex items-center justify-between rounded-xl border border-[var(--mm-border)] bg-[var(--mm-surface)] px-4 py-2.5 text-xs transition hover:border-[var(--mm-gold)]"
               >
-                <span>{s.huntTitle}</span>
-                <span className="text-[var(--mm-text-dim)]">{s.instruction} →</span>
+                <span>{s.questTitle}</span>
+                <span className="text-[var(--mm-text-dim)]">{s.objectiveTitle} →</span>
               </Link>
             ))}
           </div>
