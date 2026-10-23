@@ -4,8 +4,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Icon } from "@/components/icon";
 import { StarRating } from "@/components/star-rating";
 
-import Script from "next/script";
-
 export interface GoogleReview {
   id: string;
   authorName: string;
@@ -13,36 +11,57 @@ export interface GoogleReview {
   timeAgo: string;
   text: string;
   avatarUrl?: string;
+  reviewUrl?: string;
 }
 
-const SAMPLE_REVIEWS: GoogleReview[] = [
+/**
+ * Authentic reviews from Mythical Mecca's official Google Business profile
+ * Place ID: ChIJGxK63Jmig6URu8iBWjCWOFI
+ */
+const ACTUAL_GOOGLE_REVIEWS: GoogleReview[] = [
   {
-    id: "1",
-    authorName: "Marcus Vance",
+    id: "ed5c403c",
+    authorName: "Brink Designs",
     rating: 5,
-    timeAgo: "2 weeks ago",
-    text: "The best community gathering I've been to! The tabletop tournaments and scavenger hunts were incredible. Found so many unique dice and miniatures from local creators.",
+    timeAgo: "May 2026",
+    text: "Mythical Mecca is the best directory of geek culture creators in South Africa and has a large passion to expand the community. If you are looking for something specific, Mythical Mecca can point you in the right direction.",
+    avatarUrl:
+      "https://lh3.googleusercontent.com/a-/ALV-UjXHLhTV1yakw5HUNmpAOyr1hmGimw2Zpmoq6Gc9KqhbjZ9UInuE=s120-c-rp-mo-br100",
+    reviewUrl:
+      "https://www.google.com/maps/reviews/data=!4m8!14m7!1m6!2m5!1sCi9DQUlRQUNvZENodHljRjlvT205T09HUkdURXgxVVhGRU9WWXRhbWxPVTNKeWJtYxAB!2m1!1s0x0:0x523896305a81c8bb!3m1!1s2@1:CAIQACodChtycF9oOm9OOGRGTEx1UXFEOVYtamlOU3Jybmc%7C%7C",
   },
   {
-    id: "2",
-    authorName: "Elena Rostova",
+    id: "4961fd13",
+    authorName: "Garren Amdur",
     rating: 5,
-    timeAgo: "a month ago",
-    text: "Mythical Mecca is pure magic. Welcoming to every kind of nerd, from casual board gamers to full-on cosplayers. The energy is always fantastic!",
+    timeAgo: "April 2026",
+    text: "Mythical Mecca has pulled together a list of best geek focused vendors, from merch suppliers to some of the best geek crafters and artists countrywide. They have also staged great events bringing these vendors together with their key demographic. They offer great exposure not only to their own brand but also other event organisers.",
+    avatarUrl:
+      "https://lh3.googleusercontent.com/a-/ALV-UjU_GIGHsTJ0Qrz4cWCEi879utGXZYydVMzFVNq2f_XYKZ0K3T0=s120-c-rp-mo-ba12-br100",
+    reviewUrl:
+      "https://www.google.com/maps/reviews/data=!4m8!14m7!1m6!2m5!1sCi9DQUlRQUNvZENodHljRjlvT25oUWMzcDNZMFJOV2w5bFozbFNVMTlEYlhKTFIxRRAB!2m1!1s0x0:0x523896305a81c8bb!3m1!1s2@1:CAIQACodChtycF9oOnhQc3p3Y0RNWl9lZ3lSU19DbXJLR1E%7C%7C",
   },
   {
-    id: "3",
-    authorName: "Liam Chen",
+    id: "03ff4c00",
+    authorName: "Ivan Calitz Crockart",
     rating: 5,
-    timeAgo: "a month ago",
-    text: "Phenomenal events and community spirit. The artisan stalls have items you won't find anywhere else. Can't wait for the next gathering!",
+    timeAgo: "April 2026",
+    text: "Amazing initiative! Putting artists first and keeping it about the community and the shared passion.",
+    avatarUrl:
+      "https://lh3.googleusercontent.com/a-/ALV-UjXLqpkLSHaGWlAp57lMs5bX-Kb-IvaUWBoTdh-EWkbFyvGlXsNccA=s120-c-rp-mo-br100",
+    reviewUrl:
+      "https://www.google.com/maps/reviews/data=!4m8!14m7!1m6!2m5!1sCi9DQUlRQUNvZENodHljRjlvT21wT1ZscEJZMGxPVlVSNk0yWkdXR0pWUkdaSVJFRRAB!2m1!1s0x0:0x523896305a81c8bb!3m1!1s2@1:CAIQACodChtycF9oOmpOVlpBY0lOVUR6M2ZGWGJVRGZIREE%7C%7C",
   },
   {
-    id: "4",
-    authorName: "Sarah Jenkins",
+    id: "3571f01f",
+    authorName: "Ant Rouziev",
     rating: 5,
-    timeAgo: "2 months ago",
-    text: "Family-friendly, engaging, and so much fun. My kids loved the quest trails and meeting other creators. 10/10 recommendation for anyone looking for adventure.",
+    timeAgo: "April 2026",
+    text: "Fantastic initiative bringing together local artists, creators, and the geek community in South Africa. 5 stars all the way!",
+    avatarUrl:
+      "https://lh3.googleusercontent.com/a-/ALV-UjXyH-7y8pQFF46rdN0BylJ2lVFmZu3VN1MPrf04Mtk3R2ChstT2=s120-c-rp-mo-br100",
+    reviewUrl:
+      "https://www.google.com/maps/reviews/data=!4m8!14m7!1m6!2m5!1sCi9DQUlRQUNvZENodHljRjlvT2xwUFNIUlZUR1pMVFZaTWJHNUJkWGhSUmpGek1sRRAB!2m1!1s0x0:0x523896305a81c8bb!3m1!1s2@1:CAIQACodChtycF9oOlpPSHRVTGZLTVZMbG5BdXhRRjFzMlE%7C%7C",
   },
 ];
 
@@ -57,49 +76,20 @@ interface GoogleReviewsCarouselProps {
   averageRating?: number;
   /** Total review count */
   totalReviews?: number;
-  /** Optional Elfsight / embed widget ID */
-  widgetId?: string;
 }
 
 export function GoogleReviewsCarousel({
-  reviews = SAMPLE_REVIEWS,
+  reviews = ACTUAL_GOOGLE_REVIEWS,
   googleReviewUrl = "https://g.page/r/CbvIgVowljhSEAE/review",
   googleMapsUrl = "https://www.google.com/maps/place/?q=place_id:ChIJGxK63Jmig6URu8iBWjCWOFI",
   averageRating = 5.0,
-  totalReviews = 48,
-  widgetId = "2b5f2498-c955-40f5-8a19-c3923a340476",
+  totalReviews = 4,
 }: GoogleReviewsCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [mouseDownStart, setMouseDownStart] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (!widgetId) return;
-    const existing = document.querySelector('script[src="https://elfsightcdn.com/platform.js"]');
-    if (!existing) {
-      const script = document.createElement("script");
-      script.src = "https://elfsightcdn.com/platform.js";
-      script.async = true;
-      document.body.appendChild(script);
-    } else {
-      try {
-        (window as unknown as { eapps?: { platform?: { init?: () => void } } })
-          ?.eapps?.platform?.init?.();
-      } catch {
-        // ignore
-      }
-    }
-  }, [widgetId]);
-
-  if (widgetId) {
-    return (
-      <div className="mm-glass overflow-hidden rounded-3xl border border-[color-mix(in_srgb,var(--mm-gold)_35%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_65%,transparent)] p-4 shadow-lg backdrop-blur-md">
-        <div className={`elfsight-app-${widgetId}`} data-elfsight-app-lazy />
-        <Script src="https://elfsightcdn.com/platform.js" strategy="afterInteractive" />
-      </div>
-    );
-  }
 
   const total = reviews.length;
 
@@ -111,11 +101,11 @@ export function GoogleReviewsCarousel({
     setActiveIndex((prev) => (prev - 1 + total) % total);
   }, [total]);
 
-  // Auto-advance every 6 seconds
+  // Gentle auto-advance every 6.5 seconds
   useEffect(() => {
     timerRef.current = setInterval(() => {
       nextSlide();
-    }, 6000);
+    }, 6500);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
@@ -125,12 +115,11 @@ export function GoogleReviewsCarousel({
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       nextSlide();
-    }, 7000);
+    }, 7500);
   };
 
-  // Touch & Mouse handlers for swiping
+  // Touch & Mouse handlers for smooth swiping
   const minSwipeDistance = 50;
-  const [mouseDownStart, setMouseDownStart] = useState<number | null>(null);
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -175,17 +164,17 @@ export function GoogleReviewsCarousel({
   const current = reviews[activeIndex];
 
   return (
-    <div className="mm-glass relative flex flex-col justify-between overflow-hidden rounded-3xl border border-[color-mix(in_srgb,var(--mm-gold)_35%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_65%,transparent)] p-6 shadow-lg backdrop-blur-md">
+    <div className="mm-glass relative flex flex-col justify-between overflow-hidden rounded-3xl border border-[color-mix(in_srgb,var(--mm-gold)_35%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_65%,transparent)] p-6 shadow-xl backdrop-blur-md">
       {/* Header with Google Logo & Rating */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--mm-divider)] pb-4">
         <a
           href={googleReviewUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2.5 transition hover:opacity-90 group"
+          className="group flex items-center gap-2.5 transition hover:opacity-90"
         >
-          {/* Google Icon */}
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-white shadow-sm group-hover:scale-105 transition-transform">
+          {/* Google "G" Badge */}
+          <div className="grid h-9 w-9 place-items-center rounded-xl bg-white shadow-sm transition-transform group-hover:scale-105">
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
@@ -207,7 +196,7 @@ export function GoogleReviewsCarousel({
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-white group-hover:text-[var(--mm-gold)] transition-colors">
+              <span className="font-semibold text-white transition-colors group-hover:text-[var(--mm-gold)]">
                 Google Reviews
               </span>
               <Icon icon="mdi:check-decagram" width={14} className="text-[#4285F4]" />
@@ -215,7 +204,7 @@ export function GoogleReviewsCarousel({
             <div className="flex items-center gap-1.5 text-xs text-[var(--mm-text-dim)]">
               <span className="font-bold text-white">{averageRating.toFixed(1)}</span>
               <StarRating value={averageRating} width={13} />
-              <span>({totalReviews}+ reviews)</span>
+              <span>({totalReviews} reviews)</span>
             </div>
           </div>
         </a>
@@ -234,7 +223,7 @@ export function GoogleReviewsCarousel({
 
       {/* Swipeable Review Body */}
       <div
-        className="my-4 min-h-[120px] select-none cursor-grab active:cursor-grabbing"
+        className="my-5 min-h-[135px] cursor-grab select-none active:cursor-grabbing"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -242,12 +231,24 @@ export function GoogleReviewsCarousel({
         onMouseUp={onMouseUp}
       >
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-full bg-[var(--mm-gold)]/20 text-xs font-bold text-[var(--mm-gold)]">
-              {current.authorName.charAt(0)}
-            </div>
+          <div className="flex items-center gap-2.5">
+            {current.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={current.avatarUrl}
+                alt={current.authorName}
+                className="h-8 w-8 rounded-full border border-[color-mix(in_srgb,var(--mm-gold)_40%,transparent)] object-cover shadow-sm"
+              />
+            ) : (
+              <div className="grid h-8 w-8 place-items-center rounded-full bg-[var(--mm-gold)]/20 text-xs font-bold text-[var(--mm-gold)]">
+                {current.authorName.charAt(0)}
+              </div>
+            )}
             <div>
-              <p className="text-sm font-semibold text-white">{current.authorName}</p>
+              <div className="flex items-center gap-1">
+                <p className="text-sm font-semibold text-white">{current.authorName}</p>
+                <Icon icon="mdi:check-decagram" width={12} className="text-[#4285F4]" />
+              </div>
               <div className="flex items-center gap-1.5 text-xs text-[var(--mm-text-dim)]">
                 <StarRating value={current.rating} width={12} />
                 <span>·</span>
@@ -260,9 +261,16 @@ export function GoogleReviewsCarousel({
           </span>
         </div>
 
-        <p className="mt-3 text-sm italic text-[var(--mm-text)] leading-relaxed">
-          &ldquo;{current.text}&rdquo;
-        </p>
+        <a
+          href={current.reviewUrl || googleReviewUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group/text block"
+        >
+          <p className="mt-3 text-sm italic leading-relaxed text-[var(--mm-text)] transition group-hover/text:text-white">
+            &ldquo;{current.text}&rdquo;
+          </p>
+        </a>
       </div>
 
       {/* Controls & Pagination Footer */}
@@ -287,12 +295,12 @@ export function GoogleReviewsCarousel({
             ))}
           </div>
           <a
-            href={googleReviewUrl}
+            href={current.reviewUrl || googleReviewUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1 text-[var(--mm-gold)] hover:underline font-medium"
+            className="hidden items-center gap-1 font-medium text-[var(--mm-gold)] hover:underline sm:inline-flex"
           >
-            <span>Read on Google</span>
+            <span>View on Google</span>
             <Icon icon="mdi:open-in-new" width={11} />
           </a>
         </div>

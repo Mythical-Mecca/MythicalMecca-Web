@@ -169,7 +169,7 @@ export default async function HomePage() {
               </p>
             </div>
             <div className="lg:col-span-5">
-              <GoogleReviewsCarousel widgetId="2b5f2498-c955-40f5-8a19-c3923a340476" />
+              <GoogleReviewsCarousel />
             </div>
           </div>
           {/* Panels, not cards. These describe the place rather than leading
