@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Icon } from "@/components/icon";
 import { StarRating } from "@/components/star-rating";
 
+import Script from "next/script";
+
 export interface GoogleReview {
   id: string;
   authorName: string;
@@ -55,6 +57,8 @@ interface GoogleReviewsCarouselProps {
   averageRating?: number;
   /** Total review count */
   totalReviews?: number;
+  /** Optional Elfsight / embed widget ID */
+  widgetId?: string;
 }
 
 export function GoogleReviewsCarousel({
@@ -63,11 +67,21 @@ export function GoogleReviewsCarousel({
   googleMapsUrl = "https://www.google.com/maps/place/?q=place_id:ChIJGxK63Jmig6URu8iBWjCWOFI",
   averageRating = 5.0,
   totalReviews = 48,
+  widgetId,
 }: GoogleReviewsCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  if (widgetId) {
+    return (
+      <div className="mm-glass overflow-hidden rounded-3xl border border-[color-mix(in_srgb,var(--mm-gold)_35%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_65%,transparent)] p-4 shadow-lg backdrop-blur-md">
+        <div className={`elfsight-app-${widgetId}`} data-elfsight-app-lazy />
+        <Script src="https://static.elfsight.com/platform/platform.js" strategy="lazyOnload" />
+      </div>
+    );
+  }
 
   const total = reviews.length;
 
