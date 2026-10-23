@@ -67,18 +67,36 @@ export function GoogleReviewsCarousel({
   googleMapsUrl = "https://www.google.com/maps/place/?q=place_id:ChIJGxK63Jmig6URu8iBWjCWOFI",
   averageRating = 5.0,
   totalReviews = 48,
-  widgetId,
+  widgetId = "2b5f2498-c955-40f5-8a19-c3923a340476",
 }: GoogleReviewsCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  useEffect(() => {
+    if (!widgetId) return;
+    const existing = document.querySelector('script[src="https://elfsightcdn.com/platform.js"]');
+    if (!existing) {
+      const script = document.createElement("script");
+      script.src = "https://elfsightcdn.com/platform.js";
+      script.async = true;
+      document.body.appendChild(script);
+    } else {
+      try {
+        (window as unknown as { eapps?: { platform?: { init?: () => void } } })
+          ?.eapps?.platform?.init?.();
+      } catch {
+        // ignore
+      }
+    }
+  }, [widgetId]);
+
   if (widgetId) {
     return (
       <div className="mm-glass overflow-hidden rounded-3xl border border-[color-mix(in_srgb,var(--mm-gold)_35%,transparent)] bg-[color-mix(in_srgb,var(--mm-surface)_65%,transparent)] p-4 shadow-lg backdrop-blur-md">
         <div className={`elfsight-app-${widgetId}`} data-elfsight-app-lazy />
-        <Script src="https://static.elfsight.com/platform/platform.js" strategy="lazyOnload" />
+        <Script src="https://elfsightcdn.com/platform.js" strategy="afterInteractive" />
       </div>
     );
   }
