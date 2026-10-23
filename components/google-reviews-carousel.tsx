@@ -96,8 +96,9 @@ export function GoogleReviewsCarousel({
     }, 7000);
   };
 
-  // Touch handlers for mobile swipe
+  // Touch & Mouse handlers for swiping
   const minSwipeDistance = 50;
+  const [mouseDownStart, setMouseDownStart] = useState<number | null>(null);
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
@@ -120,6 +121,23 @@ export function GoogleReviewsCarousel({
       prevSlide();
       resetTimer();
     }
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    setMouseDownStart(e.clientX);
+  };
+
+  const onMouseUp = (e: React.MouseEvent) => {
+    if (mouseDownStart === null) return;
+    const distance = mouseDownStart - e.clientX;
+    if (distance > minSwipeDistance) {
+      nextSlide();
+      resetTimer();
+    } else if (distance < -minSwipeDistance) {
+      prevSlide();
+      resetTimer();
+    }
+    setMouseDownStart(null);
   };
 
   const current = reviews[activeIndex];
@@ -188,6 +206,8 @@ export function GoogleReviewsCarousel({
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
