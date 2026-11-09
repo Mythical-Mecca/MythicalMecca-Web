@@ -63,3 +63,6 @@ docs/           architecture, data-model, design-system, features
 
 Phase 0 Foundation ✅ → 1 Public site → 2 Member + files → 3 Vendor + Admin →
 4 Events live layer → 5 Scavenger hunts + gamification. Details in [PLAN.md](PLAN.md).
+
+<!-- Deployment verified: November 2026 -->
+
